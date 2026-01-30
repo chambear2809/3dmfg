@@ -475,22 +475,20 @@ class TestReleaseProductionOrder:
         response = client.post(f"{BASE_URL}/999999/release")
         assert response.status_code == 404
 
-    def test_release_already_released_returns_400(self, client, db, make_product, make_bom):
-        """Cannot release an already-released order."""
+    def test_release_already_released_is_idempotent(self, client, db, make_product, make_bom):
+        """Releasing an already-released order is a no-op (same-state transition allowed)."""
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
-        # Release once — verify it worked
+        # Release once
         first = client.post(f"{BASE_URL}/{order_data['id']}/release")
-        assert first.status_code == 200, first.text
+        assert first.status_code == 200
         assert first.json()["status"] == "released"
 
-        # Attempt second release — should fail
+        # Second release is idempotent — returns 200
         response = client.post(f"{BASE_URL}/{order_data['id']}/release")
-        assert response.status_code == 400, (
-            f"Expected 400, got {response.status_code}. "
-            f"Body: {response.text}"
-        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "released"
 
     def test_release_completed_order_returns_400(self, client, db, make_product, make_bom):
         """Cannot release a completed order."""
@@ -638,8 +636,8 @@ class TestCompleteProductionOrder:
         response = client.post(f"{BASE_URL}/999999/complete")
         assert response.status_code == 404
 
-    def test_complete_already_completed_returns_400(self, client, db, make_product, make_bom):
-        """Cannot complete an already-completed order."""
+    def test_complete_already_completed_is_idempotent(self, client, db, make_product, make_bom):
+        """Completing an already-completed order is a no-op (same-state allowed)."""
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
@@ -653,9 +651,10 @@ class TestCompleteProductionOrder:
         assert first.status_code == 200, first.text
         assert first.json()["status"] == "complete"
 
-        # Second complete should fail
+        # Second complete is idempotent — same-state transition allowed
         response = client.post(f"{BASE_URL}/{order_data['id']}/complete")
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert response.json()["status"] == "complete"
 
 
 # =============================================================================
@@ -713,19 +712,20 @@ class TestCancelProductionOrder:
         response = client.post(f"{BASE_URL}/{order_data['id']}/cancel")
         assert response.status_code == 400
 
-    def test_cancel_already_cancelled_returns_400(self, client, db, make_product, make_bom):
-        """Cannot cancel an already-cancelled order -- it is a terminal state."""
+    def test_cancel_already_cancelled_is_idempotent(self, client, db, make_product, make_bom):
+        """Cancelling an already-cancelled order is a no-op (same-state allowed)."""
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
-        # Cancel via API first
+        # Cancel via API
         first = client.post(f"{BASE_URL}/{order_data['id']}/cancel")
-        assert first.status_code == 200, first.text
+        assert first.status_code == 200
         assert first.json()["status"] == "cancelled"
 
-        # Second cancel should fail
+        # Second cancel is idempotent — same-state transition allowed
         response = client.post(f"{BASE_URL}/{order_data['id']}/cancel")
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert response.json()["status"] == "cancelled"
 
     def test_cancel_nonexistent_returns_404(self, client):
         response = client.post(f"{BASE_URL}/999999/cancel")
