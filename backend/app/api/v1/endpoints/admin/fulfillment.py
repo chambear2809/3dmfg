@@ -209,7 +209,7 @@ def build_production_queue_item(po: ProductionOrder, db: Session) -> dict:
         "color": quote.color if quote else None,
         "quantity": int(po.quantity),
         "status": po.status,
-        "priority": po.priority,
+        "priority": str(po.priority) if po.priority is not None else None,
         "estimated_time_minutes": po.estimated_time_minutes,
         "created_at": po.created_at,
         "started_at": po.actual_start,
@@ -465,7 +465,7 @@ async def get_production_order_details(
         ],
         "notes": po.notes,
         "actual_time_minutes": po.actual_time_minutes,
-        "actual_cost": float(po.actual_cost) if po.actual_cost else None,
+        "actual_cost": None,  # Not yet tracked on ProductionOrder model
     }
 
 
