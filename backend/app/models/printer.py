@@ -84,7 +84,11 @@ class Printer(Base):
         """Check if printer was seen recently (within 5 minutes)"""
         if not self.last_seen:
             return False
-        return (datetime.now(timezone.utc) - self.last_seen).total_seconds() < 300
+        # last_seen is stored as naive UTC (DateTime without timezone=True).
+        # Use a naive UTC now to avoid aware-vs-naive TypeError.
+        now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+        last_seen = self.last_seen.replace(tzinfo=None) if self.last_seen.tzinfo else self.last_seen
+        return (now_utc - last_seen).total_seconds() < 300
 
     @property
     def has_ams(self) -> bool:

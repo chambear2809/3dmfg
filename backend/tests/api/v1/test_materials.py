@@ -273,7 +273,7 @@ class TestColorsForMaterialType:
         mt = make_material_type(code="CLR-MT-SHAPE")
         color = make_color(code="CLR-SHAPE", name="Shape Blue", hex_code="#0000FF")
         make_material_color(material_type_id=mt.id, color_id=color.id)
-        resp = client.get(f"{BASE_URL}/types/CLR-MT-SHAPE/colors")
+        resp = client.get(f"{BASE_URL}/types/CLR-MT-SHAPE/colors", params={"in_stock_only": "false"})
         data = resp.json()
         assert data["material_type"] == "CLR-MT-SHAPE"
         assert "colors" in data
@@ -297,7 +297,7 @@ class TestColorsForMaterialType:
         c2 = make_color(code="LINKED-BLUE", name="Blue", hex_code="#0000FF")
         make_material_color(material_type_id=mt.id, color_id=c1.id)
         make_material_color(material_type_id=mt.id, color_id=c2.id)
-        resp = client.get(f"{BASE_URL}/types/CLR-MT-LINKED/colors")
+        resp = client.get(f"{BASE_URL}/types/CLR-MT-LINKED/colors", params={"in_stock_only": "false"})
         data = resp.json()
         color_codes = [c["code"] for c in data["colors"]]
         assert "LINKED-RED" in color_codes

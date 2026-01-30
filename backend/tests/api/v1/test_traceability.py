@@ -16,6 +16,7 @@ import pytest
 from decimal import Decimal
 
 from app.models.production_order import ProductionOrder
+from app.models.user import User
 
 
 BASE_URL = "/api/v1/admin/traceability"
@@ -28,6 +29,22 @@ BASE_URL = "/api/v1/admin/traceability"
 def _uid():
     """Short unique suffix for test data."""
     return uuid.uuid4().hex[:8]
+
+
+def _create_user(db, **overrides):
+    """Create a unique User directly in the DB for profile tests."""
+    uid = _uid()
+    user = User(
+        email=overrides.pop("email", f"trace-{uid}@example.com"),
+        password_hash="not-a-real-hash",
+        first_name="Trace",
+        last_name=f"User {uid}",
+        account_type=overrides.pop("account_type", "customer"),
+        **overrides,
+    )
+    db.add(user)
+    db.flush()
+    return user
 
 
 def _create_lot(client, product_id, vendor_id=None, **overrides):
@@ -148,10 +165,11 @@ class TestCustomerTraceabilityProfiles:
         assert "id" in data
         assert "created_at" in data
 
-    def test_create_profile_invalid_level(self, client):
+    def test_create_profile_invalid_level(self, client, db):
         """Creating a profile with an invalid traceability level returns 400."""
+        user = _create_user(db)
         payload = {
-            "user_id": 1,
+            "user_id": user.id,
             "traceability_level": "mega",
         }
         response = client.post(f"{BASE_URL}/profiles", json=payload)
@@ -167,10 +185,11 @@ class TestCustomerTraceabilityProfiles:
         response = client.post(f"{BASE_URL}/profiles", json=payload)
         assert response.status_code == 404
 
-    def test_create_profile_duplicate(self, client):
+    def test_create_profile_duplicate(self, client, db):
         """Creating a second profile for the same user returns 400."""
+        user = _create_user(db)
         payload = {
-            "user_id": 1,
+            "user_id": user.id,
             "traceability_level": "serial",
         }
         # First creation
@@ -182,17 +201,19 @@ class TestCustomerTraceabilityProfiles:
         assert r2.status_code == 400
         assert "already exists" in r2.json()["detail"]
 
-    def test_get_profile(self, client):
+    def test_get_profile(self, client, db):
         """Retrieve a profile by user_id after creation."""
-        client.post(f"{BASE_URL}/profiles", json={
-            "user_id": 1,
+        user = _create_user(db)
+        r = client.post(f"{BASE_URL}/profiles", json={
+            "user_id": user.id,
             "traceability_level": "full",
             "requires_coc": True,
         })
-        response = client.get(f"{BASE_URL}/profiles/1")
+        assert r.status_code == 200, r.text
+        response = client.get(f"{BASE_URL}/profiles/{user.id}")
         assert response.status_code == 200
         data = response.json()
-        assert data["user_id"] == 1
+        assert data["user_id"] == user.id
         assert data["traceability_level"] == "full"
 
     def test_get_profile_not_found(self, client):
