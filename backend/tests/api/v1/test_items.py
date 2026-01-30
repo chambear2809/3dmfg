@@ -992,7 +992,8 @@ class TestDemandSummary:
         resp = client.get(f"{BASE_URL}/{product.id}/demand-summary")
         assert resp.status_code == 200
         body = resp.json()
-        assert "on_hand_qty" in body or "on_hand" in body
+        assert "quantities" in body
+        assert "on_hand" in body["quantities"]
 
 
 # =============================================================================

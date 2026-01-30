@@ -528,7 +528,7 @@ async def convert_quote_to_order(
         )
 
     # Check if expired
-    if quote.expires_at < datetime.now(timezone.utc):
+    if quote.expires_at.replace(tzinfo=None) < datetime.now(timezone.utc).replace(tzinfo=None):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Quote has expired"

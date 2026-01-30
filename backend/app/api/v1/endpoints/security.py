@@ -743,6 +743,8 @@ async def fix_rate_limiting(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Installation timed out. Try running: pip install slowapi"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to install rate limiting: {e}")
         raise HTTPException(

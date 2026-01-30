@@ -93,7 +93,7 @@ class TestSalesOrderAuth:
 
     def test_add_event_requires_auth(self, unauthed_client):
         response = unauthed_client.post(f"{BASE_URL}/1/events", json={
-            "event_type": "note",
+            "event_type": "note_added",
             "title": "Test note",
         })
         assert response.status_code == 401
@@ -986,19 +986,19 @@ class TestOrderEvents:
         db.flush()
 
         response = client.post(f"{BASE_URL}/{so.id}/events", json={
-            "event_type": "note",
+            "event_type": "note_added",
             "title": "Admin note",
             "description": "Customer called about ETA",
         })
         assert response.status_code == 201
         data = response.json()
-        assert data["event_type"] == "note"
+        assert data["event_type"] == "note_added"
         assert data["title"] == "Admin note"
         assert data["description"] == "Customer called about ETA"
 
     def test_add_event_nonexistent_order(self, client):
         response = client.post(f"{BASE_URL}/999999/events", json={
-            "event_type": "note",
+            "event_type": "note_added",
             "title": "Test",
         })
         assert response.status_code == 404
@@ -1009,7 +1009,7 @@ class TestOrderEvents:
         db.flush()
 
         response = client.post(f"{BASE_URL}/{so.id}/events", json={
-            "event_type": "note",
+            "event_type": "note_added",
             "title": "Custom note with metadata",
             "metadata_key": "priority",
             "metadata_value": "high",

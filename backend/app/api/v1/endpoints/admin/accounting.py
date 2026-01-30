@@ -957,7 +957,10 @@ async def get_tax_summary(
         if month_end > now:
             month_end = now
 
-        month_orders = [o for o in orders if o.shipped_at and current <= o.shipped_at <= month_end]
+        month_orders = [
+            o for o in orders
+            if o.shipped_at and current.replace(tzinfo=None) <= o.shipped_at.replace(tzinfo=None) <= month_end.replace(tzinfo=None)
+        ]
         month_tax = sum(float(o.tax_amount or 0) for o in month_orders)
         month_taxable = sum(
             float(o.total_price or 0)
