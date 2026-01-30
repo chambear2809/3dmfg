@@ -477,16 +477,20 @@ class TestReleaseProductionOrder:
 
     def test_release_already_released_returns_400(self, client, db, make_product, make_bom):
         """Cannot release an already-released order."""
-        from app.models.production_order import ProductionOrder
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
-        # Release once
-        client.post(f"{BASE_URL}/{order_data['id']}/release")
+        # Release once — verify it worked
+        first = client.post(f"{BASE_URL}/{order_data['id']}/release")
+        assert first.status_code == 200, first.text
+        assert first.json()["status"] == "released"
 
-        # Attempt second release
+        # Attempt second release — should fail
         response = client.post(f"{BASE_URL}/{order_data['id']}/release")
-        assert response.status_code == 400
+        assert response.status_code == 400, (
+            f"Expected 400, got {response.status_code}. "
+            f"Body: {response.text}"
+        )
 
     def test_release_completed_order_returns_400(self, client, db, make_product, make_bom):
         """Cannot release a completed order."""
@@ -636,14 +640,20 @@ class TestCompleteProductionOrder:
 
     def test_complete_already_completed_returns_400(self, client, db, make_product, make_bom):
         """Cannot complete an already-completed order."""
-        from app.models.production_order import ProductionOrder
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
-        order = db.query(ProductionOrder).filter(ProductionOrder.id == order_data["id"]).first()
-        order.status = "complete"
-        db.flush()
+        # Drive through the full lifecycle via API
+        client.post(f"{BASE_URL}/{order_data['id']}/release")
+        client.post(f"{BASE_URL}/{order_data['id']}/start")
+        first = client.post(
+            f"{BASE_URL}/{order_data['id']}/complete",
+            json={"quantity_completed": "10"},
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["status"] == "complete"
 
+        # Second complete should fail
         response = client.post(f"{BASE_URL}/{order_data['id']}/complete")
         assert response.status_code == 400
 
@@ -705,14 +715,15 @@ class TestCancelProductionOrder:
 
     def test_cancel_already_cancelled_returns_400(self, client, db, make_product, make_bom):
         """Cannot cancel an already-cancelled order -- it is a terminal state."""
-        from app.models.production_order import ProductionOrder
         fg, _, _ = _create_product_with_bom(make_product, make_bom, db)
         order_data = _create_draft_order(client, fg.id)
 
-        order = db.query(ProductionOrder).filter(ProductionOrder.id == order_data["id"]).first()
-        order.status = "cancelled"
-        db.flush()
+        # Cancel via API first
+        first = client.post(f"{BASE_URL}/{order_data['id']}/cancel")
+        assert first.status_code == 200, first.text
+        assert first.json()["status"] == "cancelled"
 
+        # Second cancel should fail
         response = client.post(f"{BASE_URL}/{order_data['id']}/cancel")
         assert response.status_code == 400
 

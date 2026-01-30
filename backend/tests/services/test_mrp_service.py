@@ -772,9 +772,12 @@ class TestReleasePlannedOrder:
 
     def test_release_firmed_order_succeeds(self, db, make_product, make_vendor):
         """Firmed orders can also be released (not just planned)."""
-        # Clean up any POs committed by previous release tests to avoid
-        # duplicate key on the auto-generated po_number sequence.
+        # Clean up planned orders referencing POs first (FK constraint),
+        # then clean up POs to avoid duplicate key on auto-generated po_number.
         year = datetime.now(timezone.utc).year
+        db.query(PlannedOrder).filter(
+            PlannedOrder.converted_to_po_id.isnot(None)
+        ).update({"converted_to_po_id": None}, synchronize_session=False)
         db.query(PurchaseOrder).filter(
             PurchaseOrder.po_number.like(f"PO-{year}-%")
         ).delete(synchronize_session=False)

@@ -1259,7 +1259,9 @@ async def complete_production_order(
     order.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
 
     if order.actual_start:  # type: ignore[truthy-function]
-        delta = order.actual_end - order.actual_start  # type: ignore[operator]
+        # Normalize timezone: DB may return naive datetimes while actual_end is aware
+        _start = order.actual_start.replace(tzinfo=timezone.utc) if not order.actual_start.tzinfo else order.actual_start
+        delta = order.actual_end - _start  # type: ignore[operator]
         order.actual_time_minutes = int(delta.total_seconds() / 60)  # type: ignore[assignment]
 
     db.query(ProductionOrderOperation).filter(
