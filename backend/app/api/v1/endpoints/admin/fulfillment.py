@@ -459,7 +459,7 @@ async def get_production_order_details(
                 "printer_id": pj.printer_id,
                 "queued_at": pj.queued_at.isoformat() if pj.queued_at else None,
                 "started_at": pj.started_at.isoformat() if pj.started_at else None,
-                "completed_at": pj.completed_at.isoformat() if pj.completed_at else None,
+                "completed_at": pj.finished_at.isoformat() if pj.finished_at else None,
             }
             for pj in print_jobs
         ],
