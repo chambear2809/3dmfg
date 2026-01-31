@@ -363,6 +363,8 @@ class TestProductUpdate:
             product_id=product.id,
             line_number=1,
             quantity_ordered=Decimal("10"),
+            unit_cost=Decimal("5.00"),
+            line_total=Decimal("50.00"),
         )
         db.add(po_line)
         db.flush()
