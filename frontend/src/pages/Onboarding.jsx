@@ -8,7 +8,7 @@
  * 4. CSV import for inventory (optional)
  * 5. Complete - redirect to dashboard
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../config/api";
 
@@ -25,6 +25,7 @@ const STEPS = {
 export default function Onboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(STEPS.ACCOUNT);
+  const advanceTimeoutRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [error, setError] = useState(null);
@@ -67,8 +68,22 @@ export default function Onboarding() {
 
   useEffect(() => {
     checkSetupStatus();
+    return () => {
+      if (advanceTimeoutRef.current) {
+        clearTimeout(advanceTimeoutRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const scheduleAdvance = (nextStep) => {
+    if (advanceTimeoutRef.current) {
+      clearTimeout(advanceTimeoutRef.current);
+    }
+    advanceTimeoutRef.current = setTimeout(() => {
+      setCurrentStep(nextStep);
+    }, 2000);
+  };
 
   const checkSetupStatus = async () => {
     try {
@@ -196,9 +211,7 @@ export default function Onboarding() {
       }
 
       setSeedResult(data);
-      setTimeout(() => {
-        setCurrentStep(STEPS.PRODUCTS);
-      }, 2000);
+      scheduleAdvance(STEPS.PRODUCTS);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -236,9 +249,7 @@ export default function Onboarding() {
       }
 
       setProductsResult(data);
-      setTimeout(() => {
-        setCurrentStep(STEPS.CUSTOMERS);
-      }, 2000);
+      scheduleAdvance(STEPS.CUSTOMERS);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -276,9 +287,7 @@ export default function Onboarding() {
       }
 
       setCustomersResult(data);
-      setTimeout(() => {
-        setCurrentStep(STEPS.ORDERS);
-      }, 2000);
+      scheduleAdvance(STEPS.ORDERS);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -329,9 +338,7 @@ export default function Onboarding() {
       const data = await res.json();
 
       setOrdersResult(data);
-      setTimeout(() => {
-        setCurrentStep(STEPS.INVENTORY);
-      }, 2000);
+      scheduleAdvance(STEPS.INVENTORY);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -369,14 +376,23 @@ export default function Onboarding() {
       }
       // Endpoint doesn't exist yet - that's okay, we'll just continue
 
-      setTimeout(() => {
-        setCurrentStep(STEPS.COMPLETE);
-      }, 2000);
+      scheduleAdvance(STEPS.COMPLETE);
     } catch {
       // If endpoint doesn't exist, that's fine - just skip
       setCurrentStep(STEPS.COMPLETE);
     } finally {
       setImportingInventory(false);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > STEPS.ACCOUNT) {
+      if (advanceTimeoutRef.current) {
+        clearTimeout(advanceTimeoutRef.current);
+        advanceTimeoutRef.current = null;
+      }
+      setCurrentStep(currentStep - 1);
+      setError(null);
     }
   };
 
@@ -656,6 +672,14 @@ export default function Onboarding() {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={seedingData}
+                  className="px-4 py-3 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Back
+                </button>
+                <button
                   onClick={handleSeedExampleData}
                   disabled={seedingData}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -703,6 +727,14 @@ export default function Onboarding() {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={importingProducts}
+                  className="px-4 py-3 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Back
+                </button>
+                <button
                   onClick={handleProductsImport}
                   disabled={importingProducts}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -744,6 +776,14 @@ export default function Onboarding() {
               )}
 
               <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={importingCustomers}
+                  className="px-4 py-3 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Back
+                </button>
                 <button
                   onClick={handleCustomersImport}
                   disabled={importingCustomers}
@@ -812,6 +852,14 @@ export default function Onboarding() {
 
               <div className="flex gap-3">
                 <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={importingOrders}
+                  className="px-4 py-3 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Back
+                </button>
+                <button
                   onClick={handleOrdersImport}
                   disabled={importingOrders}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -851,6 +899,14 @@ export default function Onboarding() {
               )}
 
               <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  disabled={importingInventory}
+                  className="px-4 py-3 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                >
+                  Back
+                </button>
                 <button
                   onClick={handleInventoryImport}
                   disabled={importingInventory}
