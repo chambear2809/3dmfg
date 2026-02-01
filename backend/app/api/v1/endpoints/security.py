@@ -6,6 +6,7 @@ Provides security audit functionality for the admin dashboard:
 - Export audit reports
 - Check security status
 """
+import re
 import sys
 import os
 from datetime import datetime
@@ -25,6 +26,24 @@ from app.logging_config import get_logger
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/security", tags=["Security"])
+
+
+def validate_domain(domain: str) -> str:
+    """Validate domain against strict pattern to prevent injection."""
+    domain = domain.strip().lower()
+    if not domain:
+        raise HTTPException(status_code=400, detail="Domain cannot be empty")
+    if len(domain) > 253:
+        raise HTTPException(status_code=400, detail="Domain too long")
+    # Strict domain pattern: letters, numbers, dots, hyphens only
+    pattern = r'^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$'
+    if not re.match(pattern, domain):
+        raise HTTPException(status_code=400, detail="Invalid domain format")
+    # Reject any shell metacharacters as extra safety
+    dangerous_chars = ['"', "'", ';', '&', '|', '$', '`', '(', ')', '{', '}', '<', '>', '\\', '\n', '\r']
+    if any(char in domain for char in dangerous_chars):
+        raise HTTPException(status_code=400, detail="Domain contains invalid characters")
+    return domain
 
 
 # ============================================================================
@@ -782,12 +801,7 @@ async def setup_https(
     import subprocess
     import platform
 
-    domain = request.domain.strip()
-    if not domain:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Domain is required"
-        )
+    domain = validate_domain(request.domain)
 
     # Find the project root
     backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(
@@ -1095,8 +1109,8 @@ echo  Servers stopped.
                 # Use local caddy.exe if we downloaded it, otherwise use system caddy
                 caddy_exe = results.get("caddy_path", "caddy")
                 subprocess.Popen(
-                    f'start "Caddy Server" "{caddy_exe}" run --config "{caddyfile_path}"',
-                    shell=True,
+                    ["cmd", "/c", "start", "Caddy Server", caddy_exe, "run", "--config", caddyfile_path],
+                    shell=False,
                     cwd=project_root,
                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
                 )
