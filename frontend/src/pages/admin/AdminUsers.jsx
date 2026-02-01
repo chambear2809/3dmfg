@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 import { useToast } from "../../components/Toast";
+import Modal from "../../components/Modal";
 
 // Role options
 const ROLE_OPTIONS = [
@@ -41,6 +42,8 @@ export default function AdminUsers() {
   const [editingUser, setEditingUser] = useState(null);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [savingUser, setSavingUser] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const token = localStorage.getItem("adminToken");
 
@@ -112,6 +115,7 @@ export default function AdminUsers() {
 
   // Save user
   const handleSaveUser = async (userData) => {
+    setSavingUser(true);
     try {
       const url = editingUser
         ? `${API_URL}/api/v1/admin/users/${editingUser.id}`
@@ -138,6 +142,8 @@ export default function AdminUsers() {
       fetchUsers();
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -195,6 +201,7 @@ export default function AdminUsers() {
   const handleResetPassword = async (newPassword) => {
     if (!resetPasswordUser) return;
 
+    setResettingPassword(true);
     try {
       const res = await fetch(
         `${API_URL}/api/v1/admin/users/${resetPasswordUser.id}/reset-password`,
@@ -218,6 +225,8 @@ export default function AdminUsers() {
       toast.success("Password reset successfully. User will need to log in with the new password.");
     } catch (err) {
       toast.error(err.message);
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -465,6 +474,7 @@ export default function AdminUsers() {
             setShowUserModal(false);
             setEditingUser(null);
           }}
+          saving={savingUser}
         />
       )}
 
@@ -477,6 +487,7 @@ export default function AdminUsers() {
             setShowResetPasswordModal(false);
             setResetPasswordUser(null);
           }}
+          saving={resettingPassword}
         />
       )}
     </div>
@@ -484,7 +495,7 @@ export default function AdminUsers() {
 }
 
 // User Create/Edit Modal
-function UserModal({ user, onSave, onClose }) {
+function UserModal({ user, onSave, onClose, saving }) {
   const toast = useToast();
   const [form, setForm] = useState({
     email: user?.email || "",
@@ -515,20 +526,19 @@ function UserModal({ user, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-bold text-white">
-            {user ? "Edit User" : "Add New User"}
-          </h2>
-          {!user && (
-            <p className="text-gray-400 text-sm mt-1">
-              User will need this password to log in for the first time
-            </p>
-          )}
-        </div>
+    <Modal isOpen={true} onClose={onClose} title={user ? "Edit User" : "Add New User"} disableClose={saving}>
+      <div className="p-6 border-b border-gray-800">
+        <h2 className="text-xl font-bold text-white">
+          {user ? "Edit User" : "Add New User"}
+        </h2>
+        {!user && (
+          <p className="text-gray-400 text-sm mt-1">
+            User will need this password to log in for the first time
+          </p>
+        )}
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">Email *</label>
             <input
@@ -698,14 +708,13 @@ function UserModal({ user, onSave, onClose }) {
               {user ? "Save Changes" : "Create User"}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }
 
 // Reset Password Modal
-function ResetPasswordModal({ user, onReset, onClose }) {
+function ResetPasswordModal({ user, onReset, onClose, saving }) {
   const toast = useToast();
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -731,16 +740,15 @@ function ResetPasswordModal({ user, onReset, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl w-full max-w-md">
-        <div className="p-6 border-b border-gray-800">
-          <h2 className="text-xl font-bold text-white">Reset Password</h2>
-          <p className="text-gray-400 text-sm mt-1">
-            Reset password for {user.email}
-          </p>
-        </div>
+    <Modal isOpen={true} onClose={onClose} title="Reset Password" className="w-full max-w-md" disableClose={saving}>
+      <div className="p-6 border-b border-gray-800">
+        <h2 className="text-xl font-bold text-white">Reset Password</h2>
+        <p className="text-gray-400 text-sm mt-1">
+          Reset password for {user.email}
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm text-gray-400 mb-1">
               New Password *
@@ -830,8 +838,7 @@ function ResetPasswordModal({ user, onReset, onClose }) {
               Reset Password
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }
