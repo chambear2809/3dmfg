@@ -1,6 +1,7 @@
 """
 FilaOps ERP - Main FastAPI Application
 """
+import os
 from contextlib import asynccontextmanager
 
 try:
@@ -29,17 +30,20 @@ from app.logging_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger(__name__)
 
-# Initialize Sentry (optional - only if installed)
-if SENTRY_AVAILABLE:
+# Initialize Sentry (optional - only if installed and configured)
+sentry_dsn = os.getenv("SENTRY_DSN")
+if SENTRY_AVAILABLE and sentry_dsn:
     sentry_sdk.init(
-        dsn="https://25adcc072579ef98fbb6b54096aca34f@o4510598139478016.ingest.us.sentry.io/4510598147473408",
+        dsn=sentry_dsn,
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0,
         environment=getattr(settings, "ENVIRONMENT", "development"),
         release=f"filaops@{settings.VERSION}",
     )
-else:
+elif not SENTRY_AVAILABLE:
     logger.info("Sentry SDK not installed - error tracking disabled")
+else:
+    logger.info("SENTRY_DSN not set - error tracking disabled")
 
 
 # ===================

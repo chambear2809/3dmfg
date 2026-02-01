@@ -760,7 +760,7 @@ class TestSetupHTTPS:
             json={"domain": "   "},
         )
         assert resp.status_code == 400
-        assert "Domain is required" in resp.json()["detail"]
+        assert "Domain cannot be empty" in resp.json()["detail"]
 
     @patch("builtins.open", create=True)
     @patch("subprocess.Popen")
