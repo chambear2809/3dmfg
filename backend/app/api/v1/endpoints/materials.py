@@ -15,6 +15,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.api.v1.deps import get_current_user
 from app.models.inventory import Inventory
+from app.logging_config import get_logger
 from app.services.material_service import (
     get_portal_material_options,
     get_available_material_types,
@@ -25,6 +26,7 @@ from app.services.material_service import (
     MaterialNotFoundError,
 )
 
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -281,7 +283,10 @@ def get_materials_for_bom(db: Session = Depends(get_db)):
                         "color_code": color.code,
                         "color_hex": color.hex_code,
                     })
-                except Exception:
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to process material {material.code}/{color.code}: {e}"
+                    )
                     continue
 
         return {"items": result}

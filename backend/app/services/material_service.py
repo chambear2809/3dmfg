@@ -841,8 +841,8 @@ def import_materials_from_csv(
             if price_str:
                 try:
                     price = Decimal(price_str.replace("$", "").replace(",", ""))
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Could not parse price '{price_str}': {e}")
 
             on_hand_kg = Decimal("0.00")
             on_hand_str = _get_column_value(row, _ON_HAND_COLS, normalized_map)
@@ -850,8 +850,8 @@ def import_materials_from_csv(
                 try:
                     grams = Decimal(on_hand_str.replace(",", ""))
                     on_hand_kg = grams / Decimal("1000")
-                except (ValueError, TypeError):
-                    pass
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Could not parse on_hand quantity '{on_hand_str}': {e}")
 
             # Category handling
             category_id = None
@@ -946,13 +946,18 @@ def import_materials_from_csv(
                 if not name:
                     name = f"{material_type.name} - {color_name}"
 
+                from app.core.uom_config import DEFAULT_MATERIAL_UOM
+
                 product = Product(
                     sku=sku,
                     name=name,
                     description=f"Filament supply: {material_type.name} in {color_name}",
                     item_type="supply",
                     procurement_type="buy",
-                    unit="KG",
+                    unit=DEFAULT_MATERIAL_UOM.unit,
+                    purchase_uom=DEFAULT_MATERIAL_UOM.purchase_uom,
+                    purchase_factor=DEFAULT_MATERIAL_UOM.purchase_factor,
+                    is_raw_material=DEFAULT_MATERIAL_UOM.is_raw_material,
                     standard_cost=float(price) if price else float(material_type.base_price_per_kg),
                     material_type_id=material_type.id,
                     color_id=color.id,

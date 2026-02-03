@@ -10,7 +10,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 from sqlalchemy import desc, extract
 from sqlalchemy import func as sql_func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.logging_config import get_logger
 from app.core.utils import get_or_404
@@ -70,7 +70,10 @@ def list_purchase_orders(
     limit: int = 50,
 ) -> tuple[list[PurchaseOrder], int]:
     """List purchase orders with filters. Returns (pos, total_count)."""
-    query = db.query(PurchaseOrder).options(joinedload(PurchaseOrder.vendor))
+    query = db.query(PurchaseOrder).options(
+        joinedload(PurchaseOrder.vendor),
+        selectinload(PurchaseOrder.lines),  # Eager load lines for list item building
+    )
 
     if status:
         query = query.filter(PurchaseOrder.status == status)
@@ -698,17 +701,20 @@ def receive_purchase_order(
         )
 
         # Update product average cost (weighted average)
+        # old_qty = inventory BEFORE receipt
+        # new_qty = quantity being added
+        # total_qty = inventory AFTER receipt
         if product:
             total_on_hand = db.query(
                 sql_func.coalesce(sql_func.sum(Inventory.on_hand_quantity), 0)
             ).filter(Inventory.product_id == product.id).scalar()
 
-            old_qty = Decimal(str(total_on_hand)) - transaction_quantity
+            old_qty = Decimal(str(total_on_hand))  # Inventory before this receipt
             old_cost = Decimal(str(product.average_cost or 0))
-            new_qty = transaction_quantity
+            new_qty = transaction_quantity  # Quantity being added
             new_cost = cost_per_unit_for_inventory
 
-            total_qty = old_qty + new_qty
+            total_qty = old_qty + new_qty  # Inventory after receipt
             if total_qty > 0:
                 weighted_avg = (old_qty * old_cost + new_qty * new_cost) / total_qty
                 product.average_cost = float(
@@ -827,6 +833,8 @@ def receive_purchase_order(
                         detail=f"Spool number '{spool_number}' already exists",
                     )
 
+                # Note: *_weight_kg columns actually store grams (legacy naming)
+                # This is consistent with how all MaterialSpool code treats these fields
                 spool = MaterialSpool(
                     spool_number=spool_number,
                     product_id=line.product_id,
@@ -944,6 +952,14 @@ def upload_po_document(
     """Upload a document for a PO. Returns upload result dict."""
     po = get_or_404(db, PurchaseOrder, po_id, "Purchase order not found")
 
+    # Limit file size to 10MB
+    max_size_bytes = 10 * 1024 * 1024
+    if len(file_content) > max_size_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {max_size_bytes // (1024*1024)}MB",
+        )
+
     allowed_types = [
         "application/pdf",
         "image/jpeg",
@@ -1001,7 +1017,9 @@ def list_po_events(
 
     get_or_404(db, PurchaseOrder, po_id, "Purchase order not found")
 
-    query = db.query(PurchasingEvent).filter(
+    query = db.query(PurchasingEvent).options(
+        joinedload(PurchasingEvent.user)  # Eager load user for response building
+    ).filter(
         PurchasingEvent.purchase_order_id == po_id
     ).order_by(desc(PurchasingEvent.created_at))
 

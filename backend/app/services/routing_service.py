@@ -130,6 +130,7 @@ def create_routing(db: Session, *, data: dict, operations: list[dict] | None = N
         for op_data in operations:
             wc_id = op_data.get("work_center_id")
             if not db.query(WorkCenter).filter(WorkCenter.id == wc_id).first():
+                db.rollback()  # Rollback flushed routing before raising
                 raise HTTPException(status_code=400, detail=f"Work center {wc_id} not found")
             operation = RoutingOperation(routing_id=routing.id, **op_data)
             db.add(operation)
