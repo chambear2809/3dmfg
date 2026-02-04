@@ -137,3 +137,9 @@ tables_output.txt
 
 # Screenshots/images
 *.png
+
+# Code Conclave / Review Council outputs
+.claude/reviews/
+.code-conclave/reviews/
+.review-council/reviews/
+*-review-log.txt

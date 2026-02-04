@@ -2,21 +2,19 @@
 Routings API Endpoints
 
 CRUD operations for routings and routing operations.
+Uses routing_service for business logic (ARCHITECT-003).
 """
 # pyright: reportArgumentType=false
 # pyright: reportAssignmentType=false
 # SQLAlchemy Column types resolve to actual values at runtime
-from fastapi import APIRouter, HTTPException, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from typing import List, Optional
-from datetime import datetime, timezone
 from decimal import Decimal
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.logging_config import get_logger
 from app.models.manufacturing import Routing, RoutingOperation, RoutingOperationMaterial
-from app.models.work_center import WorkCenter
 from app.models.product import Product
 from app.api.v1.endpoints.auth import get_current_user
 from app.models.user import User
@@ -36,6 +34,7 @@ from app.schemas.manufacturing import (
     RoutingOperationWithMaterialsResponse,
     ManufacturingBOMResponse,
 )
+from app.services import routing_service
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -63,32 +62,18 @@ async def list_routings(
     - **active_only**: Only return active routings
     - **search**: Search by code or product name
     """
-    query = db.query(Routing).options(
-        joinedload(Routing.product),
-        joinedload(Routing.operations)
+    routings = routing_service.list_routings(
+        db,
+        product_id=product_id,
+        templates_only=templates_only,
+        active_only=active_only,
+        search=search,
+        skip=skip,
+        limit=limit,
     )
 
-    if templates_only:
-        query = query.filter(Routing.is_template.is_(True))  # noqa: E712
-    elif product_id:
-        query = query.filter(Routing.product_id == product_id)
-
-    if active_only:
-        query = query.filter(Routing.is_active.is_(True))  # noqa: E712
-
-    if search:
-        query = query.outerjoin(Product).filter(
-            (Routing.code.ilike(f"%{search}%")) |
-            (Routing.name.ilike(f"%{search}%")) |
-            (Product.sku.ilike(f"%{search}%")) |
-            (Product.name.ilike(f"%{search}%"))
-        )
-
-    routings = query.order_by(desc(Routing.created_at)).offset(skip).limit(limit).all()
-
-    result = []
-    for r in routings:
-        result.append(RoutingListResponse(  # type: ignore[arg-type]
+    return [
+        RoutingListResponse(  # type: ignore[arg-type]
             id=r.id,
             product_id=r.product_id,
             product_sku=r.product.sku if r.product else None,
@@ -103,9 +88,9 @@ async def list_routings(
             total_cost=r.total_cost,
             operation_count=len([op for op in r.operations if op.is_active]),
             created_at=r.created_at,
-        ))
-
-    return result
+        )
+        for r in routings
+    ]
 
 
 @router.post("/", response_model=RoutingResponse, status_code=status.HTTP_201_CREATED)
@@ -115,88 +100,21 @@ async def create_routing(
     db: Session = Depends(get_db),
 ):
     """Create a new routing for a product or a template routing."""
-    product = None
-
-    # Templates don't need a product
-    if data.is_template:
-        if not data.code:
-            raise HTTPException(status_code=400, detail="Template routing requires a code")
-        if not data.name:
-            raise HTTPException(status_code=400, detail="Template routing requires a name")
-        code = data.code
-        name = data.name
-    else:
-        # Verify product exists for non-templates
-        if not data.product_id:
-            raise HTTPException(status_code=400, detail="Product ID is required for non-template routings")
-        product = db.query(Product).filter(Product.id == data.product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail="Product not found")
-
-        # Generate code if not provided
-        code = data.code or f"RTG-{product.sku}-V{data.version}"
-        name = data.name or f"{product.name} Routing"
-
-    # Create routing
-    routing = Routing(
-        product_id=data.product_id if not data.is_template else None,
-        code=code,
-        name=name,
-        is_template=data.is_template,
-        version=data.version,
-        revision=data.revision,
-        effective_date=data.effective_date,
-        notes=data.notes,
-        is_active=data.is_active,
-    )
-    db.add(routing)
-    db.flush()  # Get the ID
-
-    # Add operations if provided
+    # Build operation dicts with enum conversion
+    operations = None
     if data.operations:
+        operations = []
         for op_data in data.operations:
-            # Verify work center exists
-            wc = db.query(WorkCenter).filter(WorkCenter.id == op_data.work_center_id).first()
-            if not wc:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Work center {op_data.work_center_id} not found"
-                )
+            op_dict = op_data.model_dump()
+            if "runtime_source" in op_dict and hasattr(op_dict["runtime_source"], "value"):
+                op_dict["runtime_source"] = op_dict["runtime_source"].value
+            operations.append(op_dict)
 
-            operation = RoutingOperation(
-                routing_id=routing.id,
-                work_center_id=op_data.work_center_id,
-                sequence=op_data.sequence,
-                operation_code=op_data.operation_code,
-                operation_name=op_data.operation_name,
-                description=op_data.description,
-                setup_time_minutes=op_data.setup_time_minutes,
-                run_time_minutes=op_data.run_time_minutes,
-                wait_time_minutes=op_data.wait_time_minutes,
-                move_time_minutes=op_data.move_time_minutes,
-                runtime_source=op_data.runtime_source.value,
-                slicer_file_path=op_data.slicer_file_path,
-                units_per_cycle=op_data.units_per_cycle,
-                scrap_rate_percent=op_data.scrap_rate_percent,
-                labor_rate_override=op_data.labor_rate_override,
-                machine_rate_override=op_data.machine_rate_override,
-                can_overlap=op_data.can_overlap,
-                is_active=op_data.is_active,
-            )
-            db.add(operation)
-
-    # Recalculate totals
-    db.flush()
-    _recalculate_routing_totals(routing, db)
-
-    db.commit()
-    db.refresh(routing)
-
-    if data.is_template:
-        logger.info(f"Created template routing: {routing.code}")
-    else:
-        logger.info(f"Created routing: {routing.code} for product {product.sku if product else 'N/A'}")
-
+    routing = routing_service.create_routing(
+        db,
+        data=data.model_dump(exclude={"operations"}),
+        operations=operations,
+    )
     return _build_routing_response(routing, db)
 
 
@@ -216,172 +134,7 @@ async def seed_routing_templates(
 
     Safe to call multiple times - will skip existing templates.
     """
-    created = []
-    skipped = []
-
-    # Get work centers by code
-    work_centers = {}
-    for wc in db.query(WorkCenter).filter(WorkCenter.is_active.is_(True)).all():  # noqa: E712
-        work_centers[wc.code] = wc
-
-    # Verify required work centers exist
-    required = ["FDM-POOL", "QC", "ASSEMBLY", "SHIPPING"]
-    missing = [code for code in required if code not in work_centers]
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required work centers: {', '.join(missing)}. Please create them first."
-        )
-
-    # Template definitions
-    templates = [
-        {
-            "code": "TPL-STANDARD",
-            "name": "Standard Flow",
-            "notes": "Standard routing: Print → QC → Pack → Ship",
-            "operations": [
-                {
-                    "sequence": 10,
-                    "operation_code": "PRINT",
-                    "operation_name": "3D Print",
-                    "work_center_code": "FDM-POOL",
-                    "setup_time_minutes": Decimal("7"),  # Printer warmup/calibration
-                    "run_time_minutes": Decimal("60"),  # Default, override per product
-                    "runtime_source": "slicer",
-                },
-                {
-                    "sequence": 20,
-                    "operation_code": "QC",
-                    "operation_name": "Quality Check",
-                    "work_center_code": "QC",
-                    "setup_time_minutes": Decimal("0"),
-                    "run_time_minutes": Decimal("2"),
-                },
-                {
-                    "sequence": 30,
-                    "operation_code": "PACK",
-                    "operation_name": "Pack",
-                    "work_center_code": "SHIPPING",
-                    "setup_time_minutes": Decimal("1"),
-                    "run_time_minutes": Decimal("2"),
-                },
-                {
-                    "sequence": 40,
-                    "operation_code": "SHIP",
-                    "operation_name": "Ship",
-                    "work_center_code": "SHIPPING",
-                    "setup_time_minutes": Decimal("0"),
-                    "run_time_minutes": Decimal("3"),
-                },
-            ]
-        },
-        {
-            "code": "TPL-ASSEMBLY",
-            "name": "Assembly Flow",
-            "notes": "Assembly routing: Print → QC → Assemble → Pack → Ship",
-            "operations": [
-                {
-                    "sequence": 10,
-                    "operation_code": "PRINT",
-                    "operation_name": "3D Print",
-                    "work_center_code": "FDM-POOL",
-                    "setup_time_minutes": Decimal("7"),  # Printer warmup/calibration
-                    "run_time_minutes": Decimal("60"),  # Default, override per product
-                    "runtime_source": "slicer",
-                },
-                {
-                    "sequence": 20,
-                    "operation_code": "QC",
-                    "operation_name": "Quality Check",
-                    "work_center_code": "QC",
-                    "setup_time_minutes": Decimal("0"),
-                    "run_time_minutes": Decimal("2"),
-                },
-                {
-                    "sequence": 30,
-                    "operation_code": "ASSEMBLE",
-                    "operation_name": "Assembly",
-                    "work_center_code": "ASSEMBLY",
-                    "setup_time_minutes": Decimal("0"),
-                    "run_time_minutes": Decimal("5"),  # Default, varies by product
-                },
-                {
-                    "sequence": 40,
-                    "operation_code": "PACK",
-                    "operation_name": "Pack",
-                    "work_center_code": "SHIPPING",
-                    "setup_time_minutes": Decimal("1"),
-                    "run_time_minutes": Decimal("2"),
-                },
-                {
-                    "sequence": 50,
-                    "operation_code": "SHIP",
-                    "operation_name": "Ship",
-                    "work_center_code": "SHIPPING",
-                    "setup_time_minutes": Decimal("0"),
-                    "run_time_minutes": Decimal("3"),
-                },
-            ]
-        }
-    ]
-
-    for tpl in templates:
-        # Check if already exists
-        existing = db.query(Routing).filter(
-            Routing.code == tpl["code"],
-            Routing.is_template.is_(True)
-        ).first()
-
-        if existing:
-            skipped.append(tpl["code"])
-            continue
-
-        # Create the template routing
-        routing = Routing(
-            code=tpl["code"],
-            name=tpl["name"],
-            notes=tpl["notes"],
-            is_template=True,
-            version=1,
-            revision="1.0",
-            is_active=True,
-        )
-        db.add(routing)
-        db.flush()
-
-        # Add operations
-        for op_data in tpl["operations"]:
-            wc = work_centers[op_data["work_center_code"]]
-            operation = RoutingOperation(
-                routing_id=routing.id,
-                work_center_id=wc.id,
-                sequence=op_data["sequence"],
-                operation_code=op_data["operation_code"],
-                operation_name=op_data["operation_name"],
-                setup_time_minutes=op_data["setup_time_minutes"],
-                run_time_minutes=op_data["run_time_minutes"],
-                wait_time_minutes=Decimal("0"),
-                move_time_minutes=Decimal("0"),
-                runtime_source=op_data.get("runtime_source", "manual"),
-                is_active=True,
-            )
-            db.add(operation)
-
-        # Recalculate totals
-        db.flush()
-        _recalculate_routing_totals(routing, db)
-
-        created.append(tpl["code"])
-
-    db.commit()
-
-    logger.info(f"Seeded routing templates - Created: {created}, Skipped: {skipped}")
-
-    return {
-        "message": "Routing templates seeded",
-        "created": created,
-        "skipped": skipped,
-    }
+    return routing_service.seed_routing_templates(db)
 
 
 @router.post("/apply-template", response_model=ApplyTemplateResponse)
@@ -397,159 +150,34 @@ async def apply_template_to_product(
     - Allows overriding times for specific operations (e.g., print time from slicer)
     - Creates or updates the routing for the product
     """
-    # Validate template exists
-    template = db.query(Routing).options(
-        joinedload(Routing.operations).joinedload(RoutingOperation.work_center)
-    ).filter(
-        Routing.id == data.template_id,
-        Routing.is_template.is_(True),  # noqa: E712
-        Routing.is_active.is_(True)
-    ).first()
+    # Build override map: operation_code -> {run_time_minutes, setup_time_minutes}
+    override_map = {}
+    for o in data.overrides:
+        override_map[o.operation_code] = {}
+        if o.run_time_minutes is not None:
+            override_map[o.operation_code]["run_time_minutes"] = o.run_time_minutes
+        if o.setup_time_minutes is not None:
+            override_map[o.operation_code]["setup_time_minutes"] = o.setup_time_minutes
 
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
-
-    # Validate product exists
-    product = db.query(Product).filter(Product.id == data.product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    # Check for existing routing for this product
-    existing = db.query(Routing).filter(
-        Routing.product_id == data.product_id,
-        Routing.is_active.is_(True)
-    ).first()
-
-    # Build override lookup
-    override_map = {o.operation_code: o for o in data.overrides}
-
-    if existing:
-        # Update existing routing - deactivate old operations and create new ones
-        for op in existing.operations:
-            op.is_active = False
-        db.flush()
-
-        routing = existing
-        routing.name = f"{template.name} - {product.sku}"  # type: ignore[assignment]
-        routing.notes = f"Applied from template {template.code}"  # type: ignore[assignment]
-        routing.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-        message = f"Updated routing for {product.sku}"
-    else:
-        # Create new routing for this product
-        routing = Routing(
-            product_id=product.id,
-            code=f"RTG-{product.sku}",
-            name=f"{template.name} - {product.sku}",
-            is_template=False,
-            version=1,
-            revision="1.0",
-            is_active=True,
-            notes=f"Applied from template {template.code}",
-        )
-        db.add(routing)
-        db.flush()
-        message = f"Created routing for {product.sku}"
-
-    # Copy operations from template with overrides
-    new_operations = []
-    for tpl_op in template.operations:
-        if not tpl_op.is_active:
-            continue
-
-        # Check for override
-        override = override_map.get(tpl_op.operation_code)
-
-        run_time = tpl_op.run_time_minutes
-        setup_time = tpl_op.setup_time_minutes
-
-        if override:
-            if override.run_time_minutes is not None:
-                run_time = override.run_time_minutes
-            if override.setup_time_minutes is not None:
-                setup_time = override.setup_time_minutes
-
-        operation = RoutingOperation(
-            routing_id=routing.id,
-            work_center_id=tpl_op.work_center_id,
-            sequence=tpl_op.sequence,
-            operation_code=tpl_op.operation_code,
-            operation_name=tpl_op.operation_name,
-            description=tpl_op.description,
-            setup_time_minutes=setup_time,
-            run_time_minutes=run_time,
-            wait_time_minutes=tpl_op.wait_time_minutes,
-            move_time_minutes=tpl_op.move_time_minutes,
-            runtime_source="slicer" if override and override.run_time_minutes else tpl_op.runtime_source,
-            units_per_cycle=tpl_op.units_per_cycle,
-            scrap_rate_percent=tpl_op.scrap_rate_percent,
-            is_active=True,
-        )
-        db.add(operation)
-        new_operations.append(operation)
-
-    db.flush()
-
-    # Recalculate totals
-    _recalculate_routing_totals(routing, db)
-
-    db.commit()
-    db.refresh(routing)
-
-    logger.info(f"Applied template {template.code} to product {product.sku}")
+    routing, new_operations, message = routing_service.apply_template_to_product(
+        db,
+        template_id=data.template_id,
+        product_id=data.product_id,
+        overrides=override_map,
+    )
 
     # Build response with operations
     ops_response = []
     for op in new_operations:
         db.refresh(op)
-        wc = op.work_center
-        total_time = Decimal(str(
-            float(op.setup_time_minutes or 0) +
-            float(op.run_time_minutes or 0) +
-            float(op.wait_time_minutes or 0) +
-            float(op.move_time_minutes or 0)
-        ))
-        # Calculate cost (includes setup + run time)
-        total_costed_minutes = float(op.setup_time_minutes or 0) + float(op.run_time_minutes or 0)
-        costed_hours = total_costed_minutes / 60
-        rate = op.labor_rate_override or op.machine_rate_override
-        if not rate and wc:
-            rate = Decimal(str(wc.total_rate_per_hour))
-        calculated_cost = Decimal(str(costed_hours * float(rate or 0)))
+        ops_response.append(_build_operation_response(op))
 
-        ops_response.append(RoutingOperationResponse(
-            id=op.id,
-            routing_id=op.routing_id,
-            work_center_id=op.work_center_id,
-            work_center_code=wc.code if wc else None,
-            work_center_name=wc.name if wc else None,
-            sequence=op.sequence,
-            operation_code=op.operation_code,
-            operation_name=op.operation_name,
-            description=op.description,
-            setup_time_minutes=op.setup_time_minutes,
-            run_time_minutes=op.run_time_minutes,
-            wait_time_minutes=op.wait_time_minutes,
-            move_time_minutes=op.move_time_minutes,
-            runtime_source=op.runtime_source,
-            slicer_file_path=op.slicer_file_path,
-            units_per_cycle=op.units_per_cycle,
-            scrap_rate_percent=op.scrap_rate_percent,
-            labor_rate_override=op.labor_rate_override,
-            machine_rate_override=op.machine_rate_override,
-            predecessor_operation_id=op.predecessor_operation_id,
-            can_overlap=op.can_overlap,
-            is_active=op.is_active,
-            total_time_minutes=total_time,
-            calculated_cost=calculated_cost,
-            created_at=op.created_at,
-            updated_at=op.updated_at,
-        ))
-
+    product = routing.product
     return ApplyTemplateResponse(  # type: ignore[arg-type]
         routing_id=routing.id,
         routing_code=routing.code,
-        product_sku=product.sku,
-        product_name=product.name,
+        product_sku=product.sku if product else "",
+        product_name=product.name if product else "",
         operations=ops_response,
         total_run_time_minutes=routing.total_run_time_minutes or Decimal("0"),
         total_cost=routing.total_cost or Decimal("0"),
@@ -567,14 +195,7 @@ async def get_routing(
     db: Session = Depends(get_db),
 ):
     """Get a routing by ID with all operations."""
-    routing = db.query(Routing).options(
-        joinedload(Routing.product),
-        joinedload(Routing.operations).joinedload(RoutingOperation.work_center)
-    ).filter(Routing.id == routing_id).first()
-
-    if not routing:
-        raise HTTPException(status_code=404, detail="Routing not found")
-
+    routing = routing_service.get_routing(db, routing_id)
     return _build_routing_response(routing, db)
 
 
@@ -584,17 +205,7 @@ async def get_product_routing(
     db: Session = Depends(get_db),
 ):
     """Get the active routing for a product."""
-    routing = db.query(Routing).options(
-        joinedload(Routing.product),
-        joinedload(Routing.operations).joinedload(RoutingOperation.work_center)
-    ).filter(
-        Routing.product_id == product_id,
-        Routing.is_active.is_(True)
-    ).order_by(desc(Routing.version)).first()
-
-    if not routing:
-        raise HTTPException(status_code=404, detail="No active routing found for product")
-
+    routing = routing_service.get_product_routing(db, product_id)
     return _build_routing_response(routing, db)
 
 
@@ -606,21 +217,9 @@ async def update_routing(
     db: Session = Depends(get_db),
 ):
     """Update a routing."""
-    routing = db.query(Routing).filter(Routing.id == routing_id).first()
-    if not routing:
-        raise HTTPException(status_code=404, detail="Routing not found")
-
-    # Update fields
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(routing, field, value)
-
-    routing.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-    db.commit()
-    db.refresh(routing)
-
-    logger.info(f"Updated routing: {routing.code}")
-
+    routing = routing_service.update_routing(
+        db, routing_id, data=data.model_dump(exclude_unset=True)
+    )
     return _build_routing_response(routing, db)
 
 
@@ -631,15 +230,7 @@ async def delete_routing(
     db: Session = Depends(get_db),
 ):
     """Delete a routing (soft delete - marks as inactive)."""
-    routing = db.query(Routing).filter(Routing.id == routing_id).first()
-    if not routing:
-        raise HTTPException(status_code=404, detail="Routing not found")
-
-    routing.is_active = False  # type: ignore[assignment]
-    routing.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-    db.commit()
-
-    logger.info(f"Deactivated routing: {routing.code}")
+    routing_service.delete_routing(db, routing_id)
 
 
 # ============================================================================
@@ -653,19 +244,7 @@ async def list_routing_operations(
     db: Session = Depends(get_db),
 ):
     """List all operations for a routing."""
-    routing = db.query(Routing).filter(Routing.id == routing_id).first()
-    if not routing:
-        raise HTTPException(status_code=404, detail="Routing not found")
-
-    query = db.query(RoutingOperation).options(
-        joinedload(RoutingOperation.work_center)
-    ).filter(RoutingOperation.routing_id == routing_id)
-
-    if active_only:
-        query = query.filter(RoutingOperation.is_active.is_(True))  # noqa: E712
-
-    operations = query.order_by(RoutingOperation.sequence).all()
-
+    operations = routing_service.list_operations(db, routing_id, active_only=active_only)
     return [_build_operation_response(op) for op in operations]
 
 
@@ -677,47 +256,9 @@ async def add_routing_operation(
     db: Session = Depends(get_db),
 ):
     """Add a new operation to a routing."""
-    routing = db.query(Routing).filter(Routing.id == routing_id).first()
-    if not routing:
-        raise HTTPException(status_code=404, detail="Routing not found")
-
-    # Verify work center exists
-    wc = db.query(WorkCenter).filter(WorkCenter.id == data.work_center_id).first()
-    if not wc:
-        raise HTTPException(status_code=400, detail="Work center not found")
-
-    operation = RoutingOperation(
-        routing_id=routing_id,
-        work_center_id=data.work_center_id,
-        sequence=data.sequence,
-        operation_code=data.operation_code,
-        operation_name=data.operation_name,
-        description=data.description,
-        setup_time_minutes=data.setup_time_minutes,
-        run_time_minutes=data.run_time_minutes,
-        wait_time_minutes=data.wait_time_minutes,
-        move_time_minutes=data.move_time_minutes,
-        runtime_source=data.runtime_source.value,
-        slicer_file_path=data.slicer_file_path,
-        units_per_cycle=data.units_per_cycle,
-        scrap_rate_percent=data.scrap_rate_percent,
-        labor_rate_override=data.labor_rate_override,
-        machine_rate_override=data.machine_rate_override,
-        predecessor_operation_id=data.predecessor_operation_id,
-        can_overlap=data.can_overlap,
-        is_active=data.is_active,
+    operation = routing_service.add_operation(
+        db, routing_id, data=data.model_dump()
     )
-    db.add(operation)
-    db.flush()
-
-    # Recalculate routing totals
-    _recalculate_routing_totals(routing, db)
-
-    db.commit()
-    db.refresh(operation)
-
-    logger.info(f"Added operation {operation.sequence} to routing {routing.code}")
-
     return _build_operation_response(operation)
 
 
@@ -729,37 +270,9 @@ async def update_routing_operation(
     db: Session = Depends(get_db),
 ):
     """Update a routing operation."""
-    operation = db.query(RoutingOperation).options(
-        joinedload(RoutingOperation.routing),
-        joinedload(RoutingOperation.work_center)
-    ).filter(RoutingOperation.id == operation_id).first()
-
-    if not operation:
-        raise HTTPException(status_code=404, detail="Operation not found")
-
-    # Verify work center if changing
-    if data.work_center_id:
-        wc = db.query(WorkCenter).filter(WorkCenter.id == data.work_center_id).first()
-        if not wc:
-            raise HTTPException(status_code=400, detail="Work center not found")
-
-    # Update fields
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        if field == "runtime_source" and value:
-            value = value.value
-        setattr(operation, field, value)
-
-    operation.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-
-    # Recalculate routing totals
-    _recalculate_routing_totals(operation.routing, db)
-
-    db.commit()
-    db.refresh(operation)
-
-    logger.info(f"Updated operation {operation.id}")
-
+    operation = routing_service.update_operation(
+        db, operation_id, data=data.model_dump(exclude_unset=True)
+    )
     return _build_operation_response(operation)
 
 
@@ -770,22 +283,7 @@ async def delete_routing_operation(
     db: Session = Depends(get_db),
 ):
     """Delete a routing operation (soft delete)."""
-    operation = db.query(RoutingOperation).options(
-        joinedload(RoutingOperation.routing)
-    ).filter(RoutingOperation.id == operation_id).first()
-
-    if not operation:
-        raise HTTPException(status_code=404, detail="Operation not found")
-
-    operation.is_active = False  # type: ignore[assignment]
-    operation.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-
-    # Recalculate routing totals
-    _recalculate_routing_totals(operation.routing, db)
-
-    db.commit()
-
-    logger.info(f"Deactivated operation {operation_id}")
+    routing_service.delete_operation(db, operation_id)
 
 
 # ============================================================================
@@ -798,16 +296,7 @@ async def list_operation_materials(
     db: Session = Depends(get_db),
 ):
     """List all materials for a routing operation."""
-    operation = db.query(RoutingOperation).filter(RoutingOperation.id == operation_id).first()
-    if not operation:
-        raise HTTPException(status_code=404, detail="Operation not found")
-
-    materials = db.query(RoutingOperationMaterial).options(
-        joinedload(RoutingOperationMaterial.component)
-    ).filter(
-        RoutingOperationMaterial.routing_operation_id == operation_id
-    ).all()
-
+    materials = routing_service.list_operation_materials(db, operation_id)
     return [_build_material_response(m) for m in materials]
 
 
@@ -819,32 +308,9 @@ async def add_operation_material(
     db: Session = Depends(get_db),
 ):
     """Add a material to a routing operation."""
-    operation = db.query(RoutingOperation).filter(RoutingOperation.id == operation_id).first()
-    if not operation:
-        raise HTTPException(status_code=404, detail="Operation not found")
-
-    # Verify component exists
-    component = db.query(Product).filter(Product.id == data.component_id).first()
-    if not component:
-        raise HTTPException(status_code=400, detail="Component product not found")
-
-    material = RoutingOperationMaterial(
-        routing_operation_id=operation_id,
-        component_id=data.component_id,
-        quantity=data.quantity,
-        quantity_per=data.quantity_per.value,
-        unit=data.unit,
-        scrap_factor=data.scrap_factor,
-        is_cost_only=data.is_cost_only,
-        is_optional=data.is_optional,
-        notes=data.notes,
+    material = routing_service.add_operation_material(
+        db, operation_id, data=data.model_dump()
     )
-    db.add(material)
-    db.commit()
-    db.refresh(material)
-
-    logger.info(f"Added material {component.sku} to operation {operation_id}")
-
     return _build_material_response(material)
 
 
@@ -856,32 +322,9 @@ async def update_operation_material(
     db: Session = Depends(get_db),
 ):
     """Update a routing operation material."""
-    material = db.query(RoutingOperationMaterial).filter(
-        RoutingOperationMaterial.id == material_id
-    ).first()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Verify component if changing
-    if data.component_id:
-        component = db.query(Product).filter(Product.id == data.component_id).first()
-        if not component:
-            raise HTTPException(status_code=400, detail="Component product not found")
-
-    # Update fields
-    update_data = data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        if field == "quantity_per" and value:
-            value = value.value
-        setattr(material, field, value)
-
-    material.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-    db.commit()
-    db.refresh(material)
-
-    logger.info(f"Updated material {material_id}")
-
+    material = routing_service.update_operation_material(
+        db, material_id, data=data.model_dump(exclude_unset=True)
+    )
     return _build_material_response(material)
 
 
@@ -892,17 +335,7 @@ async def delete_operation_material(
     db: Session = Depends(get_db),
 ):
     """Delete a routing operation material."""
-    material = db.query(RoutingOperationMaterial).filter(
-        RoutingOperationMaterial.id == material_id
-    ).first()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    db.delete(material)
-    db.commit()
-
-    logger.info(f"Deleted material {material_id}")
+    routing_service.delete_operation_material(db, material_id)
 
 
 # ============================================================================
@@ -916,70 +349,17 @@ async def get_manufacturing_bom(
 ):
     """
     Get the complete Manufacturing BOM for a product.
-    
+
     Returns the active routing with all operations and their materials,
     providing a unified view of the manufacturing process.
     """
-    # Get product
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-
-    # Get active routing
-    routing = db.query(Routing).options(
-        joinedload(Routing.operations).joinedload(RoutingOperation.work_center),
-        joinedload(Routing.operations).joinedload(RoutingOperation.materials).joinedload(RoutingOperationMaterial.component)
-    ).filter(
-        Routing.product_id == product_id,
-        Routing.is_active.is_(True)
-    ).order_by(desc(Routing.version)).first()
-
-    if not routing:
-        raise HTTPException(status_code=404, detail="No active routing found for product")
-
+    routing, product = routing_service.get_manufacturing_bom(db, product_id)
     return _build_manufacturing_bom_response(routing, product, db)
 
 
 # ============================================================================
-# Helper Functions
+# Helper Functions (presentation only — no DB queries)
 # ============================================================================
-
-def _recalculate_routing_totals(routing: Routing, db: Session):
-    """Recalculate routing totals from operations."""
-    operations = db.query(RoutingOperation).options(
-        joinedload(RoutingOperation.work_center)
-    ).filter(
-        RoutingOperation.routing_id == routing.id,
-        RoutingOperation.is_active.is_(True)
-    ).all()
-
-    total_setup = Decimal("0")
-    total_run = Decimal("0")
-    total_cost = Decimal("0")
-
-    for op in operations:
-        total_setup += op.setup_time_minutes or Decimal("0")
-        total_run += (op.run_time_minutes or Decimal("0")) + \
-                     (op.wait_time_minutes or Decimal("0")) + \
-                     (op.move_time_minutes or Decimal("0"))
-
-        # Calculate operation cost (includes setup + run time)
-        total_costed_minutes = float(op.setup_time_minutes or 0) + float(op.run_time_minutes or 0)  # type: ignore[arg-type]
-        costed_hours = total_costed_minutes / 60
-        rate = op.labor_rate_override or op.machine_rate_override
-        if not rate and op.work_center:  # type: ignore[truthy-bool]
-            rate = (
-                (op.work_center.machine_rate_per_hour or Decimal("0")) +
-                (op.work_center.labor_rate_per_hour or Decimal("0")) +
-                (op.work_center.overhead_rate_per_hour or Decimal("0"))
-            )
-        total_cost += Decimal(str(costed_hours)) * (rate or Decimal("0"))
-
-    routing.total_setup_time_minutes = total_setup  # type: ignore[assignment]
-    routing.total_run_time_minutes = total_run  # type: ignore[assignment]
-    routing.total_cost = total_cost  # type: ignore[assignment]
-    routing.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
-
 
 def _build_routing_response(routing: Routing, db: Session) -> RoutingResponse:
     """Build a routing response with operations."""
@@ -1064,7 +444,7 @@ def _build_operation_response(op: RoutingOperation) -> RoutingOperationResponse:
 def _build_material_response(material: RoutingOperationMaterial) -> RoutingOperationMaterialResponse:
     """Build a routing operation material response."""
     component = material.component
-    
+
     return RoutingOperationMaterialResponse(  # type: ignore[arg-type]
         id=material.id,
         routing_operation_id=material.routing_operation_id,
@@ -1091,14 +471,14 @@ def _build_operation_with_materials_response(
 ) -> RoutingOperationWithMaterialsResponse:
     """Build a routing operation response with materials."""
     base = _build_operation_response(op)
-    
+
     # Get materials for this operation
     materials = [_build_material_response(m) for m in (op.materials or [])]
-    
+
     # Calculate material cost
     material_cost = sum(m.extended_cost for m in materials)
     total_cost_with_materials = base.calculated_cost + material_cost
-    
+
     return RoutingOperationWithMaterialsResponse(
         **base.model_dump(),
         materials=materials,
@@ -1116,14 +496,14 @@ def _build_manufacturing_bom_response(
     operations = []
     total_labor_cost = Decimal("0")
     total_material_cost = Decimal("0")
-    
+
     for op in sorted(routing.operations, key=lambda x: x.sequence):
         if op.is_active:
             op_response = _build_operation_with_materials_response(op, db)
             operations.append(op_response)
             total_labor_cost += op_response.calculated_cost
             total_material_cost += op_response.material_cost
-    
+
     return ManufacturingBOMResponse(  # type: ignore[arg-type]
         routing_id=routing.id,
         routing_code=routing.code,

@@ -3,15 +3,26 @@ Material Service
 
 Handles material lookups, availability checks, and pricing for the quote-to-order workflow.
 This is the central service for mapping customer material/color selections to actual inventory.
+
+CSV import and color creation added (ARCHITECT-003).
 """
+import csv
+import io
 from typing import Optional, List, Tuple
+from datetime import datetime, timezone
 from decimal import Decimal
+
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 
+from app.logging_config import get_logger
 from app.models.material import MaterialType, Color, MaterialColor, MaterialInventory
 from app.models.product import Product
 from app.models.inventory import Inventory, InventoryLocation
+from app.models.item_category import ItemCategory
+
+logger = get_logger(__name__)
 
 
 class MaterialNotFoundError(Exception):
@@ -594,3 +605,416 @@ def get_material_product_for_bom(
     ).first()
     
     return product, mat_inv
+
+
+# ---------------------------------------------------------------------------
+# Color creation (for a material type)
+# ---------------------------------------------------------------------------
+
+def create_color_for_material(
+    db: Session,
+    material_type_code: str,
+    *,
+    name: str,
+    code: str | None = None,
+    hex_code: str | None = None,
+) -> tuple[Color, MaterialType]:
+    """
+    Create a new color and link it to a material type.
+
+    Returns (color, material_type).
+    Raises HTTPException on validation errors.
+    """
+    material_type = db.query(MaterialType).filter(
+        MaterialType.code == material_type_code
+    ).first()
+    if not material_type:
+        raise HTTPException(
+            status_code=404, detail=f"Material type not found: {material_type_code}"
+        )
+
+    # Generate code if not provided
+    color_code = code
+    if not color_code:
+        color_code = name.upper().replace(" ", "_").replace("-", "_")
+        base_code = color_code
+        counter = 1
+        while db.query(Color).filter(Color.code == color_code).first():
+            color_code = f"{base_code}_{counter}"
+            counter += 1
+
+    existing_color = db.query(Color).filter(Color.code == color_code).first()
+
+    if existing_color:
+        color = existing_color
+        existing_link = db.query(MaterialColor).filter(
+            MaterialColor.material_type_id == material_type.id,
+            MaterialColor.color_id == color.id,
+        ).first()
+        if existing_link:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Color '{color.name}' is already linked to {material_type.name}",
+            )
+    else:
+        color = Color(
+            code=color_code,
+            name=name,
+            hex_code=hex_code,
+            active=True,
+            is_customer_visible=True,
+            display_order=100,
+        )
+        db.add(color)
+        db.flush()
+
+    material_color = MaterialColor(
+        material_type_id=material_type.id,
+        color_id=color.id,
+        is_customer_visible=True,
+        active=True,
+    )
+    db.add(material_color)
+    db.commit()
+    db.refresh(color)
+
+    return color, material_type
+
+
+# ---------------------------------------------------------------------------
+# CSV Import
+# ---------------------------------------------------------------------------
+
+# Base-material inference from material type code
+_BASE_MATERIAL_MAP = {
+    "PETG": "PETG",
+    "ABS": "ABS",
+    "ASA": "ASA",
+    "TPU": "TPU",
+    "PAHT": "PAHT",
+    "PC": "PC",
+}
+
+
+def _infer_base_material(material_type_code: str) -> str:
+    """Infer base material from a material type code."""
+    for key, value in _BASE_MATERIAL_MAP.items():
+        if key in material_type_code:
+            return value
+    return "PLA"
+
+
+# Column name variations for CSV parsing
+_SKU_COLS = ["sku", "SKU", "Sku"]
+_NAME_COLS = ["name", "Name", "Product Name"]
+_CATEGORY_COLS = ["category", "Category", "CATEGORY", "Category Name"]
+_MATERIAL_TYPE_COLS = [
+    "material type", "Material Type", "material_type", "Material_Type",
+]
+_COLOR_NAME_COLS = [
+    "material color name", "Material Color Name", "material_color_name",
+    "Color Name", "color name",
+]
+_HEX_COLS = ["hex code", "HEX Code", "hex_code", "HEX", "hex"]
+_PRICE_COLS = ["price", "Price", "PRICE"]
+_ON_HAND_COLS = [
+    "on hand (g)", "On Hand (g)", "on_hand_g", "On Hand", "on hand",
+    "quantity", "Quantity",
+]
+
+
+def _get_column_value(
+    row: dict, possible_names: list[str], normalized_map: dict[str, str]
+) -> str:
+    """Get value from CSV row using case-insensitive column name matching."""
+    for name in possible_names:
+        if name in row and row[name] and row[name].strip():
+            return row[name].strip()
+        lower_name = name.lower()
+        if lower_name in normalized_map:
+            original_name = normalized_map[lower_name]
+            if original_name in row and row[original_name] and row[original_name].strip():
+                return row[original_name].strip()
+    return ""
+
+
+def import_materials_from_csv(
+    db: Session,
+    *,
+    file_content: bytes,
+    update_existing: bool = False,
+    import_categories: bool = True,
+) -> dict:
+    """
+    Import material inventory from CSV file content.
+
+    Returns dict with keys: total_rows, created, updated, skipped, errors.
+    """
+    try:
+        text = file_content.decode("utf-8")
+    except UnicodeDecodeError:
+        text = file_content.decode("latin-1")
+
+    if text.startswith("\ufeff"):
+        text = text[1:]
+
+    reader = csv.DictReader(io.StringIO(text))
+
+    fieldnames = reader.fieldnames or []
+    normalized_map: dict[str, str] = {}
+    for fn in fieldnames:
+        clean = fn.strip() if fn else ""
+        normalized_map[clean.lower()] = fn
+
+    result = {
+        "total_rows": 0,
+        "created": 0,
+        "updated": 0,
+        "skipped": 0,
+        "errors": [],
+    }
+
+    # Default inventory location
+    default_location = db.query(InventoryLocation).filter(
+        InventoryLocation.code == "MAIN"
+    ).first()
+    if not default_location:
+        default_location = InventoryLocation(
+            code="MAIN", name="Main Warehouse", type="warehouse", active=True,
+        )
+        db.add(default_location)
+        db.commit()
+        db.refresh(default_location)
+
+    # Filament root category
+    filament_root_category = None
+    if import_categories:
+        filament_root_category = db.query(ItemCategory).filter(
+            ItemCategory.code == "FILAMENT"
+        ).first()
+        if not filament_root_category:
+            filament_root_category = ItemCategory(
+                code="FILAMENT",
+                name="Filament",
+                description="Filament materials for 3D printing",
+                sort_order=0,
+                is_active=True,
+            )
+            db.add(filament_root_category)
+            db.flush()
+
+    for row_num, row in enumerate(reader, start=2):
+        result["total_rows"] += 1
+        sku = ""
+
+        try:
+            sku = _get_column_value(row, _SKU_COLS, normalized_map)
+            if not sku:
+                result["errors"].append(
+                    {"row": row_num, "error": "SKU is required", "sku": ""}
+                )
+                result["skipped"] += 1
+                continue
+
+            material_type_code = _get_column_value(
+                row, _MATERIAL_TYPE_COLS, normalized_map
+            ).upper()
+            if not material_type_code:
+                result["errors"].append(
+                    {"row": row_num, "error": "Material Type is required", "sku": sku}
+                )
+                result["skipped"] += 1
+                continue
+
+            color_name = _get_column_value(row, _COLOR_NAME_COLS, normalized_map)
+            if not color_name:
+                result["errors"].append(
+                    {"row": row_num, "error": "Material Color Name is required", "sku": sku}
+                )
+                result["skipped"] += 1
+                continue
+
+            hex_code = _get_column_value(row, _HEX_COLS, normalized_map)
+
+            price: Decimal | None = None
+            price_str = _get_column_value(row, _PRICE_COLS, normalized_map)
+            if price_str:
+                try:
+                    price = Decimal(price_str.replace("$", "").replace(",", ""))
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Could not parse price '{price_str}': {e}")
+
+            # CSV column "on hand (g)" is in grams.  Inventory on_hand_quantity
+            # is stored in the product's storage unit, which is also grams (G)
+            # for materials.  Do NOT divide by 1000 here.
+            on_hand_grams = Decimal("0.00")
+            on_hand_str = _get_column_value(row, _ON_HAND_COLS, normalized_map)
+            if on_hand_str:
+                try:
+                    on_hand_grams = Decimal(on_hand_str.replace(",", ""))
+                except (ValueError, TypeError) as e:
+                    logger.debug(f"Could not parse on_hand quantity '{on_hand_str}': {e}")
+
+            # Category handling
+            category_id = None
+            if import_categories and filament_root_category:
+                category_name = _get_column_value(row, _CATEGORY_COLS, normalized_map)
+                if category_name:
+                    category_code = (
+                        category_name.upper().replace(" ", "_").replace("-", "_")[:50]
+                    )
+                    subcategory = db.query(ItemCategory).filter(
+                        ItemCategory.code == category_code,
+                        ItemCategory.parent_id == filament_root_category.id,
+                    ).first()
+                    if not subcategory:
+                        subcategory = ItemCategory(
+                            code=category_code,
+                            name=category_name,
+                            parent_id=filament_root_category.id,
+                            description=f"Filament category: {category_name}",
+                            sort_order=0,
+                            is_active=True,
+                        )
+                        db.add(subcategory)
+                        db.flush()
+                    category_id = subcategory.id
+
+            # Get or create material type
+            material_type = db.query(MaterialType).filter(
+                MaterialType.code == material_type_code
+            ).first()
+            if not material_type:
+                base_material = _infer_base_material(material_type_code)
+                material_type = MaterialType(
+                    code=material_type_code,
+                    name=material_type_code.replace("_", " ").title(),
+                    base_material=base_material,
+                    density=Decimal("1.24"),
+                    base_price_per_kg=price or Decimal("20.00"),
+                    price_multiplier=Decimal("1.0"),
+                    active=True,
+                    is_customer_visible=True,
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
+                )
+                db.add(material_type)
+                db.flush()
+
+            # Get or create color
+            color_code_gen = color_name.upper().replace(" ", "_").replace("-", "_")[:30]
+            color = db.query(Color).filter(Color.code == color_code_gen).first()
+            if not color:
+                color = Color(
+                    code=color_code_gen,
+                    name=color_name,
+                    hex_code=hex_code or None,
+                    active=True,
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
+                )
+                db.add(color)
+                db.flush()
+            elif hex_code and not color.hex_code:
+                color.hex_code = hex_code
+                color.updated_at = datetime.now(timezone.utc)
+
+            # MaterialColor link
+            material_color = db.query(MaterialColor).filter(
+                MaterialColor.material_type_id == material_type.id,
+                MaterialColor.color_id == color.id,
+            ).first()
+            if not material_color:
+                material_color = MaterialColor(
+                    material_type_id=material_type.id,
+                    color_id=color.id,
+                    active=True,
+                )
+                db.add(material_color)
+
+            # Get or create product
+            product = db.query(Product).filter(Product.sku == sku).first()
+            if product:
+                if not update_existing:
+                    result["skipped"] += 1
+                    continue
+                result["updated"] += 1
+            else:
+                name = ""
+                for col in _NAME_COLS:
+                    if row.get(col, "").strip():
+                        name = row.get(col, "").strip()
+                        break
+                if not name:
+                    name = f"{material_type.name} - {color_name}"
+
+                from app.core.uom_config import DEFAULT_MATERIAL_UOM
+
+                product = Product(
+                    sku=sku,
+                    name=name,
+                    description=f"Filament supply: {material_type.name} in {color_name}",
+                    item_type="supply",
+                    procurement_type="buy",
+                    unit=DEFAULT_MATERIAL_UOM.unit,
+                    purchase_uom=DEFAULT_MATERIAL_UOM.purchase_uom,
+                    purchase_factor=DEFAULT_MATERIAL_UOM.purchase_factor,
+                    is_raw_material=DEFAULT_MATERIAL_UOM.is_raw_material,
+                    standard_cost=float(price) if price else float(material_type.base_price_per_kg),
+                    material_type_id=material_type.id,
+                    color_id=color.id,
+                    category_id=category_id,
+                    active=True,
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
+                )
+                db.add(product)
+                db.flush()
+                result["created"] += 1
+
+            if price and product.standard_cost != float(price):
+                product.standard_cost = float(price)
+                product.updated_at = datetime.now(timezone.utc)
+
+            if import_categories and category_id and product.category_id != category_id:
+                product.category_id = category_id
+                product.updated_at = datetime.now(timezone.utc)
+
+            # Inventory record
+            inventory = db.query(Inventory).filter(
+                Inventory.product_id == product.id,
+                Inventory.location_id == default_location.id,
+            ).first()
+            if not inventory:
+                inventory = Inventory(
+                    product_id=product.id,
+                    location_id=default_location.id,
+                    on_hand_quantity=on_hand_grams,
+                    allocated_quantity=Decimal("0.00"),
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
+                )
+                db.add(inventory)
+            else:
+                inventory.on_hand_quantity = on_hand_grams
+                inventory.updated_at = datetime.now(timezone.utc)
+
+            try:
+                db.commit()
+            except Exception as commit_err:
+                db.rollback()
+                result["errors"].append(
+                    {"row": row_num, "error": f"Database error: {str(commit_err)}", "sku": sku}
+                )
+                result["skipped"] += 1
+                continue
+
+        except Exception as e:
+            db.rollback()
+            sku_value = sku if sku else ""
+            result["errors"].append(
+                {"row": row_num, "error": str(e), "sku": sku_value}
+            )
+            result["skipped"] += 1
+
+    return result

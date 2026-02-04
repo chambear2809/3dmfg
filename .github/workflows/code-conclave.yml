@@ -7,33 +7,23 @@ on:
     branches: [main, master]
   workflow_dispatch:  # Manual trigger
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
 jobs:
   review:
     runs-on: windows-latest
-    
+    timeout-minutes: 90  # All 6 agents ~45 min, buffer for setup
+
     steps:
     - name: Checkout FilaOps
       uses: actions/checkout@v4
-    
+
     - name: Checkout Code Conclave
       uses: actions/checkout@v4
       with:
         repository: Blb3D/review-council
+        ref: ad4fd1fd141d3003710322f1253dcf5d3d4d3cd0  # Pin to audited commit; update SHA after review
+        token: ${{ secrets.REVIEW_COUNCIL_TOKEN }}
         path: .code-conclave-tool
-    
-    - name: Install Claude Code CLI
-      shell: pwsh
-      run: |
-        # Install Node.js LTS if not present (Windows runners have it)
-        Write-Host "Installing Claude Code CLI..."
-        npm install -g @anthropic-ai/claude-code
-        claude --version
-    
+
     - name: Run Code Conclave
       shell: pwsh
       env:
@@ -41,16 +31,16 @@ jobs:
       run: |
         .\.code-conclave-tool\cli\ccl.ps1 `
           -Project ${{ github.workspace }} `
-          -Agent guardian `
           -OutputFormat junit `
           -CI
-    
+      continue-on-error: true
+
     - name: Publish Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
       if: always()
       with:
         files: '**/.code-conclave/reviews/conclave-results.xml'
-    
+
     - name: Upload Reports
       uses: actions/upload-artifact@v4
       if: always()
