@@ -844,12 +844,14 @@ def import_materials_from_csv(
                 except (ValueError, TypeError) as e:
                     logger.debug(f"Could not parse price '{price_str}': {e}")
 
-            on_hand_kg = Decimal("0.00")
+            # CSV column "on hand (g)" is in grams.  Inventory on_hand_quantity
+            # is stored in the product's storage unit, which is also grams (G)
+            # for materials.  Do NOT divide by 1000 here.
+            on_hand_grams = Decimal("0.00")
             on_hand_str = _get_column_value(row, _ON_HAND_COLS, normalized_map)
             if on_hand_str:
                 try:
-                    grams = Decimal(on_hand_str.replace(",", ""))
-                    on_hand_kg = grams / Decimal("1000")
+                    on_hand_grams = Decimal(on_hand_str.replace(",", ""))
                 except (ValueError, TypeError) as e:
                     logger.debug(f"Could not parse on_hand quantity '{on_hand_str}': {e}")
 
@@ -987,14 +989,14 @@ def import_materials_from_csv(
                 inventory = Inventory(
                     product_id=product.id,
                     location_id=default_location.id,
-                    on_hand_quantity=on_hand_kg,
+                    on_hand_quantity=on_hand_grams,
                     allocated_quantity=Decimal("0.00"),
                     created_at=datetime.now(timezone.utc),
                     updated_at=datetime.now(timezone.utc),
                 )
                 db.add(inventory)
             else:
-                inventory.on_hand_quantity = on_hand_kg
+                inventory.on_hand_quantity = on_hand_grams
                 inventory.updated_at = datetime.now(timezone.utc)
 
             try:

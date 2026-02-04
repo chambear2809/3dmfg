@@ -1290,7 +1290,10 @@ def get_cost_breakdown(db: Session, order_id: int) -> dict:
         for mat in op.materials:
             component = db.query(Product).filter(Product.id == mat.component_id).first()
             if component:
-                unit_cost = component.unit_cost or Decimal("0")
+                # Product model has standard_cost, average_cost, last_cost (not unit_cost)
+                unit_cost = Decimal(str(
+                    component.standard_cost or component.average_cost or component.last_cost or 0
+                ))
                 qty = mat.quantity_consumed or mat.quantity_required
                 line_cost = unit_cost * qty
                 total_material_cost += line_cost

@@ -307,14 +307,18 @@ async def create_material_item(
             existing.category_id = request.category_id
 
         # Update initial inventory if provided
+        # initial_qty_kg is in KG per schema; inventory stores in grams (product unit=G)
         if request.initial_qty_kg and request.initial_qty_kg > 0:
+            from decimal import Decimal as D
+            qty_grams = request.initial_qty_kg * D("1000")
+
             inventory = (
                 db.query(Inventory)
                 .filter(Inventory.product_id == existing.id)
                 .first()
             )
             if inventory:
-                inventory.on_hand_quantity = request.initial_qty_kg
+                inventory.on_hand_quantity = qty_grams
             else:
                 location = (
                     db.query(InventoryLocation)
@@ -331,7 +335,7 @@ async def create_material_item(
                 inventory = Inventory(
                     product_id=existing.id,
                     location_id=location.id,
-                    on_hand_quantity=request.initial_qty_kg,
+                    on_hand_quantity=qty_grams,
                     allocated_quantity=0,
                 )
                 db.add(inventory)
@@ -373,12 +377,16 @@ async def create_material_item(
         if materials_category:
             product.category_id = materials_category.id
 
+    # initial_qty_kg is in KG per schema; inventory stores in grams (product unit=G)
     if request.initial_qty_kg and request.initial_qty_kg > 0:
+        from decimal import Decimal as D
+        qty_grams = request.initial_qty_kg * D("1000")
+
         inventory = (
             db.query(Inventory).filter(Inventory.product_id == product.id).first()
         )
         if inventory:
-            inventory.on_hand_quantity = request.initial_qty_kg
+            inventory.on_hand_quantity = qty_grams
 
     db.commit()
     db.refresh(product)

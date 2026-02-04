@@ -114,6 +114,16 @@ def create_purchase_order(
 
     po_number = generate_po_number(db)
 
+    # Validate all line products BEFORE creating the PO to avoid orphaned records
+    line_products = {}
+    for line_data in lines_data:
+        product = db.query(Product).filter(Product.id == line_data["product_id"]).first()
+        if not product:
+            raise HTTPException(
+                status_code=404, detail=f"Product ID {line_data['product_id']} not found"
+            )
+        line_products[line_data["product_id"]] = product
+
     po = PurchaseOrder(
         po_number=po_number,
         vendor_id=data["vendor_id"],
@@ -136,11 +146,7 @@ def create_purchase_order(
     db.flush()
 
     for i, line_data in enumerate(lines_data, start=1):
-        product = db.query(Product).filter(Product.id == line_data["product_id"]).first()
-        if not product:
-            raise HTTPException(
-                status_code=404, detail=f"Product ID {line_data['product_id']} not found"
-            )
+        product = line_products[line_data["product_id"]]
 
         line = PurchaseOrderLine(
             purchase_order_id=po.id,
@@ -489,6 +495,10 @@ def receive_purchase_order(
     lines_received = 0
     receipt_items_for_service = []
 
+    # Track cumulative per-product receipt quantities/costs within this batch
+    # to avoid weighted average drift when the same product appears multiple times
+    product_receipt_accum: dict[int, dict] = {}  # product_id -> {qty, cost_sum}
+
     for item in lines:
         line_id = item["line_id"]
         if line_id not in line_map:
@@ -701,32 +711,48 @@ def receive_purchase_order(
         )
 
         # Update product average cost (weighted average)
-        # old_qty = inventory BEFORE receipt
-        # new_qty = quantity being added
-        # total_qty = inventory AFTER receipt
+        # When the same product appears on multiple lines in one receipt, the DB
+        # on_hand_quantity doesn't reflect earlier lines yet (no commit between lines).
+        # Use product_receipt_accum to track cumulative receipt within this batch.
         if product:
-            total_on_hand = db.query(
-                sql_func.coalesce(sql_func.sum(Inventory.on_hand_quantity), 0)
-            ).filter(Inventory.product_id == product.id).scalar()
+            pid = product.id
 
-            old_qty = Decimal(str(total_on_hand))  # Inventory before this receipt
-            old_cost = Decimal(str(product.average_cost or 0))
-            new_qty = transaction_quantity  # Quantity being added
-            new_cost = cost_per_unit_for_inventory
+            if pid not in product_receipt_accum:
+                # First time seeing this product in this receipt — read DB baseline
+                total_on_hand = db.query(
+                    sql_func.coalesce(sql_func.sum(Inventory.on_hand_quantity), 0)
+                ).filter(Inventory.product_id == product.id).scalar()
 
-            total_qty = old_qty + new_qty  # Inventory after receipt
+                product_receipt_accum[pid] = {
+                    "base_qty": Decimal(str(total_on_hand)),
+                    "base_cost": Decimal(str(product.average_cost or 0)),
+                    "receipt_qty": Decimal("0"),
+                    "receipt_cost_total": Decimal("0"),
+                }
+
+            accum = product_receipt_accum[pid]
+            accum["receipt_qty"] += transaction_quantity
+            accum["receipt_cost_total"] += transaction_quantity * cost_per_unit_for_inventory
+
+            old_qty = accum["base_qty"]
+            old_cost = accum["base_cost"]
+            total_new_qty = accum["receipt_qty"]
+            total_qty = old_qty + total_new_qty
+
             if total_qty > 0:
-                weighted_avg = (old_qty * old_cost + new_qty * new_cost) / total_qty
+                weighted_avg = (
+                    old_qty * old_cost + accum["receipt_cost_total"]
+                ) / total_qty
                 product.average_cost = float(
                     weighted_avg.quantize(Decimal("0.0001"))
                 )
                 logger.debug(
                     f"Weighted avg for {product.sku}: "
-                    f"({old_qty}×${old_cost} + {new_qty}×${new_cost}) / {total_qty} "
-                    f"= ${product.average_cost}"
+                    f"({old_qty}×${old_cost} + batch_cost ${accum['receipt_cost_total']}) "
+                    f"/ {total_qty} = ${product.average_cost}"
                 )
-            elif new_qty > 0:
-                product.average_cost = float(new_cost)
+            elif total_new_qty > 0:
+                product.average_cost = float(cost_per_unit_for_inventory)
 
             product.last_cost = float(cost_per_unit_for_inventory)
             product.last_cost_date = datetime.now(timezone.utc)

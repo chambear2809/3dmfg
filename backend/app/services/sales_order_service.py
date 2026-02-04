@@ -207,9 +207,10 @@ def create_production_orders_for_sales_order(
                 Routing.is_active.is_(True)
             ).first()
 
-            # Retry logic to handle race condition if locking fails
+            # Retry with savepoints to avoid rolling back the entire transaction
             max_retries = 3
             for attempt in range(max_retries):
+                savepoint = db.begin_nested()
                 try:
                     po_code = get_next_po_code()
 
@@ -239,7 +240,7 @@ def create_production_orders_for_sales_order(
                     created_orders.append(po_code)
                     break
                 except IntegrityError as e:
-                    db.rollback()
+                    savepoint.rollback()
                     logger.warning(
                         f"PO code generation attempt {attempt + 1}/{max_retries} failed: {str(e)}"
                     )
@@ -268,6 +269,7 @@ def create_production_orders_for_sales_order(
 
             max_retries = 3
             for attempt in range(max_retries):
+                savepoint = db.begin_nested()
                 try:
                     po_code = get_next_po_code()
 
@@ -295,7 +297,7 @@ def create_production_orders_for_sales_order(
                     created_orders.append(po_code)
                     break
                 except IntegrityError as e:
-                    db.rollback()
+                    savepoint.rollback()
                     logger.warning(
                         f"PO code generation attempt {attempt + 1}/{max_retries} failed: {str(e)}"
                     )
@@ -375,7 +377,7 @@ def list_sales_orders(
         statuses: Multiple status filter
         skip: Pagination offset
         limit: Max results (capped at 100)
-        sort_by: Sort field (order_date or customer_name)
+        sort_by: Sort field (created_at or customer_name)
         sort_order: Sort direction (asc or desc)
 
     Returns:
@@ -399,7 +401,7 @@ def list_sales_orders(
     elif status_filter:
         query = query.filter(SalesOrder.status == status_filter)
 
-    # Sorting
+    # Sorting — "order_date" maps to created_at (SalesOrder has no order_date column)
     if sort_by == "customer_name":
         order_column = SalesOrder.customer_name
     else:
@@ -745,31 +747,47 @@ def convert_quote_to_sales_order(
         Routing.is_active.is_(True)
     ).first()
 
-    # Generate production order
-    po_code = generate_production_order_code(db)
-
+    # Generate production order with retry for code collisions
     estimated_time_minutes = int(quote.print_time_hours * 60) if quote.print_time_hours else None
 
-    production_order = ProductionOrder(
-        code=po_code,
-        product_id=quote.product_id,
-        bom_id=bom.id if bom else None,
-        routing_id=routing.id if routing else None,
-        sales_order_id=sales_order.id,
-        quantity_ordered=quote.quantity,
-        status="scheduled",
-        priority="normal" if quote.rush_level == "standard" else "high",
-        estimated_time_minutes=estimated_time_minutes,
-        notes=f"Auto-created from Sales Order {order_number}. Quote: {quote.quote_number}",
-        created_by=str(user_id),
-    )
+    max_retries = 3
+    for attempt in range(max_retries):
+        savepoint = db.begin_nested()
+        try:
+            po_code = generate_production_order_code(db)
 
-    db.add(production_order)
-    db.flush()
+            production_order = ProductionOrder(
+                code=po_code,
+                product_id=quote.product_id,
+                bom_id=bom.id if bom else None,
+                routing_id=routing.id if routing else None,
+                sales_order_id=sales_order.id,
+                quantity_ordered=quote.quantity,
+                status="scheduled",
+                priority="normal" if quote.rush_level == "standard" else "high",
+                estimated_time_minutes=estimated_time_minutes,
+                notes=f"Auto-created from Sales Order {order_number}. Quote: {quote.quote_number}",
+                created_by=str(user_id),
+            )
 
-    # Copy routing operations
-    if routing:
-        copy_routing_to_operations(db, production_order, routing.id)
+            db.add(production_order)
+            db.flush()
+
+            # Copy routing operations
+            if routing:
+                copy_routing_to_operations(db, production_order, routing.id)
+
+            break
+        except IntegrityError as e:
+            savepoint.rollback()
+            logger.warning(
+                f"PO code generation attempt {attempt + 1}/{max_retries} failed: {str(e)}"
+            )
+            if attempt >= max_retries - 1:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate unique PO code after {max_retries} attempts"
+                )
 
     logger.info(
         "Production order created from quote",
@@ -1515,7 +1533,7 @@ def ship_order(
     order = get_sales_order(db, order_id)
 
     # Validate shipping address
-    if not order.shipping_address_line1 and not order.shipping_city:
+    if not order.shipping_address_line1 or not order.shipping_city:
         raise HTTPException(
             status_code=400,
             detail="Order has no shipping address. Please add one first."
@@ -1646,6 +1664,7 @@ def generate_production_orders(
             db.query(ProductionOrder)
             .filter(ProductionOrder.code.like(f"PO-{year}-%"))
             .order_by(desc(ProductionOrder.code))
+            .with_for_update()
             .first()
         )
         if last_po:

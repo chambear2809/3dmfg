@@ -10,6 +10,7 @@ on:
 jobs:
   review:
     runs-on: windows-latest
+    timeout-minutes: 90  # All 6 agents ~45 min, buffer for setup
     
     steps:
     - name: Checkout FilaOps
@@ -19,7 +20,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: Blb3D/review-council
-        ref: ca1d8f0626ce50c3482d89638be4a6ad354788d2  # Pin to audited commit; update SHA after review
+        ref: ad4fd1fd141d3003710322f1253dcf5d3d4d3cd0  # Pin to audited commit; update SHA after review
         token: ${{ secrets.REVIEW_COUNCIL_TOKEN }}
         path: .code-conclave-tool
     
@@ -30,7 +31,6 @@ jobs:
       run: |
         .\.code-conclave-tool\cli\ccl.ps1 `
           -Project ${{ github.workspace }} `
-          -Agent guardian `
           -OutputFormat junit `
           -CI
       continue-on-error: true
