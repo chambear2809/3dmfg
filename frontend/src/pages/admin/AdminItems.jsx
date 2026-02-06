@@ -2,26 +2,17 @@ import { useState, useEffect, useCallback } from "react";
 import ItemForm from "../../components/ItemForm";
 import MaterialForm from "../../components/MaterialForm";
 import RoutingEditor from "../../components/RoutingEditor";
-import StatCard from "../../components/StatCard";
 import { ItemCard } from "../../components/inventory/ItemCard";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { API_URL } from "../../config/api";
 import { useToast } from "../../components/Toast";
-import CategoryNode from "../../components/items/CategoryNode";
+import CategorySidebar from "../../components/items/CategorySidebar";
 import CategoryModal from "../../components/items/CategoryModal";
 import BulkUpdateModal from "../../components/items/BulkUpdateModal";
 import ItemsTable from "../../components/items/ItemsTable";
+import ItemsPageHeader from "../../components/items/ItemsPageHeader";
+import ItemsFilterBar from "../../components/items/ItemsFilterBar";
 import AdjustmentReasonModal from "../../components/items/AdjustmentReasonModal";
-
-// Item type options
-const ITEM_TYPES = [
-  { value: "finished_good", label: "Finished Good", color: "blue" },
-  { value: "component", label: "Component", color: "purple" },
-  { value: "material", label: "Material", color: "orange" },
-  { value: "filament", label: "Filament (Legacy)", color: "orange" },
-  { value: "supply", label: "Supply", color: "yellow" },
-  { value: "service", label: "Service", color: "green" },
-];
 
 export default function AdminItems() {
   const toast = useToast();
@@ -551,270 +542,46 @@ export default function AdminItems() {
   return (
     <div data-testid="items-page" className="flex gap-6 h-full">
       {/* Left Sidebar - Categories */}
-      <div className="w-64 flex-shrink-0">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-white">Categories</h2>
-            <button
-              onClick={() => {
-                setEditingCategory(null);
-                setShowCategoryModal(true);
-              }}
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              + Add
-            </button>
-          </div>
-
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-2 transition-colors ${
-              selectedCategory === null
-                ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                : "text-gray-400 hover:bg-gray-800 hover:text-white"
-            }`}
-          >
-            All Items
-          </button>
-
-          <div className="space-y-1">
-            {categoryTree.map((node) => (
-              <CategoryNode
-                key={node.id}
-                node={node}
-                expandedCategories={expandedCategories}
-                selectedCategory={selectedCategory}
-                toggleExpand={toggleExpand}
-                setSelectedCategory={setSelectedCategory}
-                setEditingCategory={setEditingCategory}
-                setShowCategoryModal={setShowCategoryModal}
-                handleDeleteCategory={handleDeleteCategory}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+      <CategorySidebar
+        categoryTree={categoryTree}
+        expandedCategories={expandedCategories}
+        selectedCategory={selectedCategory}
+        onToggleExpand={toggleExpand}
+        onSelectCategory={setSelectedCategory}
+        onEditCategory={setEditingCategory}
+        onShowCategoryModal={setShowCategoryModal}
+        onAddCategory={() => {
+          setEditingCategory(null);
+          setShowCategoryModal(true);
+        }}
+        onDeleteCategory={handleDeleteCategory}
+      />
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Items</h1>
-            <p className="text-gray-400 mt-1">
-              Manage products, components, supplies, and services
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {/* View Toggle */}
-            <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-700">
-              <button
-                data-testid="view-toggle-table"
-                onClick={() => setViewMode("table")}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  viewMode === "table"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Table
-              </button>
-              <button
-                data-testid="view-toggle-cards"
-                onClick={() => setViewMode("cards")}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  viewMode === "cards"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                Cards
-              </button>
-            </div>
-            <button
-              onClick={fetchItems}
-              disabled={loading}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50"
-              title="Refresh items"
-            >
-              {loading ? "Loading..." : "↻ Refresh"}
-            </button>
-            <button
-              onClick={handleRecostAll}
-              disabled={recosting}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white disabled:opacity-50"
-            >
-              {recosting ? "Recosting..." : "Recost All"}
-            </button>
-            <button
-              onClick={() => {
-                setShowMaterialModal(true);
-              }}
-              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
-            >
-              + New Material
-            </button>
-            <button
-              onClick={() => {
-                setEditingItem(null);
-                setShowItemModal(true);
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              + New Item
-            </button>
-          </div>
-        </div>
+        <ItemsPageHeader
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          loading={loading}
+          recosting={recosting}
+          recostResult={recostResult}
+          onRefresh={fetchItems}
+          onRecostAll={handleRecostAll}
+          onClearRecostResult={() => setRecostResult(null)}
+          onNewMaterial={() => setShowMaterialModal(true)}
+          onNewItem={() => {
+            setEditingItem(null);
+            setShowItemModal(true);
+          }}
+        />
 
-        {/* Recost Result */}
-        {recostResult && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-green-400 font-medium">
-                  Recost complete: {recostResult.updated} items updated,{" "}
-                  {recostResult.skipped} skipped
-                </p>
-                {recostResult.items?.length > 0 && (
-                  <div className="mt-2 text-sm text-gray-400 max-h-32 overflow-auto">
-                    {recostResult.items.slice(0, 10).map((item, i) => (
-                      <div key={i}>
-                        {item.sku}: ${item.old_cost.toFixed(2)} → $
-                        {item.new_cost.toFixed(2)} ({item.cost_source})
-                      </div>
-                    ))}
-                    {recostResult.items.length > 10 && (
-                      <div className="text-gray-500">
-                        ...and {recostResult.items.length - 10} more
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setRecostResult(null)}
-                className="text-gray-500 hover:text-white"
-              >
-                x
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="flex gap-4 bg-gray-900 border border-gray-800 rounded-xl p-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search by SKU, name, or UPC..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500"
-            />
-          </div>
-          <select
-            value={filters.itemType}
-            onChange={(e) => {
-              setFilters({ ...filters, itemType: e.target.value });
-              setQuickFilter(null);
-            }}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-          >
-            <option value="all">All Types</option>
-            {ITEM_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          <label className="flex items-center gap-2 text-gray-400">
-            <input
-              type="checkbox"
-              checked={filters.activeOnly}
-              onChange={(e) =>
-                setFilters({ ...filters, activeOnly: e.target.checked })
-              }
-              className="rounded"
-            />
-            Active only
-          </label>
-        </div>
-
-        {/* Stats - Clickable filters */}
-        <div className="grid grid-cols-6 gap-4">
-          <StatCard
-            variant="simple"
-            title="Total Items"
-            value={stats.total}
-            color="neutral"
-            onClick={() => {
-              setQuickFilter(quickFilter === "all" ? null : "all");
-              setFilters({ ...filters, itemType: "all" });
-            }}
-            active={quickFilter === "all"}
-          />
-          <StatCard
-            variant="simple"
-            title="Finished Goods"
-            value={stats.finishedGoods}
-            color="primary"
-            onClick={() => {
-              const isActive = quickFilter === "finished_good";
-              setQuickFilter(isActive ? null : "finished_good");
-              setFilters({ ...filters, itemType: isActive ? "all" : "finished_good" });
-            }}
-            active={quickFilter === "finished_good"}
-          />
-          <StatCard
-            variant="simple"
-            title="Components"
-            value={stats.components}
-            color="secondary"
-            onClick={() => {
-              const isActive = quickFilter === "component";
-              setQuickFilter(isActive ? null : "component");
-              setFilters({ ...filters, itemType: isActive ? "all" : "component" });
-            }}
-            active={quickFilter === "component"}
-          />
-          <StatCard
-            variant="simple"
-            title="Materials"
-            value={stats.materials}
-            color="primary"
-            onClick={() => {
-              const isActive = quickFilter === "material";
-              setQuickFilter(isActive ? null : "material");
-              setFilters({ ...filters, itemType: isActive ? "all" : "material" });
-            }}
-            active={quickFilter === "material"}
-          />
-          <StatCard
-            variant="simple"
-            title="Supplies"
-            value={stats.supplies}
-            color="warning"
-            onClick={() => {
-              const isActive = quickFilter === "supply";
-              setQuickFilter(isActive ? null : "supply");
-              setFilters({ ...filters, itemType: isActive ? "all" : "supply" });
-            }}
-            active={quickFilter === "supply"}
-          />
-          <StatCard
-            variant="simple"
-            title="Needs Reorder"
-            value={stats.needsReorder}
-            color="danger"
-            onClick={() => {
-              const isActive = quickFilter === "needs_reorder";
-              setQuickFilter(isActive ? null : "needs_reorder");
-            }}
-            active={quickFilter === "needs_reorder"}
-          />
-        </div>
+        <ItemsFilterBar
+          filters={filters}
+          onFiltersChange={setFilters}
+          quickFilter={quickFilter}
+          onQuickFilterChange={setQuickFilter}
+          stats={stats}
+        />
 
         {/* Error */}
         {error && (
