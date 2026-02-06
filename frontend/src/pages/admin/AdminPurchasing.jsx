@@ -2,13 +2,15 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { API_URL } from "../../config/api";
 import { useToast } from "../../components/Toast";
-import { statusColors } from "../../components/purchasing/constants";
 import PurchasingChart from "../../components/purchasing/PurchasingChart";
 import VendorModal from "../../components/purchasing/VendorModal";
 import VendorDetailPanel from "../../components/purchasing/VendorDetailPanel";
 import POCreateModal from "../../components/purchasing/POCreateModal";
 import PODetailModal from "../../components/purchasing/PODetailModal";
 import ReceiveModal from "../../components/purchasing/ReceiveModal";
+import PurchaseOrdersTab from "../../components/purchasing/PurchaseOrdersTab";
+import VendorsTab from "../../components/purchasing/VendorsTab";
+import LowStockTab from "../../components/purchasing/LowStockTab";
 
 export default function AdminPurchasing() {
   const toast = useToast();
@@ -599,6 +601,15 @@ export default function AdminPurchasing() {
     toast.info(`Creating PO for ${vendorGroup.vendorName} with ${initialItems.length} items`);
   };
 
+  // Handle "Create PO" from individual low-stock row
+  const handleCreatePOFromLowStockItem = async () => {
+    setSelectedPO(null);
+    if (!companySettings) {
+      await fetchCompanySettings();
+    }
+    setShowPOModal(true);
+  };
+
   // ============================================================================
   // Filters
   // ============================================================================
@@ -781,255 +792,33 @@ export default function AdminPurchasing() {
 
       {/* Purchase Orders Table */}
       {!loading && activeTab === "orders" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-800/50">
-              <tr>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  PO #
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Vendor
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Order Date
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Expected
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Received
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Total
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Lines
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOrders.map((po) => (
-                <tr
-                  key={po.id}
-                  className="border-b border-gray-800 hover:bg-gray-800/50"
-                >
-                  <td className="py-3 px-4 text-white font-medium">
-                    {po.po_number}
-                  </td>
-                  <td className="py-3 px-4 text-gray-300">{po.vendor_name}</td>
-                  <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        statusColors[po.status]
-                      }`}
-                    >
-                      {po.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {po.order_date
-                      ? new Date(po.order_date + "T00:00:00").toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {po.expected_date
-                      ? new Date(po.expected_date + "T00:00:00").toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {po.received_date
-                      ? new Date(po.received_date + "T00:00:00").toLocaleDateString()
-                      : "-"}
-                  </td>
-                  <td className="py-3 px-4 text-right text-green-400 font-medium">
-                    ${parseFloat(po.total_amount || 0).toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-center text-gray-400">
-                    {po.line_count}
-                  </td>
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button
-                      onClick={async () => {
-                        await fetchPODetails(po.id);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      View
-                    </button>
-                    {po.status === "draft" && (
-                      <button
-                        onClick={() => handleStatusChange(po.id, "ordered")}
-                        className="text-green-400 hover:text-green-300 text-sm"
-                      >
-                        Order
-                      </button>
-                    )}
-                    {(po.status === "ordered" || po.status === "shipped") && (
-                      <button
-                        onClick={async () => {
-                          await fetchPODetails(po.id);
-                          setShowReceiveModal(true);
-                        }}
-                        className="text-purple-400 hover:text-purple-300 text-sm"
-                      >
-                        Receive
-                      </button>
-                    )}
-                    {po.status === "draft" && (
-                      <button
-                        onClick={() => handleDeletePO(po.id, po.po_number)}
-                        className="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Delete
-                      </button>
-                    )}
-                    {!["draft", "closed", "cancelled"].includes(po.status) && (
-                      <button
-                        onClick={() => handleCancelPO(po.id, po.po_number)}
-                        className="text-orange-400 hover:text-orange-300 text-sm"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filteredOrders.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-gray-500">
-                    No purchase orders found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <PurchaseOrdersTab
+          filteredOrders={filteredOrders}
+          onViewPO={fetchPODetails}
+          onStatusChange={handleStatusChange}
+          onReceivePO={async (poId) => {
+            await fetchPODetails(poId);
+            setShowReceiveModal(true);
+          }}
+          onDeletePO={handleDeletePO}
+          onCancelPO={handleCancelPO}
+        />
       )}
 
       {/* Vendors Table */}
       {!loading && activeTab === "vendors" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-800/50">
-              <tr>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Code
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Name
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Contact
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Email
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Phone
-                </th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Location
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  POs
-                </th>
-                <th className="text-center py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Active
-                </th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVendors.map((vendor) => (
-                <tr
-                  key={vendor.id}
-                  className="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer"
-                  onClick={() => {
-                    setSelectedVendor(vendor);
-                    setShowVendorDetail(true);
-                  }}
-                >
-                  <td className="py-3 px-4 text-white font-medium">
-                    {vendor.code}
-                  </td>
-                  <td className="py-3 px-4 text-blue-400 hover:text-blue-300">
-                    {vendor.name}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {vendor.contact_name || "-"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {vendor.email || "-"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {vendor.phone || "-"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400">
-                    {vendor.city && vendor.state
-                      ? `${vendor.city}, ${vendor.state}`
-                      : "-"}
-                  </td>
-                  <td className="py-3 px-4 text-center text-gray-400">
-                    {vendor.po_count}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        vendor.is_active
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}
-                    >
-                      {vendor.is_active ? "Yes" : "No"}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => {
-                        setSelectedVendor(vendor);
-                        setShowVendorDetail(true);
-                      }}
-                      className="text-gray-400 hover:text-white text-sm"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedVendor(vendor);
-                        setShowVendorModal(true);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteVendor(vendor.id)}
-                      className="text-red-400 hover:text-red-300 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {filteredVendors.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-12 text-center text-gray-500">
-                    No vendors found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <VendorsTab
+          filteredVendors={filteredVendors}
+          onViewVendor={(vendor) => {
+            setSelectedVendor(vendor);
+            setShowVendorDetail(true);
+          }}
+          onEditVendor={(vendor) => {
+            setSelectedVendor(vendor);
+            setShowVendorModal(true);
+          }}
+          onDeleteVendor={handleDeleteVendor}
+        />
       )}
 
       {/* Import Tab — Amazon Business import is a PRO feature */}
@@ -1055,290 +844,19 @@ export default function AdminPurchasing() {
 
       {/* Low Stock Tab */}
       {activeTab === "low-stock" && (
-        <div className="space-y-6">
-          {/* Enhanced Summary Cards */}
-          {lowStockSummary && (
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                <div className="text-3xl font-bold text-red-400">
-                  {lowStockSummary.critical_count || 0}
-                </div>
-                <div className="text-sm text-gray-400">Critical (Out of Stock)</div>
-              </div>
-              <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4">
-                <div className="text-3xl font-bold text-orange-400">
-                  {lowStockSummary.urgent_count || 0}
-                </div>
-                <div className="text-sm text-gray-400">Urgent (&lt;50% Reorder)</div>
-              </div>
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <div className="text-3xl font-bold text-yellow-400">
-                  {lowStockSummary.low_count || 0}
-                </div>
-                <div className="text-sm text-gray-400">Low Stock</div>
-              </div>
-              <div className="bg-gray-700/30 border border-gray-600 rounded-xl p-4">
-                <div className="text-3xl font-bold text-white">
-                  ${lowStockSummary.total_shortfall_value?.toFixed(0) || "0"}
-                </div>
-                <div className="text-sm text-gray-400">Shortfall Value</div>
-              </div>
-            </div>
-          )}
-
-          {/* MRP Shortage Alert */}
-          {lowStockSummary?.mrp_shortage_count > 0 && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-center gap-3">
-              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-blue-300 text-sm">
-                <strong>{lowStockSummary.mrp_shortage_count}</strong> items have MRP-driven shortages from active sales orders
-              </span>
-            </div>
-          )}
-
-          {/* Low Stock Table */}
-          <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-white">
-                  Items Requiring Attention
-                </h3>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  {lowStockItems.length} items below reorder point or with MRP shortages
-                  {selectedLowStockIds.size > 0 && (
-                    <span className="ml-2 text-blue-400">({selectedLowStockIds.size} selected)</span>
-                  )}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Create PO Dropdown - shows when items are selected */}
-                {selectedLowStockIds.size > 0 && selectedItemsByVendor.length > 0 && (
-                  <div className="relative group">
-                    <button className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm text-white flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Create PO ({selectedLowStockIds.size})
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    <div className="absolute right-0 mt-1 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                      {selectedItemsByVendor.map((group) => (
-                        <button
-                          key={group.vendorId || 'no_vendor'}
-                          onClick={() => handleCreatePOFromSelection(group)}
-                          disabled={!group.vendorId}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 first:rounded-t-lg last:rounded-b-lg ${
-                            !group.vendorId ? 'text-gray-500 cursor-not-allowed' : 'text-white'
-                          }`}
-                        >
-                          <div className="font-medium">{group.vendorName}</div>
-                          <div className="text-xs text-gray-400">
-                            {group.items.length} items · ${group.totalValue.toFixed(2)}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Clear Selection */}
-                {selectedLowStockIds.size > 0 && (
-                  <button
-                    onClick={clearLowStockSelection}
-                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300"
-                  >
-                    Clear
-                  </button>
-                )}
-
-                <button
-                  onClick={fetchLowStock}
-                  disabled={lowStockLoading}
-                  className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-300 flex items-center gap-2"
-                >
-                  <svg className={`w-4 h-4 ${lowStockLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  {lowStockLoading ? "Refreshing..." : "Refresh"}
-                </button>
-              </div>
-            </div>
-
-            {lowStockLoading ? (
-              <div className="p-8 text-center text-gray-400">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-3"></div>
-                Loading low stock items...
-              </div>
-            ) : lowStockItems.length === 0 ? (
-              <div className="p-12 text-center">
-                <svg className="w-16 h-16 mx-auto text-green-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="text-green-400 text-lg font-medium mb-2">
-                  All Stock Levels OK
-                </div>
-                <p className="text-gray-400 text-sm">
-                  No items are currently below their reorder point.
-                </p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-800/50">
-                  <tr>
-                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-400 uppercase w-10">
-                      <input
-                        type="checkbox"
-                        checked={lowStockItems.length > 0 && selectedLowStockIds.size === lowStockItems.length}
-                        onChange={toggleAllLowStock}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
-                      />
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Urgency
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Item
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Category
-                    </th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Available
-                    </th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Reorder Pt
-                    </th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Shortfall
-                    </th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-400 uppercase">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lowStockItems.map((item) => {
-                    // Determine urgency level
-                    const isCritical = item.available_qty <= 0;
-                    const isUrgent = !isCritical && item.reorder_point && item.available_qty <= item.reorder_point * 0.5;
-                    const hasMrpShortage = item.mrp_shortage > 0;
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className={`border-b border-gray-800 hover:bg-gray-800/30 ${
-                          isCritical ? 'bg-red-500/5' : isUrgent ? 'bg-orange-500/5' : ''
-                        } ${selectedLowStockIds.has(item.id) ? 'bg-blue-500/10' : ''}`}
-                      >
-                        <td className="py-3 px-2 text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedLowStockIds.has(item.id)}
-                            onChange={() => toggleLowStockItem(item.id)}
-                            className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
-                          />
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {isCritical && (
-                              <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-xs font-medium">
-                                CRITICAL
-                              </span>
-                            )}
-                            {isUrgent && (
-                              <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
-                                URGENT
-                              </span>
-                            )}
-                            {!isCritical && !isUrgent && (
-                              <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-medium">
-                                LOW
-                              </span>
-                            )}
-                            {hasMrpShortage && (
-                              <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs" title="MRP shortage from active orders">
-                                MRP
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-white font-medium">
-                            {item.name}
-                          </div>
-                          <div className="text-gray-500 text-xs">{item.sku}</div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-400 text-sm">
-                          {item.category_name || "-"}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <span
-                            className={
-                              isCritical
-                                ? "text-red-400 font-medium"
-                                : isUrgent
-                                ? "text-orange-400"
-                                : "text-yellow-400"
-                            }
-                          >
-                            {item.available_qty?.toFixed(2)} {item.unit}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right text-gray-400">
-                          {item.reorder_point?.toFixed(2) || "-"} {item.unit}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <span className="text-red-400 font-medium">
-                            -{item.shortfall?.toFixed(2)} {item.unit}
-                          </span>
-                          {item.mrp_shortage > 0 && item.shortage_source === "mrp" && (
-                            <div className="text-xs text-blue-400 mt-1">
-                              (MRP: {item.mrp_shortage.toFixed(2)})
-                            </div>
-                          )}
-                          {item.mrp_shortage > 0 && item.shortage_source === "both" && (
-                            <div className="text-xs text-purple-400 mt-1">
-                              +MRP: {item.mrp_shortage.toFixed(2)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex gap-2 justify-end">
-                            <button
-                              onClick={async () => {
-                                setSelectedPO(null);
-                                if (!companySettings) {
-                                  await fetchCompanySettings();
-                                }
-                                setShowPOModal(true);
-                                // TODO: Pre-populate with this item
-                              }}
-                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs text-white"
-                            >
-                              Create PO
-                            </button>
-                            <button
-                              onClick={() =>
-                                (window.location.href = `/admin?tab=items&edit=${item.id}`)
-                              }
-                              className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-300"
-                            >
-                              Edit Item
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+        <LowStockTab
+          lowStockItems={lowStockItems}
+          lowStockSummary={lowStockSummary}
+          lowStockLoading={lowStockLoading}
+          selectedLowStockIds={selectedLowStockIds}
+          selectedItemsByVendor={selectedItemsByVendor}
+          toggleLowStockItem={toggleLowStockItem}
+          toggleAllLowStock={toggleAllLowStock}
+          clearLowStockSelection={clearLowStockSelection}
+          fetchLowStock={fetchLowStock}
+          onCreatePO={handleCreatePOFromLowStockItem}
+          onCreatePOFromSelection={handleCreatePOFromSelection}
+        />
       )}
 
       {/* Vendor Modal */}
