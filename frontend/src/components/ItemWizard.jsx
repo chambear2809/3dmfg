@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { API_URL } from "../config/api";
 import Modal from "./Modal";
-import { ITEM_TYPES, PROCUREMENT_TYPES } from "./item-wizard/constants";
-import MaterialWizardForm from "./item-wizard/MaterialWizardForm";
-import SubComponentWizardForm from "./item-wizard/SubComponentWizardForm";
+import BasicInfoStep from "./items/BasicInfoStep";
+import BomBuilderStep from "./items/BomBuilderStep";
+import PricingStep from "./items/PricingStep";
 
 /**
  * ItemWizard - Reusable item creation wizard with BOM builder
@@ -603,371 +603,61 @@ export default function ItemWizard({ isOpen, onClose, onSuccess, editingItem = n
         <div className="flex-1 overflow-y-auto p-6">
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              {/* Item Type */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Item Type</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {ITEM_TYPES.map(type => (
-                    <button
-                      key={type.value}
-                      type="button"
-                      onClick={() => {
-                        setItem({
-                          ...item,
-                          item_type: type.value,
-                          procurement_type: type.defaultProcurement,
-                        });
-                      }}
-                      className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                        item.item_type === type.value
-                          ? `bg-${type.color}-600/20 border-${type.color}-500 text-${type.color}-400`
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                      }`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Procurement Type (Make vs Buy) */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Procurement Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {PROCUREMENT_TYPES.map(proc => (
-                    <button
-                      key={proc.value}
-                      type="button"
-                      onClick={() => setItem({ ...item, procurement_type: proc.value })}
-                      className={`p-3 rounded-lg border text-left transition-all ${
-                        item.procurement_type === proc.value
-                          ? proc.value === "make" ? "bg-green-600/20 border-green-500 text-green-400"
-                            : proc.value === "buy" ? "bg-blue-600/20 border-blue-500 text-blue-400"
-                            : "bg-yellow-600/20 border-yellow-500 text-yellow-400"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
-                      }`}
-                    >
-                      <div className="font-medium text-sm">{proc.label}</div>
-                      <div className="text-xs opacity-70">{proc.description}</div>
-                    </button>
-                  ))}
-                </div>
-                {itemNeedsBom && (
-                  <p className="text-xs text-green-400 mt-2">This item will have a BOM and/or routing</p>
-                )}
-              </div>
-
-              {/* Basic fields */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">SKU *</label>
-                  <input
-                    type="text"
-                    value={item.sku}
-                    onChange={(e) => setItem({ ...item, sku: e.target.value.toUpperCase() })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white font-mono"
-                    placeholder="Auto-generated"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Name *</label>
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={(e) => setItem({ ...item, name: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                    placeholder="Item name"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
-                <textarea
-                  value={item.description}
-                  onChange={(e) => setItem({ ...item, description: e.target.value })}
-                  rows={2}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Category</label>
-                  <select
-                    value={item.category_id || ""}
-                    onChange={(e) => setItem({ ...item, category_id: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                  >
-                    <option value="">-- None --</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.full_path || cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Unit</label>
-                  <input
-                    type="text"
-                    value={item.unit}
-                    onChange={(e) => setItem({ ...item, unit: e.target.value.toUpperCase() })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                  />
-                </div>
-              </div>
-            </div>
+            <BasicInfoStep
+              item={item}
+              categories={categories}
+              itemNeedsBom={itemNeedsBom}
+              onItemChange={setItem}
+            />
           )}
 
           {/* Step 2: BOM Builder */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              {/* BOM Components Section */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-sm text-gray-400 font-medium">BOM Components</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowMaterialWizard(true)}
-                      className="text-xs px-2 py-1 bg-pink-600/20 border border-pink-500/30 text-pink-400 rounded hover:bg-pink-600/30"
-                    >
-                      + Add Filament
-                    </button>
-                    <button
-                      type="button"
-                      onClick={startSubComponent}
-                      className="text-xs px-2 py-1 bg-purple-600/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-600/30"
-                    >
-                      + Create Component
-                    </button>
-                  </div>
-                </div>
-
-                {/* Material Wizard */}
-                {showMaterialWizard && (
-                  <MaterialWizardForm
-                    materialTypes={materialTypes}
-                    allColors={allColors}
-                    newMaterial={newMaterial}
-                    loading={loading}
-                    onMaterialChange={setNewMaterial}
-                    onColorTypeChange={(code) => {
-                      setNewMaterial({ ...newMaterial, material_type_code: code, color_code: "" });
-                      fetchColorsForType(code);
-                    }}
-                    onCreateMaterial={handleCreateMaterial}
-                    onCancel={() => setShowMaterialWizard(false)}
-                  />
-                )}
-
-                {/* Sub-Component Wizard */}
-                {showSubComponentWizard && (
-                  <SubComponentWizardForm
-                    subComponent={subComponent}
-                    loading={loading}
-                    onSubComponentChange={setSubComponent}
-                    onSave={handleSaveSubComponent}
-                    onCancel={() => setShowSubComponentWizard(false)}
-                  />
-                )}
-
-                {/* Component Dropdown */}
-                <select
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const comp = components.find(c => String(c.id) === val);
-                    if (comp) addBomLine(comp);
-                    e.target.value = "";
-                  }}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                >
-                  <option value="">-- Select component or material to add --</option>
-                  <optgroup label="Components & Supplies">
-                    {components.filter(c => !c.is_material && !bomLines.find(bl => bl.component_id === c.id)).map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.sku} - {c.name} (${parseFloat(c.standard_cost || c.average_cost || c.cost || 0).toFixed(2)}/{c.unit})
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Filament / Materials">
-                    {components.filter(c => c.is_material && !bomLines.find(bl => bl.component_id === c.id)).map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} {c.in_stock ? "" : "(Out of Stock)"} (${parseFloat(c.standard_cost || 0).toFixed(3)}/{c.unit})
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-
-              {/* BOM Lines */}
-              {bomLines.length > 0 && (
-                <div className="bg-gray-800/50 rounded-lg border border-gray-700 divide-y divide-gray-700">
-                  {bomLines.map(line => (
-                    <div key={line.component_id} className="p-3 flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-medium">{line.component_name}</span>
-                          {line.is_material && (
-                            <span className="text-xs bg-purple-600/30 text-purple-300 px-1.5 py-0.5 rounded">Filament</span>
-                          )}
-                        </div>
-                        <div className="text-gray-500 text-xs font-mono">{line.component_sku}</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-gray-400 text-sm">Qty:</label>
-                        <input
-                          type="number"
-                          min="0.001"
-                          step="0.001"
-                          value={line.quantity}
-                          onChange={(e) => updateBomQuantity(line.component_id, parseFloat(e.target.value) || 0.001)}
-                          className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-center"
-                        />
-                        <span className="text-gray-500 text-sm">{line.component_unit}</span>
-                      </div>
-                      <div className="text-gray-400 text-sm">
-                        @ ${parseFloat(line.component_cost).toFixed(2)}
-                      </div>
-                      <div className="text-green-400 font-medium w-20 text-right">
-                        ${(line.quantity * line.component_cost).toFixed(2)}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeBomLine(line.component_id)}
-                        className="text-red-400 hover:text-red-300 p-1"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                  <div className="p-3 flex justify-between items-center bg-gray-800/80">
-                    <span className="text-white font-medium">Material Cost</span>
-                    <span className="text-green-400 font-bold">${calculatedCost.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-
-              {bomLines.length === 0 && (
-                <div className="text-center py-8 text-gray-500 border border-dashed border-gray-700 rounded-lg">
-                  No components added yet. Select from the dropdown above or create new ones.
-                </div>
-              )}
-
-              {/* Routing Templates */}
-              {routingTemplates.length > 0 && (
-                <div className="border-t border-gray-700 pt-4">
-                  <label className="text-sm text-gray-400 font-medium mb-2 block">Routing Template (optional)</label>
-                  <select
-                    value={selectedTemplate?.id || ""}
-                    onChange={(e) => {
-                      const tpl = routingTemplates.find(t => t.id === parseInt(e.target.value));
-                      applyRoutingTemplate(tpl || null);
-                    }}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                  >
-                    <option value="">-- No routing --</option>
-                    {routingTemplates.map(t => (
-                      <option key={t.id} value={t.id}>{t.name || t.code}</option>
-                    ))}
-                  </select>
-                  {routingOperations.length > 0 && (
-                    <div className="mt-2 text-sm text-gray-400">
-                      {routingOperations.length} operations, est. labor: ${laborCost.toFixed(2)}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <BomBuilderStep
+              components={components}
+              bomLines={bomLines}
+              calculatedCost={calculatedCost}
+              routingTemplates={routingTemplates}
+              selectedTemplate={selectedTemplate}
+              routingOperations={routingOperations}
+              laborCost={laborCost}
+              showMaterialWizard={showMaterialWizard}
+              showSubComponentWizard={showSubComponentWizard}
+              materialTypes={materialTypes}
+              allColors={allColors}
+              newMaterial={newMaterial}
+              subComponent={subComponent}
+              loading={loading}
+              onAddBomLine={addBomLine}
+              onRemoveBomLine={removeBomLine}
+              onUpdateBomQuantity={updateBomQuantity}
+              onShowMaterialWizard={setShowMaterialWizard}
+              onShowSubComponentWizard={setShowSubComponentWizard}
+              onMaterialChange={setNewMaterial}
+              onColorTypeChange={(code) => {
+                setNewMaterial({ ...newMaterial, material_type_code: code, color_code: "" });
+                fetchColorsForType(code);
+              }}
+              onCreateMaterial={handleCreateMaterial}
+              onSubComponentChange={setSubComponent}
+              onSaveSubComponent={handleSaveSubComponent}
+              onStartSubComponent={startSubComponent}
+              onApplyRoutingTemplate={applyRoutingTemplate}
+            />
           )}
 
           {/* Step 3: Pricing */}
           {currentStep === 3 && showPricing && (
-            <div className="space-y-6">
-              {/* Cost Summary */}
-              <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Material Cost</span>
-                  <span className="text-white">${calculatedCost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Labor Cost</span>
-                  <span className="text-white">${laborCost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between border-t border-gray-700 pt-3">
-                  <span className="text-white font-medium">Total Cost</span>
-                  <span className="text-green-400 font-bold">${totalCost.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Margin Calculator */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Target Margin: {targetMargin}%</label>
-                <input
-                  type="range"
-                  min="10"
-                  max="80"
-                  value={targetMargin}
-                  onChange={(e) => setTargetMargin(parseInt(e.target.value))}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>10%</span>
-                  <span>80%</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Standard Cost</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={totalCost > 0 ? totalCost.toFixed(2) : item.standard_cost || ""}
-                    onChange={(e) => setItem({ ...item, standard_cost: parseFloat(e.target.value) || null })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Auto-filled from BOM + Labor</p>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Selling Price</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.selling_price || ""}
-                      onChange={(e) => setItem({ ...item, selling_price: parseFloat(e.target.value) || null })}
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setItem({ ...item, selling_price: suggestedPrice })}
-                      className="px-3 py-2 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg text-sm hover:bg-green-600/30"
-                    >
-                      ${suggestedPrice.toFixed(2)}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">Click suggested price to apply</p>
-                </div>
-              </div>
-
-              {item.selling_price && totalCost > 0 && (
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-blue-400">Actual Margin</span>
-                    <span className="text-white font-bold">
-                      {(((item.selling_price - totalCost) / item.selling_price) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-blue-400">Profit per Unit</span>
-                    <span className="text-green-400 font-bold">${(item.selling_price - totalCost).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+            <PricingStep
+              item={item}
+              calculatedCost={calculatedCost}
+              laborCost={laborCost}
+              totalCost={totalCost}
+              targetMargin={targetMargin}
+              suggestedPrice={suggestedPrice}
+              onItemChange={setItem}
+              onTargetMarginChange={setTargetMargin}
+            />
           )}
         </div>
 

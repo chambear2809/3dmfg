@@ -7,6 +7,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { API_URL } from "../config/api";
 import OperationMaterialModal from "./OperationMaterialModal";
+import OperationRow from "./routing/OperationRow";
+import AddOperationForm from "./routing/AddOperationForm";
 
 export default function RoutingEditor({
   isOpen,
@@ -652,176 +654,22 @@ export default function RoutingEditor({
                       </tr>
                     </thead>
                     <tbody>
-                      {operations.map((op, index) => {
-                        const materials = op.id ? (operationMaterials[op.id] || []) : [];
-                        const isExpanded = op.id && expandedOperations[op.id];
-
-                        return (
-                          <React.Fragment key={op.id || index}>
-                            <tr className="border-b border-gray-800 hover:bg-gray-800/50">
-                              <td className="border border-gray-700 p-2">
-                                <div className="flex items-center gap-2">
-                                  {op.id && (
-                                    <button
-                                      onClick={() => toggleOperationExpanded(op.id)}
-                                      className="text-gray-400 hover:text-white"
-                                      title={isExpanded ? "Collapse materials" : "Expand materials"}
-                                    >
-                                      <svg
-                                        className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                      </svg>
-                                    </button>
-                                  )}
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={op.sequence || index + 1}
-                                    onChange={(e) => {
-                                      const newSequence = parseInt(e.target.value) || 1;
-                                      updateOperation(index, "sequence", newSequence);
-                                      const currentSeq = op.sequence || index + 1;
-                                      if (newSequence !== currentSeq) {
-                                        operations.forEach((otherOp, otherIdx) => {
-                                          if (otherIdx !== index) {
-                                            const otherSeq = otherOp.sequence || otherIdx + 1;
-                                            if (otherSeq >= newSequence && otherSeq < currentSeq) {
-                                              updateOperation(otherIdx, "sequence", otherSeq + 1);
-                                            } else if (otherSeq <= newSequence && otherSeq > currentSeq) {
-                                              updateOperation(otherIdx, "sequence", otherSeq - 1);
-                                            }
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className="w-12 text-center bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
-                                  />
-                                </div>
-                              </td>
-                              <td className="border border-gray-700 p-2">
-                                <div>
-                                  <div className="font-medium text-white">
-                                    {op.operation_name || op.operation_code || `OP${index + 1}`}
-                                  </div>
-                                  {op.operation_code && (
-                                    <div className="text-sm text-gray-400">{op.operation_code}</div>
-                                  )}
-                                  {materials.length > 0 && (
-                                    <div className="text-xs text-blue-400 mt-1">
-                                      {materials.length} material{materials.length !== 1 ? 's' : ''}
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="border border-gray-700 p-2 text-white">
-                                {op.work_center_name || op.work_center?.name}
-                              </td>
-                              <td className="border border-gray-700 p-2">
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  min="0"
-                                  value={op.setup_time_minutes || 0}
-                                  onChange={(e) =>
-                                    updateOperation(index, "setup_time_minutes", parseFloat(e.target.value) || 0)
-                                  }
-                                  className="w-20 text-right bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
-                                />
-                              </td>
-                              <td className="border border-gray-700 p-2">
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  min="0"
-                                  value={op.run_time_minutes || 0}
-                                  onChange={(e) =>
-                                    updateOperation(index, "run_time_minutes", parseFloat(e.target.value) || 0)
-                                  }
-                                  className="w-20 text-right bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
-                                />
-                              </td>
-                              <td className="border border-gray-700 p-2 text-right text-white">
-                                ${(
-                                  (((parseFloat(op.setup_time_minutes) || 0) +
-                                    (parseFloat(op.run_time_minutes) || 0)) / 60) *
-                                  (parseFloat(op.labor_rate) || 0)
-                                ).toFixed(2)}
-                              </td>
-                              <td className="border border-gray-700 p-2 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  {op.id && (
-                                    <button
-                                      onClick={() => handleAddMaterial(op.id)}
-                                      className="text-blue-400 hover:text-blue-300 text-sm"
-                                      title="Add material"
-                                    >
-                                      +Mat
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => removeOperation(index)}
-                                    className="text-red-400 hover:text-red-300"
-                                    disabled={loading}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                            {/* Expandable Materials Row */}
-                            {isExpanded && (
-                              <tr className="bg-gray-800/30">
-                                <td colSpan="7" className="border border-gray-700 p-3">
-                                  <div className="ml-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h5 className="text-sm font-medium text-gray-300">Materials</h5>
-                                      <button
-                                        onClick={() => handleAddMaterial(op.id)}
-                                        className="text-xs px-2 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded hover:bg-blue-600/30"
-                                      >
-                                        + Add Material
-                                      </button>
-                                    </div>
-                                    {materials.length === 0 ? (
-                                      <p className="text-sm text-gray-500 italic">No materials assigned to this operation</p>
-                                    ) : (
-                                      <div className="space-y-1">
-                                        {materials.map((mat) => (
-                                          <div
-                                            key={mat.id}
-                                            className="flex items-center justify-between text-sm p-2 bg-gray-800/50 rounded cursor-pointer hover:bg-gray-800"
-                                            onClick={() => handleEditMaterial(op.id, mat)}
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <span className="text-gray-300">{mat.component_sku}</span>
-                                              <span className="text-gray-500">-</span>
-                                              <span className="text-gray-400">{mat.component_name}</span>
-                                            </div>
-                                            <div className="flex items-center gap-4 text-gray-400">
-                                              <span>{mat.quantity_per} {mat.unit}</span>
-                                              <span className="text-xs text-gray-500">
-                                                {mat.quantity_type === 'per_unit' ? '/unit' : mat.quantity_type === 'per_batch' ? '/batch' : '/order'}
-                                              </span>
-                                              {mat.is_optional && (
-                                                <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">optional</span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
+                      {operations.map((op, index) => (
+                        <OperationRow
+                          key={op.id || index}
+                          op={op}
+                          index={index}
+                          materials={op.id ? (operationMaterials[op.id] || []) : []}
+                          isExpanded={op.id && expandedOperations[op.id]}
+                          loading={loading}
+                          operations={operations}
+                          onToggleExpand={toggleOperationExpanded}
+                          onUpdateOperation={updateOperation}
+                          onRemoveOperation={removeOperation}
+                          onAddMaterial={handleAddMaterial}
+                          onEditMaterial={handleEditMaterial}
+                        />
+                      ))}
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-800 font-semibold border-t border-gray-700">
@@ -849,137 +697,13 @@ export default function RoutingEditor({
 
               {/* Add Operation Form */}
               {showAddOperation && (
-                <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
-                  <h4 className="font-semibold mb-3 text-white">
-                    Add Operation
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-300">
-                        Work Center
-                      </label>
-                      <select
-                        value={newOperation.work_center_id}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            work_center_id: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white"
-                      >
-                        <option value="">Select work center...</option>
-                        {workCenters.map((wc) => (
-                          <option key={wc.id} value={wc.id}>
-                            {wc.code} - {wc.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Operation Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newOperation.operation_name}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            operation_name: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                        placeholder="e.g., 3D Print, Support Removal"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Operation Code
-                      </label>
-                      <input
-                        type="text"
-                        value={newOperation.operation_code}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            operation_code: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                        placeholder="e.g., OP10, OP20"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Setup Time (minutes)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={newOperation.setup_time_minutes}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            setup_time_minutes: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Run Time (minutes)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={newOperation.run_time_minutes}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            run_time_minutes: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">
-                        Units per Cycle
-                      </label>
-                      <input
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={newOperation.units_per_cycle}
-                        onChange={(e) =>
-                          setNewOperation({
-                            ...newOperation,
-                            units_per_cycle: parseInt(e.target.value) || 1,
-                          })
-                        }
-                        className="w-full px-3 py-2 border rounded-md"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={addOperation}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => setShowAddOperation(false)}
-                      className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+                <AddOperationForm
+                  workCenters={workCenters}
+                  newOperation={newOperation}
+                  onOperationChange={setNewOperation}
+                  onAdd={addOperation}
+                  onCancel={() => setShowAddOperation(false)}
+                />
               )}
 
               {/* Actions */}
