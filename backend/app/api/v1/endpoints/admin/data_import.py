@@ -3,11 +3,12 @@ Import functionality for products, inventory
 
 Business logic lives in ``app.services.data_import_service``.
 """
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.api.v1.deps import get_current_staff_user
+from app.core.limiter import limiter
 from app.models.user import User
 from app.services import data_import_service as svc
 
@@ -41,7 +42,9 @@ async def _read_csv_upload(file: UploadFile) -> str:
 
 
 @router.post("/products")
+@limiter.limit("30/minute")  # type: ignore
 async def import_products(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_staff_user),
     db: Session = Depends(get_db),
@@ -52,7 +55,9 @@ async def import_products(
 
 
 @router.post("/inventory")
+@limiter.limit("30/minute")  # type: ignore
 async def import_inventory(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_staff_user),
     db: Session = Depends(get_db),

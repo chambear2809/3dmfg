@@ -46,6 +46,13 @@ jobs:
           python -m pip install -U pip
           pip install -r requirements.txt
 
+      - name: Security audit (pip-audit)
+        working-directory: backend
+        run: |
+          pip install pip-audit
+          pip-audit --strict --ignore-vuln PYSEC-2024-XXX || true
+        continue-on-error: true
+
       - name: Wait for Postgres
         run: |
           for i in {1..30}; do
@@ -100,6 +107,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install
         run: npm ci
+      - name: Security audit (npm)
+        run: npm audit --audit-level=high || true
+        continue-on-error: true
       - name: Build (development mode)
         run: npm run build
         env:

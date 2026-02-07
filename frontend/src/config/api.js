@@ -7,7 +7,13 @@
  * so requests go through the proxy. Otherwise use localhost for dev.
  */
 const getApiUrl = () => {
-  // If explicitly set via env var, use that
+  // Runtime config injected by docker-entrypoint.sh at container startup
+  const runtimeUrl = window.__FILAOPS_CONFIG__?.API_URL;
+  if (runtimeUrl) {
+    return runtimeUrl;
+  }
+
+  // Build-time Vite env var
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }

@@ -7,12 +7,13 @@ import csv
 import io
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.api.v1.deps import get_current_staff_user
+from app.core.limiter import limiter
 from app.models.user import User
 from app.services import export_service as svc
 from app.services.export_service import sanitize_csv_field as _san
@@ -21,7 +22,9 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 
 @router.get("/products")
+@limiter.limit("30/minute")  # type: ignore
 async def export_products(
+    request: Request,
     current_user: User = Depends(get_current_staff_user),
     db: Session = Depends(get_db),
 ):
@@ -54,7 +57,9 @@ async def export_products(
 
 
 @router.get("/orders")
+@limiter.limit("30/minute")  # type: ignore
 async def export_orders(
+    request: Request,
     start_date: str = None,
     end_date: str = None,
     current_user: User = Depends(get_current_staff_user),
