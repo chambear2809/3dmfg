@@ -25,6 +25,7 @@ from app.api.v1 import router as api_v1_router
 from app.core.config import settings
 from app.exceptions import FilaOpsException
 from app.logging_config import setup_logging, get_logger
+from app.middleware import CorrelationIdMiddleware
 
 # Setup structured logging
 setup_logging()
@@ -182,7 +183,10 @@ app = FastAPI(
 # Optional rate limiting (no crash if slowapi isn't installed)
 app.state.limiter, RATE_LIMITS_ENABLED = apply_rate_limiting(app)
 
-# Security headers middleware (outermost)
+# Correlation ID middleware (outermost — runs first, available to all other middleware)
+app.add_middleware(CorrelationIdMiddleware)
+
+# Security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS middleware — uses settings.ALLOWED_ORIGINS directly (no wildcard fallback)
