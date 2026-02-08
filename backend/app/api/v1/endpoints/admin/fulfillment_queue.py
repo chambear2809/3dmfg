@@ -30,7 +30,6 @@ from app.models.product import Product
 from app.models.bom import BOM
 from app.models.printer import Printer
 from app.models.inventory import Inventory, InventoryTransaction, InventoryLocation
-from app.models.traceability import SerialNumber
 # MaterialInventory removed - using unified Inventory table (Phase 1.4)
 from app.services.transaction_service import TransactionService, MaterialConsumption
 from app.api.v1.deps import get_current_staff_user
