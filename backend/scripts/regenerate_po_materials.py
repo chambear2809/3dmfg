@@ -58,7 +58,7 @@ for op in ops:
     created = generate_operation_materials(db, op, int(po.quantity_ordered))
     print(f"  Created {len(created)} PO operation materials")
     for mat in created:
-        component = db.query(Product).get(mat.component_id)
+        component = db.get(Product, mat.component_id)
         print(f"    - {component.sku if component else mat.component_id}: {mat.quantity_required} {mat.unit}")
 
 db.commit()

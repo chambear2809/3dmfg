@@ -149,7 +149,7 @@ def generate_operation_materials(
         qty_required = routing_mat.calculate_required_quantity(order_quantity)
 
         # Get the component to validate UOM
-        component = db.query(Product).get(routing_mat.component_id)
+        component = db.get(Product, routing_mat.component_id)
         mat_unit = (routing_mat.unit or 'EA').upper().strip()
         component_unit = ((component.unit if component else None) or 'EA').upper().strip()
 

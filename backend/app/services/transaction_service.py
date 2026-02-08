@@ -590,7 +590,7 @@ class TransactionService:
             raise ValueError("No variance to adjust")
 
         # Determine inventory account based on product type
-        product = self.db.query(Product).get(product_id)
+        product = self.db.get(Product, product_id)
         if not product:
             raise ValueError(f"Product {product_id} not found")
 

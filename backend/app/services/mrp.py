@@ -510,7 +510,7 @@ class MRPService:
 
                 for mat in op_materials:
                     # Get the component product
-                    component = self.db.query(Product).get(mat.component_id)
+                    component = self.db.get(Product, mat.component_id)
                     if not component:
                         continue
 
@@ -693,7 +693,7 @@ class MRPService:
                 continue
 
             # Get the product to determine order type
-            product = self.db.query(Product).get(shortage.product_id)
+            product = self.db.get(Product, shortage.product_id)
             if not product:
                 continue
 
@@ -1016,7 +1016,7 @@ class MRPService:
         """
         Firm a planned order - locks it so MRP won't delete it.
         """
-        order = self.db.query(PlannedOrder).get(planned_order_id)
+        order = self.db.get(PlannedOrder, planned_order_id)
         if not order:
             raise ValueError(f"Planned order {planned_order_id} not found")
 
@@ -1044,7 +1044,7 @@ class MRPService:
         Returns:
             Tuple of (PlannedOrder, created_order_id)
         """
-        order = self.db.query(PlannedOrder).get(planned_order_id)
+        order = self.db.get(PlannedOrder, planned_order_id)
         if not order:
             raise ValueError(f"Planned order {planned_order_id} not found")
 
@@ -1092,7 +1092,7 @@ class MRPService:
         po_number = f"PO-{year}-{next_num:04d}"
 
         # Get product for cost
-        product = self.db.query(Product).get(planned_order.product_id)
+        product = self.db.get(Product, planned_order.product_id)
         unit_cost = product.standard_cost or product.last_cost or Decimal("0")
 
         # Create PO
@@ -1184,7 +1184,7 @@ class MRPService:
 
         Returns chronological list of supply/demand events with running balance.
         """
-        product = self.db.query(Product).get(product_id)
+        product = self.db.get(Product, product_id)
         if not product:
             raise ValueError(f"Product {product_id} not found")
 

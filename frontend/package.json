@@ -20,7 +20,9 @@
     "test:workflow": "playwright test --grep workflow",
     "test:scheduling": "playwright test --grep scheduling",
     "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -47,6 +49,11 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
-    "vite": "^7.2.4"
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^25.0.1",
+    "vite": "^7.2.4",
+    "vitest": "^3.1.1"
   }
 }

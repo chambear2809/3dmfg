@@ -60,7 +60,7 @@ async def run_mrp(
         )
 
         # Get the MRP run record
-        mrp_run = db.query(MRPRun).get(result.run_id)
+        mrp_run = db.get(MRPRun, result.run_id)
         return mrp_run
 
     except Exception as e:
@@ -92,7 +92,7 @@ async def get_mrp_run(
     db: Session = Depends(get_db)
 ):
     """Get details of a specific MRP run"""
-    run = db.query(MRPRun).get(run_id)
+    run = db.get(MRPRun, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="MRP run not found")
     return run
@@ -129,7 +129,7 @@ async def list_planned_orders(
     # Enrich with product info
     items = []
     for order in orders:
-        product = db.query(Product).get(order.product_id)
+        product = db.get(Product, order.product_id)
         items.append(PlannedOrderResponse(
             id=order.id,
             order_type=order.order_type,
@@ -165,11 +165,11 @@ async def get_planned_order(
     db: Session = Depends(get_db)
 ):
     """Get a specific planned order"""
-    order = db.query(PlannedOrder).get(order_id)
+    order = db.get(PlannedOrder, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Planned order not found")
 
-    product = db.query(Product).get(order.product_id)
+    product = db.get(Product, order.product_id)
 
     return PlannedOrderResponse(
         id=order.id,
@@ -212,7 +212,7 @@ async def firm_planned_order(
             planned_order_id=order_id,
             notes=request.notes
         )
-        product = db.query(Product).get(order.product_id)
+        product = db.get(Product, order.product_id)
 
         return PlannedOrderResponse(
             id=order.id,
@@ -268,13 +268,13 @@ async def release_planned_order(
             response.created_purchase_order_id = created_id
             # Get PO number
             from app.models import PurchaseOrder
-            po = db.query(PurchaseOrder).get(created_id)
+            po = db.get(PurchaseOrder, created_id)
             response.created_purchase_order_code = po.po_number if po else None
         else:
             response.created_production_order_id = created_id
             # Get MO code
             from app.models import ProductionOrder
-            mo = db.query(ProductionOrder).get(created_id)
+            mo = db.get(ProductionOrder, created_id)
             response.created_production_order_code = mo.code if mo else None
 
         return response
@@ -289,7 +289,7 @@ async def cancel_planned_order(
     db: Session = Depends(get_db)
 ):
     """Cancel/delete a planned order"""
-    order = db.query(PlannedOrder).get(order_id)
+    order = db.get(PlannedOrder, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Planned order not found")
 
@@ -325,7 +325,7 @@ async def get_requirements(
 
     if production_order_id:
         from app.models import ProductionOrder
-        mo = db.query(ProductionOrder).get(production_order_id)
+        mo = db.get(ProductionOrder, production_order_id)
         if not mo:
             raise HTTPException(status_code=404, detail="Production order not found")
 
@@ -427,7 +427,7 @@ async def explode_bom(
     """
     from decimal import Decimal
 
-    product = db.query(Product).get(product_id)
+    product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
