@@ -253,7 +253,7 @@ class PrinterMonitorService:
         try:
             for printer_id, client in self._clients.items():
                 status = client.get_cached_status()
-                printer = db.query(Printer).get(printer_id)
+                printer = db.get(Printer, printer_id)
 
                 if printer and status:
                     # Update basic status
@@ -306,7 +306,7 @@ class PrinterMonitorService:
         # Reload from database and reconnect
         db = SessionLocal()
         try:
-            printer = db.query(Printer).get(printer_id)
+            printer = db.get(Printer, printer_id)
             if printer:
                 return await self._connect_printer(printer)
         finally:
@@ -317,7 +317,7 @@ class PrinterMonitorService:
         """Add and connect a new printer (called after printer created in admin)."""
         db = SessionLocal()
         try:
-            printer = db.query(Printer).get(printer_id)
+            printer = db.get(Printer, printer_id)
             if printer:
                 return await self._connect_printer(printer)
         finally:

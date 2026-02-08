@@ -20,8 +20,6 @@ from app.models.user import User, RefreshToken, PasswordResetRequest
 from app.schemas.auth import (
     UserRegister,
     UserResponse,
-    UserWithTokens,
-    TokenResponse,
     RefreshTokenRequest,
     PasswordResetRequestCreate,
     PasswordResetRequestResponse,

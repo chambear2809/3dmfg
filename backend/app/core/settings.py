@@ -12,12 +12,12 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 # Read version from VERSION file (single source of truth)
 _VERSION_FILE = Path(__file__).resolve().parent.parent.parent / "VERSION"
 _VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0.0"
-
-from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Calculate path to .env in backend folder (3 levels up from this file)
 # backend/app/core/settings.py -> backend/.env

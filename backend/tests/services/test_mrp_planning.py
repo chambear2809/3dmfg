@@ -199,7 +199,7 @@ class TestMrpSalesOrderDemand:
 
         assert any("Sales Orders" in e for e in result.errors)
         # MRP still completed (graceful degradation)
-        run = db.query(MRPRun).get(result.run_id)
+        run = db.get(MRPRun, result.run_id)
         assert run.status == "completed"
 
     def test_cancelled_sales_orders_excluded_from_horizon(self, db, make_product):
@@ -870,7 +870,7 @@ class TestCreatePurchaseOrderFromPlanned:
         svc = MRPService(db)
         po_id = svc._create_purchase_order(planned, vendor.id, user_id=1)
 
-        po = db.query(PurchaseOrder).get(po_id)
+        po = db.get(PurchaseOrder, po_id)
         assert po.subtotal == Decimal("100.0000")  # 20 * 5.00
         assert po.total_amount == Decimal("100.0000")
 
@@ -891,8 +891,8 @@ class TestCreatePurchaseOrderFromPlanned:
         po_id1 = svc._create_purchase_order(planned1, vendor.id, user_id=1)
         po_id2 = svc._create_purchase_order(planned2, vendor.id, user_id=1)
 
-        po1 = db.query(PurchaseOrder).get(po_id1)
-        po2 = db.query(PurchaseOrder).get(po_id2)
+        po1 = db.get(PurchaseOrder, po_id1)
+        po2 = db.get(PurchaseOrder, po_id2)
 
         num1 = int(po1.po_number.split("-")[2])
         num2 = int(po2.po_number.split("-")[2])
@@ -922,7 +922,7 @@ class TestCreateProductionOrderFromPlanned:
         svc = MRPService(db)
         mo_id = svc._create_production_order(planned, user_id=1)
 
-        mo = db.query(ProductionOrder).get(mo_id)
+        mo = db.get(ProductionOrder, mo_id)
         assert mo is not None
         assert mo.product_id == fg.id
         assert mo.bom_id == bom.id
@@ -940,7 +940,7 @@ class TestCreateProductionOrderFromPlanned:
         svc = MRPService(db)
         mo_id = svc._create_production_order(planned, user_id=1)
 
-        mo = db.query(ProductionOrder).get(mo_id)
+        mo = db.get(ProductionOrder, mo_id)
         assert mo is not None
         assert mo.bom_id is None
 
@@ -957,8 +957,8 @@ class TestCreateProductionOrderFromPlanned:
         mo_id1 = svc._create_production_order(planned1, user_id=1)
         mo_id2 = svc._create_production_order(planned2, user_id=1)
 
-        mo1 = db.query(ProductionOrder).get(mo_id1)
-        mo2 = db.query(ProductionOrder).get(mo_id2)
+        mo1 = db.get(ProductionOrder, mo_id1)
+        mo2 = db.get(ProductionOrder, mo_id2)
 
         num1 = int(mo1.code.split("-")[2])
         num2 = int(mo2.code.split("-")[2])

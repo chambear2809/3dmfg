@@ -155,7 +155,7 @@ def convert_quote_to_order(
         
         if quote.product_id:
             # Product already exists (created during quote acceptance)
-            product = db.query(Product).get(quote.product_id)
+            product = db.get(Product, quote.product_id)
             bom = db.query(BOM).filter(
                 BOM.product_id == product.id,
                 BOM.active.is_(True)

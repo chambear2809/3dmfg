@@ -738,7 +738,7 @@ class TestReleasePlannedOrder:
         assert created_id is not None
 
         # Verify the actual PO was created
-        po = db.query(PurchaseOrder).get(created_id)
+        po = db.get(PurchaseOrder, created_id)
         assert po is not None
         assert po.vendor_id == vendor.id
         assert po.status == "draft"
@@ -771,7 +771,7 @@ class TestReleasePlannedOrder:
         assert released.status == "released"
         assert created_id is not None
 
-        mo = db.query(ProductionOrder).get(created_id)
+        mo = db.get(ProductionOrder, created_id)
         assert mo is not None
         assert mo.product_id == fg.id
         assert mo.quantity_ordered == Decimal("50")
@@ -838,7 +838,7 @@ class TestRunMrp:
             user_id=1,
         )
 
-        mrp_run = db.query(MRPRun).get(result.run_id)
+        mrp_run = db.get(MRPRun, result.run_id)
         assert mrp_run is not None
         assert mrp_run.status == "completed"
         assert mrp_run.planning_horizon_days == 30
@@ -915,7 +915,7 @@ class TestRunMrp:
         svc.run_mrp(planning_horizon_days=30, regenerate_planned=True, user_id=1)
 
         # The old planned order should be deleted
-        deleted = db.query(PlannedOrder).get(old_id)
+        deleted = db.get(PlannedOrder, old_id)
         assert deleted is None
 
     def test_firmed_orders_preserved_on_regenerate(self, db, make_product):
@@ -940,7 +940,7 @@ class TestRunMrp:
         svc.run_mrp(planning_horizon_days=30, regenerate_planned=True, user_id=1)
 
         # Firmed order should still exist
-        preserved = db.query(PlannedOrder).get(firmed_id)
+        preserved = db.get(PlannedOrder, firmed_id)
         assert preserved is not None
         assert preserved.status == "firmed"
 
@@ -949,7 +949,7 @@ class TestRunMrp:
         svc = MRPService(db)
         result = svc.run_mrp(planning_horizon_days=14, user_id=1)
 
-        mrp_run = db.query(MRPRun).get(result.run_id)
+        mrp_run = db.get(MRPRun, result.run_id)
         assert mrp_run.status == "completed"
         assert mrp_run.completed_at is not None
 
