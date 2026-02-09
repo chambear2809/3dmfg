@@ -26,7 +26,8 @@ RUN mkdir -p /app/uploads /app/logs \
     && addgroup --system appgroup \
     && adduser --system --ingroup appgroup appuser \
     && chown -R appuser:appgroup /app/uploads /app/logs \
-    && chmod -R a+rX /app
+    && chmod -R a+rX /app \
+    && chmod +x /app/scripts/docker-migrate.sh
 
 EXPOSE 8000
 
