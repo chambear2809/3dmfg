@@ -1,6 +1,6 @@
 # Security Policy
 
-## ⚠️ Official Repository
+## Official Repository
 
 The **only** official source for FilaOps is:
 
@@ -14,9 +14,9 @@ Malicious forks and repackaged copies of FilaOps exist. We will **never** ask yo
 
 | Version | Supported |
 | ------- | --------- |
-| Latest `main` branch | ✅ Active security updates |
-| Latest tagged release | ✅ Active security updates |
-| Older releases | ❌ No backported fixes — please upgrade |
+| Latest `main` branch | Active security updates |
+| Latest tagged release | Active security updates |
+| Older releases | No backported fixes — please upgrade |
 
 We recommend always running the latest release. Security patches are applied to `main` and included in the next tagged release.
 
@@ -96,6 +96,7 @@ FilaOps is self-hosted software. You are responsible for securing your deploymen
 - Rate limiting on authentication and public-facing endpoints
 - Input validation and parameterized database queries
 - Dependency scanning via Dependabot
+- Static analysis via CodeQL (Python + JavaScript/TypeScript)
 
 ---
 
