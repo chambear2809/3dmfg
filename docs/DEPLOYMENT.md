@@ -83,7 +83,7 @@ Copy `backend/.env.example` to `.env` in the project root. Docker Compose reads 
 | `DB_USER` | `postgres` | Database user |
 | `DB_PASSWORD` | - | Database password. **Must change in production.** |
 | `SECRET_KEY` | - | JWT signing key. Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
-| `ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated CORS origins |
+| `ALLOWED_ORIGINS` | `http://localhost` | Comma-separated CORS origins (match your frontend URL/port) |
 | `ENVIRONMENT` | `development` | Set to `production` for deployments |
 
 ### Optional
