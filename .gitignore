@@ -142,8 +142,9 @@ tables_output.txt
 *tmp_reviews.json
 *tmp_comments.json
 
-# Code Conclave / Review Council outputs
+# Code Conclave / Review Council (runtime artifacts + local skills)
+.code-conclave/
+.review-council/
 .claude/reviews/
-.code-conclave/reviews/
-.review-council/reviews/
+.claude/skills/review-council*
 *-review-log.txt
