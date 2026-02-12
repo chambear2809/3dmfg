@@ -3,7 +3,20 @@
 # Pre-push hook: prevent PRO code from being pushed to the public core repo.
 # Install: git config core.hooksPath .githooks
 #
-# Git passes lines on stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+# Git passes: <remote-name> <remote-url> on argv, then
+# lines on stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+
+REMOTE_NAME="$1"
+REMOTE_URL="$2"
+
+# Only block pushes to the public repo (upstream).
+# Pushes to origin (private repo) are allowed to contain PRO code.
+case "$REMOTE_URL" in
+    *Blb3D/filaops.git*|*Blb3D/filaops\ *)
+        ;; # public repo — check for PRO code
+    *)
+        exit 0 ;; # private repo — allow everything
+esac
 
 ZERO="0000000000000000000000000000000000000000"
 PRO_FILES=""
