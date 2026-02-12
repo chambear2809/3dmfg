@@ -154,3 +154,6 @@ site/
 
 # SME domain test suite (dev-only)
 frontend/tests/sme/
+
+# PRO features (never in public core — lives in private repo only)
+backend/app/pro/
