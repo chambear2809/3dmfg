@@ -8,11 +8,13 @@ jobs:
   check-pro-code:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check for PRO code in public repo
         run: |
           FOUND=0
+
+          # Layer 1: Check if PRO directories exist on disk
           if [ -d "backend/app/pro" ]; then
             echo "::error::backend/app/pro/ directory found — PRO code must not be in the public repo"
             FOUND=1
@@ -21,6 +23,15 @@ jobs:
             echo "::error::license-server/ directory found — billing infrastructure must not be in the public repo"
             FOUND=1
           fi
+
+          # Layer 2: Scan PR diff for any pro-related file paths
+          PR_PRO_FILES=$(git diff --name-only origin/main...HEAD | grep -E "^backend/app/pro/|^license-server/" || true)
+          if [ -n "$PR_PRO_FILES" ]; then
+            echo "::error::PR contains PRO file paths:"
+            echo "$PR_PRO_FILES"
+            FOUND=1
+          fi
+
           if [ "$FOUND" -eq 1 ]; then
             exit 1
           fi

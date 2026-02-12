@@ -3,9 +3,36 @@
 # Pre-push hook: prevent PRO code from being pushed to the public core repo.
 # Install: git config core.hooksPath .githooks
 #
+# Git passes lines on stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
 
-# Check if any staged/committed files contain PRO paths
-PRO_FILES=$(git diff --name-only HEAD @{push} 2>/dev/null | grep -E "^backend/app/pro/|^license-server/" || true)
+ZERO="0000000000000000000000000000000000000000"
+PRO_FILES=""
+
+while read local_ref local_sha remote_ref remote_sha
+do
+    # Skip branch deletions
+    if [ "$local_sha" = "$ZERO" ]; then
+        continue
+    fi
+
+    if [ "$remote_sha" = "$ZERO" ]; then
+        # New branch — check all commits against main
+        range="origin/main..$local_sha"
+    else
+        # Existing branch — check new commits only
+        range="$remote_sha..$local_sha"
+    fi
+
+    # Collect changed file paths in this push range
+    FILES=$(git diff --name-only "$range" 2>/dev/null | grep -E "^backend/app/pro/|^license-server/" || true)
+    if [ -n "$FILES" ]; then
+        PRO_FILES="$PRO_FILES
+$FILES"
+    fi
+done
+
+# Trim leading whitespace
+PRO_FILES=$(echo "$PRO_FILES" | sed '/^$/d')
 
 if [ -n "$PRO_FILES" ]; then
     echo ""
