@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -125,8 +125,8 @@ def get_or_create_category(db: Session, code: str, name: str, parent_code: Optio
             parent_id=parent.id if parent else None,
             sort_order=sort_order,
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(category)
         db.flush()
@@ -172,8 +172,8 @@ def ensure_categories_exist(db: Session):
                     parent_id=None,
                     sort_order=cat_data["sort_order"],
                     is_active=True,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc)
                 )
                 db.add(category)
                 print(f"  Created category: {cat_data['code']}")
@@ -193,8 +193,8 @@ def ensure_categories_exist(db: Session):
                         parent_id=parent.id,
                         sort_order=cat_data["sort_order"],
                         is_active=True,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
+                        created_at=datetime.now(timezone.utc),
+                        updated_at=datetime.now(timezone.utc)
                     )
                     db.add(category)
                     print(f"  Created category: {cat_data['code']} (under {cat_data['parent_code']})")
@@ -352,8 +352,8 @@ def seed_example_items(db: Session):
             selling_price=example["selling_price"],
             unit="EA",
             active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(product)
         created += 1
@@ -598,8 +598,8 @@ def seed_materials(db: Session):
             active=True,
             is_customer_visible=True,
             display_order=mt_data.get("display_order", 100),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(mt)
         db.flush()
@@ -644,8 +644,8 @@ def seed_materials(db: Session):
             display_order=color_data["display_order"],
             active=True,
             is_customer_visible=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(color)
         db.flush()

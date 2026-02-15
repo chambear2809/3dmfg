@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 
 from app.db.session import SessionLocal
@@ -53,8 +53,8 @@ def get_or_create_category(db: Session, code: str, name: str) -> ItemCategory:
             code=code,
             name=name,
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(cat)
         db.commit()
@@ -104,8 +104,8 @@ def create_test_items(db: Session):
             unit="EA",
             active=True,
             has_bom=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(finished_good)
         db.flush()
@@ -127,8 +127,8 @@ def create_test_items(db: Session):
             selling_price=Decimal("25.00"),
             unit="KG",
             active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(material1)
         db.flush()
@@ -150,8 +150,8 @@ def create_test_items(db: Session):
             selling_price=Decimal("3.00"),
             unit="EA",
             active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(material2)
         db.flush()
@@ -187,7 +187,7 @@ def create_bom(db: Session, finished_good: Product, material1: Product, material
             active=True,
             name="Test BOM",
             notes="Test BOM for workflow",
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.add(bom)
         db.flush()
@@ -260,8 +260,8 @@ def create_vendor(db: Session):
             country="USA",
             payment_terms="Net 30",
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(vendor)
         db.commit()
@@ -280,12 +280,12 @@ def create_purchase_order(db: Session, vendor: Vendor, material1: Product, mater
     po = PurchaseOrder(
         po_number=f"PO-TEST-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
         vendor_id=vendor.id,
-        order_date=datetime.utcnow().date(),
-        expected_date=(datetime.utcnow() + timedelta(days=7)).date(),
+        order_date=datetime.now(timezone.utc).date(),
+        expected_date=(datetime.now(timezone.utc) + timedelta(days=7)).date(),
         status="draft",
         total_amount=Decimal("0"),
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db.add(po)
     db.flush()
@@ -357,15 +357,15 @@ def receive_purchase_order(db: Session, po: PurchaseOrder):
         
         if inventory:
             inventory.on_hand_quantity += line.quantity_received
-            inventory.updated_at = datetime.utcnow()
+            inventory.updated_at = datetime.now(timezone.utc)
         else:
             inventory = Inventory(
                 product_id=line.product_id,
                 location_id=location.id,
                 on_hand_quantity=line.quantity_received,
                 allocated_quantity=Decimal("0"),
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             db.add(inventory)
         
@@ -380,7 +380,7 @@ def receive_purchase_order(db: Session, po: PurchaseOrder):
             cost_per_unit=line.unit_cost,
             notes=f"Received from PO {po.po_number}",
             created_by="system",
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.add(txn)
         
@@ -389,7 +389,7 @@ def receive_purchase_order(db: Session, po: PurchaseOrder):
         print(f"       Transaction: {txn.transaction_type} created")
     
     po.status = "received"
-    po.received_date = datetime.utcnow().date()
+    po.received_date = datetime.now(timezone.utc).date()
     
     db.commit()
     print(f"\n  [OK] PO {po.po_number} fully received")
@@ -444,8 +444,8 @@ def get_or_create_test_user(db: Session):
             shipping_zip="12345",
             shipping_country="USA",
             email_verified=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(user)
         db.commit()
@@ -497,8 +497,8 @@ def create_sales_order(db: Session, finished_good: Product):
         shipping_state=user.shipping_state or "TS",
         shipping_zip=user.shipping_zip or "12345",
         shipping_country=user.shipping_country or "USA",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db.add(so)
     db.flush()
@@ -558,16 +558,16 @@ def create_payment_record(db: Session, so: SalesOrder):
         payment_method="cash",
         payment_type="payment",
         status="completed",
-        payment_date=datetime.utcnow(),
+        payment_date=datetime.now(timezone.utc),
         notes="Test payment for workflow",
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc)
     )
     db.add(payment)
     
     # Update sales order payment status
     so.payment_status = "paid"
-    so.paid_at = datetime.utcnow()
+    so.paid_at = datetime.now(timezone.utc)
     
     db.commit()
     print(f"  [OK] Created payment: {payment.payment_number}")
@@ -597,8 +597,8 @@ def create_work_centers_and_routings(db: Session, finished_good: Product):
             labor_rate_per_hour=Decimal("5.00"),
             is_active=True,
             active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(wc)
         db.commit()
@@ -621,8 +621,8 @@ def create_work_centers_and_routings(db: Session, finished_good: Product):
             machine_type="X1C",
             status="available",
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(resource)
         db.commit()
@@ -648,8 +648,8 @@ def create_work_centers_and_routings(db: Session, finished_good: Product):
                 name="Test Print Routing",
                 description="Test routing for widget production",
                 active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             db.add(routing)
             db.flush()
@@ -662,8 +662,8 @@ def create_work_centers_and_routings(db: Session, finished_good: Product):
                 sequence=1,
                 setup_minutes=5,
                 run_minutes_per_unit=Decimal("30"),  # 30 minutes per widget
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             db.add(operation)
             db.commit()
@@ -704,8 +704,8 @@ def create_scrap_reasons(db: Session):
                 description=reason_data["description"],
                 sequence=reason_data["sequence"],
                 active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             db.add(reason)
             created += 1
@@ -743,8 +743,8 @@ def create_company_settings(db: Session):
             tax_name="Sales Tax",
             tax_registration_number="TAX-12345",
             default_quote_validity_days=30,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc)
         )
         db.add(settings)
         db.commit()
@@ -770,7 +770,7 @@ def confirm_sales_order(db: Session, so: SalesOrder):
     print("="*60)
     
     so.status = "confirmed"
-    so.confirmed_at = datetime.utcnow()
+    so.confirmed_at = datetime.now(timezone.utc)
     
     # Create production orders for each line
     line_num = 1
@@ -807,8 +807,8 @@ def confirm_sales_order(db: Session, so: SalesOrder):
                 quantity_scrapped=Decimal("0"),
                 source="sales_order",
                 status="released",
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
             )
             db.add(po)
             print(f"  [OK] Created Production Order: {po.code}")

@@ -6,7 +6,7 @@ Provides an audit trail and activity timeline for the OrderDetail page.
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -54,7 +54,7 @@ class OrderEvent(Base):
     metadata_value = Column(String(255), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationships
     sales_order = relationship("SalesOrder", backref="events")

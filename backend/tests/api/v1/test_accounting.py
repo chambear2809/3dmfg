@@ -995,7 +995,7 @@ class TestPeriodManagement:
     def fiscal_periods(self, db: Session):
         """Create test fiscal periods"""
         from app.models.accounting import GLFiscalPeriod
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         # Create test periods
         period1 = GLFiscalPeriod(
@@ -1066,7 +1066,7 @@ class TestPeriodManagement:
     def test_close_period_logic(self, db: Session, gl_accounts, fiscal_periods):
         """Closing a period should update status and timestamps."""
         from app.models.accounting import GLFiscalPeriod
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         period = fiscal_periods["January 2025"]
 
@@ -1075,7 +1075,7 @@ class TestPeriodManagement:
 
         # Close the period
         period.status = "closed"
-        period.closed_at = datetime.utcnow()
+        period.closed_at = datetime.now(timezone.utc)
         db.commit()
 
         # Refresh and verify

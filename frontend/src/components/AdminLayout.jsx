@@ -517,7 +517,7 @@ export default function AdminLayout() {
   useEffect(() => {
     const checkCompanyLogo = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/settings/company/logo`);
+        const res = await fetch(`${API_URL}/api/v1/settings/company/logo`, { credentials: 'include' });
         if (res.ok) {
           setCompanyLogoUrl(`${API_URL}/api/v1/settings/company/logo`);
         }
@@ -593,11 +593,15 @@ export default function AdminLayout() {
     fetchVersion();
   }, []);
 
-  const handleLogout = () => {
-    fetch(`${API_URL}/api/v1/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/api/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Continue with local cleanup even if server call fails
+    }
     localStorage.removeItem("adminUser");
     navigate("/admin/login");
   };
@@ -703,7 +707,7 @@ export default function AdminLayout() {
           style={{ backgroundColor: 'var(--bg-secondary)', borderRight: '1px solid var(--border-subtle)' }}
         >
           <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-            <Link to="\admin" className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center w-full'}`}>
+            <Link to="/admin" className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center w-full'}`}>
               <div className="logo-container">
                 <img src={companyLogoUrl || logoBLB3D} alt="Company Logo" className="h-10 w-auto logo-glow" />
               </div>

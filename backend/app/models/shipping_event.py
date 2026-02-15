@@ -6,7 +6,7 @@ in transit, delivered, etc. Provides a shipment tracking timeline.
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -65,7 +65,7 @@ class ShippingEvent(Base):
     source = Column(String(50), default="manual", nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationships
     sales_order = relationship("SalesOrder", backref="shipping_events")

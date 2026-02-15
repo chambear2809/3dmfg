@@ -10,7 +10,7 @@ from app.models.production_order import ProductionOrder
 from app.models.product import Product
 from app.models.bom import BOM
 from app.services.order_status import order_status_service
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Create database session
 db = SessionLocal()
@@ -162,7 +162,7 @@ print("\n=== TEST 8: QC Pass and Close WO ===")
 
 test_wo.qc_status = "passed"
 test_wo.qc_inspected_by = "Test Inspector"
-test_wo.qc_inspected_at = datetime.utcnow()
+test_wo.qc_inspected_at = datetime.now(timezone.utc)
 db.commit()
 
 order_status_service.update_wo_status(db, test_wo, "closed")

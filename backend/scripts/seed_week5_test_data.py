@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from app.db.session import SessionLocal
 from app.models.product import Product
 from app.models.manufacturing import Routing, RoutingOperation, Resource
@@ -211,7 +211,7 @@ def seed_data():
         db.add(po3)
         db.flush()
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         db.add_all([
             ProductionOrderOperation(production_order_id=po3.id, sequence=10, operation_code="PRINT",
                                     operation_name="3D Print Components", work_center_id=wc_print.id,

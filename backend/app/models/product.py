@@ -3,7 +3,7 @@ Product model - unified item management for products, components, and supplies
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Boolean, Text, BigInteger, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -107,8 +107,8 @@ class Product(Base):
     squarespace_product_id = Column(String(50), nullable=True)  # Squarespace product ID
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     boms = relationship("BOM", back_populates="product", foreign_keys="BOM.product_id")

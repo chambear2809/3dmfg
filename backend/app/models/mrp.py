@@ -7,7 +7,7 @@ MRP (Material Requirements Planning) models.
 
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -20,7 +20,7 @@ class MRPRun(Base):
     __tablename__ = "mrp_runs"
 
     id = Column(Integer, primary_key=True, index=True)
-    run_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    run_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     planning_horizon_days = Column(Integer, default=30, nullable=False)
 
     # Scope
@@ -86,9 +86,9 @@ class PlannedOrder(Base):
 
     # Notes and audit
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(Integer, nullable=True)
-    updated_at = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))
     firmed_at = Column(DateTime, nullable=True)
     released_at = Column(DateTime, nullable=True)
 

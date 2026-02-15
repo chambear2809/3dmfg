@@ -6,7 +6,7 @@ Resources (individual machines/printers) are defined in manufacturing.py.
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Text, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -54,8 +54,8 @@ class WorkCenter(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     operations = relationship("ProductionOrderOperation", back_populates="work_center")

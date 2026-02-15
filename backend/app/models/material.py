@@ -4,7 +4,7 @@ Material management models for quote-to-order workflow
 Handles material types, colors, and inventory tracking for 3D printing materials.
 Designed to support FDM filaments now, with extensibility for resin/powder later.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Numeric, Boolean, DateTime, 
     ForeignKey, Text, UniqueConstraint, Index
@@ -60,8 +60,8 @@ class MaterialType(Base):
     active = Column(Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     material_colors = relationship("MaterialColor", back_populates="material_type", cascade="all, delete-orphan")
@@ -98,8 +98,8 @@ class Color(Base):
     active = Column(Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     material_colors = relationship("MaterialColor", back_populates="color", cascade="all, delete-orphan")
@@ -184,8 +184,8 @@ class MaterialInventory(Base):
     active = Column(Boolean, default=True)
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     material_type = relationship("MaterialType", back_populates="inventory_items")

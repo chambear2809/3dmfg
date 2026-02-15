@@ -4,7 +4,7 @@ Maintenance Log Model
 Tracks maintenance activities on printers for preventive maintenance scheduling.
 Freemium feature: Basic maintenance logging and scheduling.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, DateTime, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -34,7 +34,7 @@ class MaintenanceLog(Base):
 
     description = Column(Text, nullable=True)
     performed_by = Column(String(100), nullable=True)
-    performed_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    performed_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Next maintenance scheduling
     next_due_at = Column(DateTime, nullable=True, index=True)
@@ -52,7 +52,7 @@ class MaintenanceLog(Base):
     notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     printer = relationship("Printer", back_populates="maintenance_logs")

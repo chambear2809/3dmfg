@@ -6,7 +6,7 @@ Supports partial payments, multiple payment methods, and refunds.
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -54,9 +54,9 @@ class Payment(Base):
     notes = Column(Text, nullable=True)
 
     # Timestamps
-    payment_date = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)  # When payment was made
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)  # When record was created
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    payment_date = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)  # When payment was made
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))  # When record was created
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     sales_order = relationship("SalesOrder", back_populates="payments")

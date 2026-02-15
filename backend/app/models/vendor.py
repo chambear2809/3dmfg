@@ -2,7 +2,7 @@
 Vendor model for purchasing module
 """
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, Numeric
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -47,8 +47,8 @@ class Vendor(Base):
     is_active = Column(Boolean, default=True, nullable=False)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     def __repr__(self):
         return f"<Vendor {self.code}: {self.name}>"

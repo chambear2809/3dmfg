@@ -3,7 +3,7 @@ Inventory models
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Boolean, Computed
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -47,8 +47,8 @@ class Inventory(Base):
 
     # Metadata
     last_counted = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     product = relationship("Product", back_populates="inventory_items")
@@ -112,7 +112,7 @@ class InventoryTransaction(Base):
     # (e.g., when goods were physically received, not when entered in system)
     # Distinct from created_at which is always the system entry timestamp
     transaction_date = Column(Date, nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String(100), nullable=True)
 
     # Relationships

@@ -5,7 +5,7 @@ Stores configurable reasons for scrapping production orders.
 Allows shops to define their own failure modes specific to their processes.
 """
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -29,8 +29,8 @@ class ScrapReason(Base):
     sequence = Column(Integer, default=0)  # For ordering in dropdowns
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     def __repr__(self) -> str:
         return f"<ScrapReason {self.code}: {self.name}>"

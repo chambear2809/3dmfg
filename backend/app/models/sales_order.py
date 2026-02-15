@@ -5,7 +5,7 @@ Represents customer orders converted from approved quotes
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -119,8 +119,8 @@ class SalesOrder(Base):
     cancellation_reason = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     confirmed_at = Column(DateTime, nullable=True)
 
     # MRP Tracking (for Material Requirements Planning)

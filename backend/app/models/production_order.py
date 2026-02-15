@@ -9,7 +9,7 @@ Integrates with:
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -123,8 +123,8 @@ class ProductionOrder(Base):
     remake_of_id = Column(Integer, ForeignKey('production_orders.id'), nullable=True)  # Links remake to original failed WO
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String(100), nullable=True)
     released_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
@@ -254,8 +254,8 @@ class ProductionOrderOperation(Base):
     notes = Column(Text, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     production_order = relationship("ProductionOrder", back_populates="operations")
@@ -314,7 +314,7 @@ class ProductionOrderMaterial(Base):
     
     # Audit trail
     reason = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String(100), nullable=True)
     
     # Relationships
@@ -372,8 +372,8 @@ class ProductionOrderOperationMaterial(Base):
     # Metadata
     consumed_at = Column(DateTime, nullable=True)
     consumed_by = Column(Integer, ForeignKey('users.id'), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     
     # Relationships
     operation = relationship("ProductionOrderOperation", back_populates="materials")
@@ -449,7 +449,7 @@ class ScrapRecord(Base):
     journal_entry_id = Column(Integer, ForeignKey('gl_journal_entries.id'), nullable=True)
 
     # Audit
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
 
     # Relationships

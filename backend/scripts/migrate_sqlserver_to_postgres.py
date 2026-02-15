@@ -9,7 +9,7 @@ Usage:
 """
 import argparse
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, List, Any, Optional
 from pathlib import Path
@@ -189,7 +189,7 @@ class SQLServerToPostgresMigrator:
     def generate_reconciliation_report(self) -> Dict[str, Any]:
         """Generate reconciliation report comparing source and target."""
         report = {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "tables": {}
         }
         

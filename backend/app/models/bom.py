@@ -3,7 +3,7 @@ Bill of Materials models
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -36,7 +36,7 @@ class BOM(Base):
     notes = Column(Text, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     product = relationship("Product", back_populates="boms", foreign_keys=[product_id])

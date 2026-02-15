@@ -6,7 +6,7 @@ Provides an audit trail and activity timeline for the PO detail page.
 """
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -55,7 +55,7 @@ class PurchasingEvent(Base):
     metadata_value = Column(String(255), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
 
     # Relationships
     purchase_order = relationship("PurchaseOrder", backref="events")

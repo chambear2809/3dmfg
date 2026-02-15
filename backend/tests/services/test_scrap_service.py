@@ -18,7 +18,7 @@ Run with coverage:
 """
 import pytest
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -61,7 +61,7 @@ def db():
 def test_product(db: Session) -> Product:
     """Create a test finished good product."""
     product = Product(
-        sku=f"TEST-FG-{datetime.utcnow().timestamp():.0f}",
+        sku=f"TEST-FG-{datetime.now(timezone.utc).timestamp():.0f}",
         name="Test Finished Good",
         item_type="finished_good",
         standard_cost=Decimal("10.00"),
@@ -76,7 +76,7 @@ def test_product(db: Session) -> Product:
 def test_material(db: Session) -> Product:
     """Create a test raw material."""
     material = Product(
-        sku=f"TEST-MAT-{datetime.utcnow().timestamp():.0f}",
+        sku=f"TEST-MAT-{datetime.now(timezone.utc).timestamp():.0f}",
         name="Test Material",
         item_type="raw_material",
         standard_cost=Decimal("2.50"),
@@ -107,7 +107,7 @@ def test_scrap_reason(db: Session) -> ScrapReason:
 def test_production_order(db: Session, test_product: Product) -> ProductionOrder:
     """Create a test production order with operations."""
     po = ProductionOrder(
-        code=f"PO-TEST-{datetime.utcnow().timestamp():.0f}",
+        code=f"PO-TEST-{datetime.now(timezone.utc).timestamp():.0f}",
         product_id=test_product.id,
         quantity_ordered=Decimal("10"),
         quantity_completed=Decimal("0"),

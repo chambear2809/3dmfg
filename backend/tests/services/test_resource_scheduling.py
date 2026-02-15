@@ -281,7 +281,7 @@ class TestFindNextAvailableSlot:
         product = make_product()
         wo = make_production_order(product_id=product.id)
         # Use naive datetimes — DB columns are TIMESTAMP WITHOUT TIME ZONE
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         _make_operation(
             db, wo.id, wc.id, status="queued",
             resource_id=res.id,
@@ -296,7 +296,7 @@ class TestFindNextAvailableSlot:
         res = _make_resource(db, wc.id)
         product = make_product()
         wo = make_production_order(product_id=product.id)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         _make_operation(
             db, wo.id, wc.id, status="queued",
             resource_id=res.id,
@@ -318,7 +318,7 @@ class TestFindNextAvailableSlot:
         res = _make_resource(db, wc.id)
         product = make_product()
         wo = make_production_order(product_id=product.id)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         # Op 1: now to now+1h
         _make_operation(
             db, wo.id, wc.id, sequence=10, status="queued",

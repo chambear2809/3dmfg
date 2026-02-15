@@ -3,7 +3,7 @@ Schemas for Command Center dashboard.
 
 Provides action items and summary data for the "What do I need to do NOW?" view.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict
 from enum import Enum
 from pydantic import BaseModel, Field
@@ -79,7 +79,7 @@ class TodaySummary(BaseModel):
     resources_down: int = 0
 
     # Timestamps
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class OperationSummary(BaseModel):

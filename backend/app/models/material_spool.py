@@ -6,7 +6,7 @@ Each spool represents a physical roll of material (e.g., PLA-BLK-001).
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -27,7 +27,7 @@ class MaterialSpool(Base):
     
     # Status and lifecycle
     status = Column(String(50), default="active", nullable=False)  # active, empty, expired, damaged
-    received_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    received_date = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     expiry_date = Column(DateTime, nullable=True)  # Optional material shelf life
     
     # Location tracking
@@ -38,8 +38,8 @@ class MaterialSpool(Base):
     notes = Column(Text, nullable=True)  # Condition, issues, etc.
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String(100), nullable=True)
     
     # Relationships
@@ -87,7 +87,7 @@ class ProductionOrderSpool(Base):
     weight_consumed_kg = Column(Numeric(10, 3), nullable=False, default=0)
     
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     created_by = Column(String(100), nullable=True)
     
     # Relationships

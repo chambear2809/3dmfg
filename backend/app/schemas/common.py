@@ -3,7 +3,7 @@ Common API Response Schemas
 
 Provides standardized error responses and pagination models for consistent API behavior.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 from pydantic import BaseModel, Field, field_validator
 
@@ -64,7 +64,7 @@ class ErrorResponse(BaseModel):
         description="Additional error context for debugging"
     )
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="When the error occurred (UTC)"
     )
 
@@ -259,7 +259,7 @@ class StatusResponse(BaseModel):
     """
     status: str = Field(..., description="Service status")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Status check timestamp (UTC)"
     )
 

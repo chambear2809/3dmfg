@@ -228,6 +228,13 @@ async def login_user(
             created_at=datetime.now(timezone.utc),  # Explicitly set created_at
         )
         db.add(refresh_token_record)
+
+        # Purge expired/revoked tokens for this user to prevent table bloat
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == user.id,
+            (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc)),
+        ).delete(synchronize_session=False)
+
         db.commit()
 
         if _USE_COOKIES:
@@ -322,6 +329,13 @@ async def refresh_access_token(
         created_at=datetime.now(timezone.utc),  # Explicitly set created_at
     )
     db.add(new_refresh_token_record)
+
+    # Purge expired/revoked tokens for this user to prevent table bloat
+    db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        (RefreshToken.revoked.is_(True)) | (RefreshToken.expires_at < datetime.now(timezone.utc)),
+    ).delete(synchronize_session=False)
+
     db.commit()
 
     if _USE_COOKIES:

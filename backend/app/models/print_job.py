@@ -3,7 +3,7 @@ Print Job model
 """
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base import Base
 
@@ -37,7 +37,7 @@ class PrintJob(Base):
     variance_percent = Column(Numeric(5, 2), nullable=True)
 
     # Timestamps
-    queued_at = Column(DateTime, default=datetime.utcnow, nullable=True)
+    queued_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=True)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
 

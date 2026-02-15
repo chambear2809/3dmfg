@@ -53,7 +53,7 @@ export function useCRUD(endpoint, options = {}) {
       } else if (key && data?.[key]) {
         result = data[key];
       } else {
-        result = Array.isArray(data) ? data : [];
+        result = [];
       }
       setItems(result);
       return data; // return full response for pagination meta etc.

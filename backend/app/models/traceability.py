@@ -78,8 +78,8 @@ class SerialNumber(Base):
     return_reason = Column(Text, nullable=True)
 
     # Timestamps
-    manufactured_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    manufactured_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     product = relationship("Product")
@@ -163,7 +163,7 @@ class MaterialLot(Base):
     # Expiration tracking
     manufactured_date = Column(Date, nullable=True)  # When vendor made it
     expiration_date = Column(Date, nullable=True, index=True)
-    received_date = Column(Date, nullable=False, default=datetime.utcnow)
+    received_date = Column(Date, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     # Cost tracking (for FIFO costing)
     unit_cost = Column(Numeric(10, 4), nullable=True)  # Cost per unit when received
@@ -175,8 +175,8 @@ class MaterialLot(Base):
     notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     product = relationship("Product")
@@ -239,7 +239,7 @@ class ProductionLotConsumption(Base):
     quantity_consumed = Column(Numeric(12, 4), nullable=False)
 
     # When was it consumed?
-    consumed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    consumed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     production_order = relationship("ProductionOrder")
@@ -295,8 +295,8 @@ class CustomerTraceabilityProfile(Base):
     notes = Column(Text, nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationship
     user = relationship("User")

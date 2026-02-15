@@ -11,7 +11,7 @@ Covers:
   is_allocated, shortage_quantity, __repr__
 - ScrapRecord: __repr__
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -105,7 +105,7 @@ class TestProductionOrderProperties:
 
     def test_is_scrapped_by_scrapped_at(self, db, make_product, make_production_order):
         product = make_product()
-        po = make_production_order(product_id=product.id, status="draft", scrapped_at=datetime.utcnow())
+        po = make_production_order(product_id=product.id, status="draft", scrapped_at=datetime.now(timezone.utc))
         assert po.is_scrapped is True
 
     def test_is_scrapped_false(self, db, make_product, make_production_order):
