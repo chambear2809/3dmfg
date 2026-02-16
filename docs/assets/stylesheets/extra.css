@@ -1,0 +1,319 @@
+/* ==========================================================================
+   FilaOps Documentation — Custom Brand Theme
+   Colors: BLB3D Blue #1565C0 → #42A5F5, Orange #E65100 → #FF9800
+   ========================================================================== */
+
+/* ---------- CSS Custom Properties ---------- */
+:root {
+  /* Brand palette */
+  --blb3d-blue: #1976D2;
+  --blb3d-blue-light: #42A5F5;
+  --blb3d-blue-dark: #0D47A1;
+  --blb3d-orange: #F57C00;
+  --blb3d-orange-light: #FFB74D;
+  --blb3d-navy: #0d1b2a;
+  --blb3d-navy-light: #1b2838;
+
+  /* MkDocs Material custom color overrides */
+  --md-primary-fg-color: #1565C0;
+  --md-primary-fg-color--light: #42A5F5;
+  --md-primary-fg-color--dark: #0D47A1;
+  --md-accent-fg-color: #F57C00;
+  --md-accent-fg-color--transparent: rgba(245, 124, 0, 0.1);
+}
+
+/* Dark mode overrides */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1976D2;
+  --md-primary-fg-color--light: #42A5F5;
+  --md-primary-fg-color--dark: #0D47A1;
+  --md-accent-fg-color: #FF9800;
+  --md-accent-fg-color--transparent: rgba(255, 152, 0, 0.1);
+  --md-default-bg-color: #0d1b2a;
+  --md-default-bg-color--light: #132238;
+  --md-default-bg-color--lighter: #1b2d44;
+  --md-default-bg-color--lightest: #24384f;
+  --md-typeset-color: rgba(255, 255, 255, 0.87);
+  --md-typeset-a-color: #42A5F5;
+}
+
+/* ---------- Header ---------- */
+.md-header {
+  background: linear-gradient(135deg, var(--blb3d-navy) 0%, #132238 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Logo sizing in header */
+.md-header__button.md-logo img {
+  height: 1.8rem;
+  width: auto;
+}
+
+/* ---------- Navigation tabs ---------- */
+.md-tabs {
+  background: var(--blb3d-navy);
+  border-bottom: 2px solid var(--blb3d-blue);
+}
+
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  color: var(--blb3d-orange-light) !important;
+}
+
+/* ---------- Announcement bar ---------- */
+.md-banner {
+  background: linear-gradient(90deg, var(--blb3d-blue-dark) 0%, var(--blb3d-blue) 50%, var(--blb3d-blue-dark) 100%);
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.md-banner a {
+  color: var(--blb3d-orange-light);
+  font-weight: 600;
+}
+
+/* ---------- Sidebar ---------- */
+.md-nav__link:hover,
+.md-nav__link--active {
+  color: var(--blb3d-blue-light) !important;
+}
+
+.md-nav__item--active > .md-nav__link {
+  font-weight: 600;
+  color: var(--blb3d-blue-light) !important;
+}
+
+/* Section headers in sidebar */
+.md-nav--primary .md-nav__title {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+/* ---------- Content ---------- */
+
+/* Links */
+.md-typeset a {
+  color: var(--blb3d-blue-light);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.md-typeset a:hover {
+  border-bottom-color: var(--blb3d-orange);
+  color: var(--blb3d-orange-light);
+}
+
+/* H1 with accent bar */
+.md-typeset h1 {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  border-bottom: 3px solid var(--blb3d-orange);
+  padding-bottom: 0.4em;
+  margin-bottom: 1em;
+}
+
+.md-typeset h2 {
+  font-weight: 700;
+  color: var(--blb3d-blue-light);
+  border-bottom: 1px solid rgba(66, 165, 245, 0.2);
+  padding-bottom: 0.3em;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+}
+
+/* ---------- Admonitions ---------- */
+/* Tip = orange (brand accent) */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  border-color: var(--blb3d-orange);
+}
+
+.md-typeset .tip > .admonition-title,
+.md-typeset .tip > summary {
+  background-color: rgba(245, 124, 0, 0.1);
+  border-color: var(--blb3d-orange);
+}
+
+.md-typeset .tip > .admonition-title::before,
+.md-typeset .tip > summary::before {
+  color: var(--blb3d-orange);
+}
+
+/* Warning = warm orange-red */
+.md-typeset .admonition.warning,
+.md-typeset details.warning {
+  border-color: #ef6c00;
+}
+
+/* Info = brand blue */
+.md-typeset .admonition.info,
+.md-typeset details.info {
+  border-color: var(--blb3d-blue);
+}
+
+.md-typeset .info > .admonition-title,
+.md-typeset .info > summary {
+  background-color: rgba(25, 118, 210, 0.1);
+}
+
+/* ---------- Code blocks ---------- */
+.md-typeset code {
+  background-color: rgba(25, 118, 210, 0.08);
+  color: var(--blb3d-blue-light);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.85em;
+}
+
+.md-typeset pre > code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* Code block header (filename/language) */
+.md-typeset .highlight .filename {
+  background: var(--blb3d-navy);
+  border-bottom: 2px solid var(--blb3d-blue);
+  color: var(--blb3d-blue-light);
+  font-weight: 600;
+}
+
+/* ---------- Tables ---------- */
+.md-typeset table:not([class]) th {
+  background-color: var(--blb3d-blue-dark);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+[data-md-color-scheme="default"] .md-typeset table:not([class]) th {
+  background-color: var(--blb3d-blue);
+  color: #fff;
+}
+
+.md-typeset table:not([class]) tr:hover td {
+  background-color: rgba(25, 118, 210, 0.06);
+}
+
+/* ---------- Search ---------- */
+.md-search__input {
+  border-radius: 8px;
+}
+
+.md-search-result__link:hover {
+  background-color: rgba(245, 124, 0, 0.08);
+}
+
+/* ---------- Footer ---------- */
+.md-footer {
+  background: var(--blb3d-navy);
+  border-top: 2px solid var(--blb3d-blue-dark);
+}
+
+.md-footer-meta {
+  background: #060f1a;
+}
+
+.md-copyright {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+}
+
+.md-copyright a {
+  color: var(--blb3d-blue-light);
+}
+
+.md-social__link svg {
+  fill: rgba(255, 255, 255, 0.5);
+  transition: fill 0.2s ease;
+}
+
+.md-social__link:hover svg {
+  fill: var(--blb3d-orange);
+}
+
+/* ---------- Navigation footer (prev/next) ---------- */
+.md-footer__link {
+  transition: opacity 0.2s ease;
+}
+
+.md-footer__link:hover {
+  opacity: 0.8;
+}
+
+/* ---------- Back to top button ---------- */
+.md-top {
+  background-color: var(--blb3d-orange);
+  color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.md-top:hover {
+  background-color: var(--blb3d-orange-light);
+}
+
+/* ---------- Progress bar (navigation.instant.progress) ---------- */
+.md-progress {
+  background: var(--blb3d-orange);
+}
+
+/* ---------- Mermaid diagram theming ---------- */
+.mermaid {
+  text-align: center;
+}
+
+/* ---------- Kbd styling (keyboard shortcuts) ---------- */
+.md-typeset kbd {
+  border-color: rgba(25, 118, 210, 0.3);
+  box-shadow: 0 1px 0 rgba(25, 118, 210, 0.3);
+}
+
+/* ---------- Version badge ---------- */
+.md-version {
+  font-weight: 600;
+}
+
+/* ---------- Light mode specific ---------- */
+[data-md-color-scheme="default"] {
+  --md-typeset-a-color: #1565C0;
+}
+
+[data-md-color-scheme="default"] .md-header {
+  background: linear-gradient(135deg, #0D47A1 0%, #1565C0 100%);
+}
+
+[data-md-color-scheme="default"] .md-tabs {
+  background: #0D47A1;
+}
+
+[data-md-color-scheme="default"] .md-typeset h2 {
+  color: #1565C0;
+}
+
+[data-md-color-scheme="default"] .md-typeset code {
+  background-color: rgba(21, 101, 192, 0.06);
+  color: #0D47A1;
+}
+
+[data-md-color-scheme="default"] .md-footer {
+  background: #0D47A1;
+}
+
+[data-md-color-scheme="default"] .md-footer-meta {
+  background: #0a3269;
+}

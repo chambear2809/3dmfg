@@ -13,19 +13,19 @@ Guides for deploying, configuring, and maintaining a FilaOps instance in product
 
 ## Architecture Overview
 
-```
-                   ┌──────────────┐
-    Port 80  ───>  │   frontend   │  nginx:alpine (serves React SPA)
-                   │  (port 8080) │──┐
-                   └──────────────┘  │  /api proxy
-                                     ▼
-                   ┌──────────────┐
-    Port 8000 ──>  │   backend    │  python:3.11-slim (FastAPI + Uvicorn)
-                   │  (port 8000) │
-                   └──────┬───────┘
-                          │
-                   ┌──────┴───────┐     ┌──────────────┐
-                   │      db      │     │   migrate     │
-                   │  postgres:16 │◄────│ (alembic run) │
-                   └──────────────┘     └──────────────┘
+```mermaid
+graph TD
+    Internet["🌐 Internet"] -->|"Port 80"| Frontend
+    Frontend["<b>frontend</b><br/>nginx:alpine<br/>React SPA"] -->|"/api proxy"| Backend
+    Internet -->|"Port 8000"| Backend
+    Backend["<b>backend</b><br/>python:3.11-slim<br/>FastAPI + Uvicorn"] --> DB
+    Migrate["<b>migrate</b><br/>alembic upgrade head"] --> DB
+    DB["<b>db</b><br/>postgres:16<br/>Port 5432"] --> Volume["📁 filaops_pgdata<br/>(named volume)"]
+
+    style Frontend fill:#1565C0,color:#fff,stroke:#0D47A1
+    style Backend fill:#1565C0,color:#fff,stroke:#0D47A1
+    style DB fill:#F57C00,color:#fff,stroke:#E65100
+    style Migrate fill:#455A64,color:#fff,stroke:#37474F
+    style Volume fill:#263238,color:#fff,stroke:#37474F
+    style Internet fill:#0D47A1,color:#fff,stroke:#0D47A1
 ```

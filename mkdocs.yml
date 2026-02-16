@@ -1,6 +1,6 @@
-site_name: FilaOps Documentation
-site_url: https://docs.blb3dprinting.com
-site_description: Documentation for FilaOps — open-source ERP for 3D print farm operations
+site_name: FilaOps
+site_url: https://blb3d.github.io/filaops/
+site_description: Open-source ERP for 3D print farm operations — inventory, production, MRP, and more.
 site_author: BLB3D Labs
 repo_url: https://github.com/Blb3D/filaops
 repo_name: Blb3D/filaops
@@ -9,18 +9,20 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   custom_dir: docs/overrides
+  logo: assets/images/logo_small_transparent.png
+  favicon: assets/images/favicon.ico
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: blue
-      accent: light blue
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: blue
-      accent: light blue
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to dark mode
@@ -29,21 +31,31 @@ theme:
     code: JetBrains Mono
   icon:
     repo: fontawesome/brands/github
-    logo: material/printer-3d-nozzle
+    admonition:
+      tip: fontawesome/solid/lightbulb
+      warning: fontawesome/solid/triangle-exclamation
+      info: fontawesome/solid/circle-info
+      note: fontawesome/solid/pen
   features:
     - navigation.instant
+    - navigation.instant.progress
     - navigation.tracking
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
     - navigation.top
     - navigation.indexes
+    - navigation.footer
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+    - content.tooltips
     - toc.follow
+    - announce.dismiss
 
 plugins:
   - search
@@ -62,10 +74,15 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.mark
   - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - tables
   - attr_list
   - md_in_html
@@ -75,12 +92,33 @@ markdown_extensions:
       permalink: true
 
 extra:
+  version:
+    provider: mike
+    default: stable
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/Blb3D/filaops
+      name: FilaOps on GitHub
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/blb3d
+      name: BLB3D Discord
+    - icon: fontawesome/solid/globe
+      link: https://blb3dprinting.com
+      name: BLB3D Printing
+  analytics:
+    provider: google
+    property: G-PLACEHOLDER
   generator: false
+  status:
+    new: Recently added
+    deprecated: Deprecated
 
-copyright: Copyright &copy; 2025-2026 BLB3D Labs — Licensed under BSL 1.1
+extra_css:
+  - assets/stylesheets/extra.css
+
+copyright: >-
+  Copyright &copy; 2025–2026 <a href="https://blb3dprinting.com" target="_blank">BLB3D Labs</a>
+  &nbsp;|&nbsp; Licensed under <a href="https://github.com/Blb3D/filaops/blob/main/LICENSE" target="_blank">BSL 1.1</a>
 
 nav:
   - Home: index.md

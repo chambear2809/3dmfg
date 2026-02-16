@@ -4,24 +4,21 @@ Production deployment for the FilaOps ERP system using Docker Compose.
 
 ## Architecture Overview
 
-```
-                   ┌──────────────┐
-    Port 80  ───>  │   frontend   │  nginx:alpine (serves React SPA)
-                   │  (port 8080) │──┐
-                   └──────────────┘  │  /api proxy
-                                     ▼
-                   ┌──────────────┐
-    Port 8000 ──>  │   backend    │  python:3.11-slim (FastAPI + Uvicorn)
-                   │  (port 8000) │
-                   └──────┬───────┘
-                          │
-                   ┌──────┴───────┐     ┌──────────────┐
-                   │      db      │     │   migrate     │
-                   │  postgres:16 │◄────│ (alembic run) │
-                   │  (port 5432) │     └──────────────┘
-                   └──────────────┘
-                          │
-                   filaops_pgdata (named volume)
+```mermaid
+graph TD
+    Internet["🌐 Internet"] -->|"Port 80"| Frontend
+    Internet -->|"Port 8000"| Backend
+    Frontend["<b>frontend</b><br/>nginx:alpine<br/>React SPA<br/>(port 8080)"] -->|"/api proxy"| Backend
+    Backend["<b>backend</b><br/>python:3.11-slim<br/>FastAPI + Uvicorn<br/>(port 8000)"] --> DB
+    Migrate["<b>migrate</b><br/>alembic upgrade head<br/>(runs then exits)"] --> DB
+    DB["<b>db</b><br/>postgres:16<br/>(port 5432)"] --- Volume["filaops_pgdata<br/>(named volume)"]
+
+    style Frontend fill:#1565C0,color:#fff,stroke:#0D47A1,stroke-width:2px
+    style Backend fill:#1565C0,color:#fff,stroke:#0D47A1,stroke-width:2px
+    style DB fill:#F57C00,color:#fff,stroke:#E65100,stroke-width:2px
+    style Migrate fill:#455A64,color:#fff,stroke:#37474F,stroke-width:2px
+    style Volume fill:#263238,color:#B0BEC5,stroke:#455A64,stroke-width:1px,stroke-dasharray:5
+    style Internet fill:none,stroke:#90A4AE,stroke-width:1px,color:#90A4AE
 ```
 
 | Service | Image | Purpose |
