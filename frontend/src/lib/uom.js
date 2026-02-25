@@ -3,8 +3,8 @@
  * Base unit for mass: grams (G)
  * Base unit for length: meters (M)
  *
- * This module consolidates UoM conversion logic that was previously
- * duplicated across BOMEditor.jsx and POCreateModal.jsx
+ * This module consolidates UoM conversion logic used across
+ * BOM and production order components
  */
 
 // Conversion factors: CONVERSIONS[fromUnit][toUnit] = factor

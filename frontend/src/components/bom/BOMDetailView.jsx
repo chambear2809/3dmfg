@@ -6,10 +6,8 @@ import WorkOrderRequestModal from "./WorkOrderRequestModal";
 import ExplodedBOMView from "./ExplodedBOMView";
 import BOMLinesList from "./BOMLinesList";
 import BOMAddLineForm from "./BOMAddLineForm";
-import BOMRoutingSection from "./BOMRoutingSection";
 import BOMCostRollupCard from "./BOMCostRollupCard";
-import AddOperationMaterialForm from "./AddOperationMaterialForm";
-import useRoutingManager from "./useRoutingManager";
+import RoutingEditorContent from "../routing/RoutingEditorContent";
 import useBOMLines from "./useBOMLines";
 
 export default function BOMDetailView({
@@ -21,15 +19,19 @@ export default function BOMDetailView({
   const toast = useToast();
   const [purchaseLine, setPurchaseLine] = useState(null);
   const [workOrderLine, setWorkOrderLine] = useState(null);
-  const showProcessPath = true;
+  const [routingData, setRoutingData] = useState({
+    routing: null,
+    operations: [],
+    operationMaterials: {},
+    laborCost: 0,
+    opMaterialsCost: 0,
+  });
 
-  const routing = useRoutingManager({ bom, toast });
   const bomLines = useBOMLines({ bom, toast, onUpdate });
 
-  // Fetch all initial data on mount
+  // Fetch BOM line data on mount
   useEffect(() => {
     bomLines.fetchInitialLineData();
-    routing.fetchInitialRoutingData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bom.id, bom.product_id]);
 
@@ -55,22 +57,22 @@ export default function BOMDetailView({
         </div>
         <div>
           <span className="text-gray-400">
-            {routing.productRouting ? "Material Cost:" : "Total Cost:"}
+            {routingData.routing ? "Material Cost:" : "Total Cost:"}
           </span>
           <span className="text-white ml-2">
             ${parseFloat(bom.total_cost || 0).toFixed(2)}
           </span>
-          {routing.productRouting && (
+          {routingData.routing && (
             <>
               <span className="text-gray-400 ml-4">+ Labor:</span>
               <span className="text-amber-400 ml-1">
-                ${routing.calculateProcessCost().toFixed(2)}
+                ${routingData.laborCost.toFixed(2)}
               </span>
-              {routing.calculateOperationMaterialsCost() > 0 && (
+              {routingData.opMaterialsCost > 0 && (
                 <>
                   <span className="text-gray-400 ml-4">+ Op Materials:</span>
                   <span className="text-blue-400 ml-1">
-                    ${routing.calculateOperationMaterialsCost().toFixed(2)}
+                    ${routingData.opMaterialsCost.toFixed(2)}
                   </span>
                 </>
               )}
@@ -79,8 +81,8 @@ export default function BOMDetailView({
                 $
                 {(
                   parseFloat(bom.total_cost || 0) +
-                  routing.calculateProcessCost() +
-                  routing.calculateOperationMaterialsCost()
+                  routingData.laborCost +
+                  routingData.opMaterialsCost
                 ).toFixed(2)}
               </span>
             </>
@@ -142,7 +144,7 @@ export default function BOMDetailView({
       </div>
 
       {/* Routing Materials Precedence Warning */}
-      {routing.productRouting && Object.values(routing.operationMaterials).flat().length > 0 && (
+      {routingData.routing && Object.values(routingData.operationMaterials).flat().length > 0 && (
         <div className="bg-gradient-to-r from-amber-600/10 to-orange-600/10 border border-amber-500/30 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
             <svg
@@ -183,40 +185,12 @@ export default function BOMDetailView({
         onDeleteLine={bomLines.handleDeleteLine}
       />
 
-      <BOMRoutingSection
-        showProcessPath={showProcessPath}
-        productRouting={routing.productRouting}
-        operationMaterials={routing.operationMaterials}
-        expandedOperations={routing.expandedOperations}
-        setExpandedOperations={routing.setExpandedOperations}
-        timeOverrides={routing.timeOverrides}
-        showAddOperation={routing.showAddOperation}
-        setShowAddOperation={routing.setShowAddOperation}
-        showAddOperationToExisting={routing.showAddOperationToExisting}
-        setShowAddOperationToExisting={routing.setShowAddOperationToExisting}
-        pendingOperations={routing.pendingOperations}
-        newOperation={routing.newOperation}
-        setNewOperation={routing.setNewOperation}
-        workCenters={routing.workCenters}
-        routingTemplates={routing.routingTemplates}
-        selectedTemplateId={routing.selectedTemplateId}
-        setSelectedTemplateId={routing.setSelectedTemplateId}
-        applyingTemplate={routing.applyingTemplate}
-        savingRouting={routing.savingRouting}
-        addingOperation={routing.addingOperation}
-        setShowAddMaterialModal={routing.setShowAddMaterialModal}
-        handleAddPendingOperation={routing.handleAddPendingOperation}
-        handleRemovePendingOperation={routing.handleRemovePendingOperation}
-        handleSaveRouting={routing.handleSaveRouting}
-        handleApplyTemplate={routing.handleApplyTemplate}
-        updateOperationTime={routing.updateOperationTime}
-        saveOperationTime={routing.saveOperationTime}
-        handleDeleteOperation={routing.handleDeleteOperation}
-        handleDeleteMaterial={routing.handleDeleteMaterial}
-        handleAddOperationToExisting={routing.handleAddOperationToExisting}
-        formatTime={routing.formatTime}
-        fetchProductRouting={routing.fetchProductRouting}
-        toast={toast}
+      {/* Manufacturing Operations — embedded routing editor */}
+      <RoutingEditorContent
+        productId={bom.product_id}
+        isActive={true}
+        embedded={true}
+        onRoutingDataChange={setRoutingData}
       />
 
       {/* Add Line Form */}
@@ -297,23 +271,6 @@ export default function BOMDetailView({
             />
           )}
         </div>
-      </Modal>
-
-      {/* Add Material to Operation Modal */}
-      <Modal
-        isOpen={!!routing.showAddMaterialModal}
-        onClose={routing.closeMaterialModal}
-        title="Add Material to Operation"
-        className="w-full max-w-2xl"
-      >
-        <AddOperationMaterialForm
-          newMaterial={routing.newMaterial}
-          setNewMaterial={routing.setNewMaterial}
-          products={bomLines.products}
-          uoms={bomLines.uoms}
-          onSubmit={() => routing.handleAddMaterial(routing.showAddMaterialModal)}
-          onClose={routing.closeMaterialModal}
-        />
       </Modal>
 
       {/* Exploded BOM View Modal */}
