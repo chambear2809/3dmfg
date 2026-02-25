@@ -5,7 +5,7 @@
  * - RoutingEditor.jsx (modal wrapper — Items/Manufacturing pages)
  * - BOMDetailView.jsx (embedded — BOM page)
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { API_URL } from "../../config/api";
 import OperationMaterialModal from "../OperationMaterialModal";
 import OperationRow from "./OperationRow";
@@ -68,8 +68,8 @@ export default function RoutingEditorContent({
     }
   }, [routingId]);
 
-  const fetchRoutingByProduct = useCallback(async () => {
-    const finalProductId = selectedProductId || productId;
+  const fetchRoutingByProduct = useCallback(async (overrideProductId = null) => {
+    const finalProductId = overrideProductId || selectedProductId || productId;
     if (!finalProductId) return;
     try {
       const res = await fetch(
@@ -138,16 +138,21 @@ export default function RoutingEditorContent({
     }
   }, []);
 
-  // Fetch materials for all operations when routing loads
+  // Stable key derived from operation IDs only — prevents re-fetching
+  // materials on every keystroke (updateOperation creates a new array ref)
+  const operationIdsKey = useMemo(
+    () => operations.map((op) => op.id).filter(Boolean).join(","),
+    [operations]
+  );
+
+  // Fetch materials for all operations when the set of operations changes
   useEffect(() => {
-    if (operations.length > 0) {
-      operations.forEach((op) => {
-        if (op.id) {
-          fetchOperationMaterials(op.id);
-        }
-      });
-    }
-  }, [operations, fetchOperationMaterials]);
+    if (!operationIdsKey) return;
+    operationIdsKey
+      .split(",")
+      .map(Number)
+      .forEach((id) => fetchOperationMaterials(id));
+  }, [operationIdsKey, fetchOperationMaterials]);
 
   // Initial data load when activated
   useEffect(() => {
@@ -411,7 +416,12 @@ export default function RoutingEditorContent({
           );
         }
 
-        setOperations(operations.filter((_, i) => i !== index));
+        setOperations((prev) => prev.filter((_, i) => i !== index));
+        setOperationMaterials((prev) => {
+          const next = { ...prev };
+          delete next[operation.id];
+          return next;
+        });
         setError(null);
       } catch (err) {
         setError(err.message || "Failed to remove operation");
@@ -420,7 +430,7 @@ export default function RoutingEditorContent({
         setLoading(false);
       }
     } else {
-      setOperations(operations.filter((_, i) => i !== index));
+      setOperations((prev) => prev.filter((_, i) => i !== index));
     }
   };
 
@@ -545,9 +555,10 @@ export default function RoutingEditorContent({
           <select
             value={selectedProductId}
             onChange={(e) => {
-              setSelectedProductId(e.target.value);
-              if (e.target.value) {
-                setTimeout(() => fetchRoutingByProduct(), 100);
+              const nextProductId = e.target.value;
+              setSelectedProductId(nextProductId);
+              if (nextProductId) {
+                fetchRoutingByProduct(nextProductId);
               }
             }}
             className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
@@ -698,9 +709,9 @@ export default function RoutingEditorContent({
             />
           )}
 
-          {/* Save/Cancel Actions — hidden when embedded */}
-          {!embedded && (
-            <div className="flex justify-end gap-3 pt-4 border-t">
+          {/* Actions — Cancel hidden in embedded mode, Save always available */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            {!embedded && (
               <button
                 type="button"
                 onClick={onCancel}
@@ -709,19 +720,19 @@ export default function RoutingEditorContent({
               >
                 Cancel
               </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                disabled={loading || operations.length === 0}
-              >
-                {loading
-                  ? "Saving..."
-                  : routing
-                    ? "Update Routing"
-                    : "Create Routing"}
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              disabled={loading || operations.length === 0}
+            >
+              {loading
+                ? "Saving..."
+                : routing
+                  ? "Update Routing"
+                  : "Create Routing"}
+            </button>
+          </div>
         </>
       )}
 
