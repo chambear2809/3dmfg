@@ -10,9 +10,9 @@
 | Metric | Count |
 | ------ | ----- |
 | **Total Pages** | 31 |
-| **Total Components** | 65+ |
+| **Total Components** | 140+ |
 | **Route Groups** | 6 |
-| **Framework** | React 18 + Vite |
+| **Framework** | React 19 + Vite |
 | **UI Library** | Tailwind CSS |
 | **State** | React Query + Context |
 
@@ -297,6 +297,12 @@ From `App.jsx`:
 
 ## Components Catalog
 
+> **Note:** Components are now organized into subdirectories under `frontend/src/components/`:
+> `accounting/`, `bom/`, `command-center/`, `customers/`, `dashboard/`, `inventory/`,
+> `item-wizard/`, `items/`, `manufacturing/`, `orders/`, `payments/`, `printers/`,
+> `production/`, `purchasing/`, `quotes/`, `remediation/`, `routing/`, `sales-order/`,
+> `settings/`, `ui/`. File paths below reflect the subdirectory when applicable.
+
 ### Layout Components (2)
 
 | Component      | File                 | Purpose                                 | Props                     |
@@ -336,24 +342,37 @@ From `App.jsx`:
 
 ---
 
-### Inventory & Items Components (5)
+### Inventory & Items Components (4)
 
 | Component | File | Purpose | Props | Used In |
 | --------- | ---- | ------- | ----- | ------- |
-| ItemCard | `ItemCard.jsx` | Card view of item with stock | `itemId`, `onClick` | AdminItems |
-| ItemForm | `ItemForm.jsx` | Create/edit item form | `isOpen`, `editingItem`, `onClose`, `onSuccess` | AdminItems |
-| MaterialForm | `MaterialForm.jsx` | Create filament/material form | `isOpen`, `onClose`, `onSuccess` | AdminItems |
+| ItemCard | `inventory/ItemCard.jsx` | Card view of item with stock | `itemId`, `onClick` | AdminItems |
 | ItemWizard | `ItemWizard.jsx` | Step-by-step item creation | `isOpen`, `onClose`, `onSuccess` | AdminItems |
-| BOMEditor | `BOMEditor.jsx` | Edit BOM components & quantities | `isOpen`, `productId`, `onClose`, `onSuccess` | AdminItems |
+
+### BOM Components (`bom/` subdirectory, 9)
+
+| Component | File | Purpose | Props | Used In |
+| --------- | ---- | ------- | ----- | ------- |
+| BOMAddLineForm | `bom/BOMAddLineForm.jsx` | Add a line to a BOM | `bomId`, `onSuccess` | AdminBOM |
+| BOMLinesList | `bom/BOMLinesList.jsx` | List BOM lines | `bomId` | AdminBOM |
+| BOMCostRollupCard | `bom/BOMCostRollupCard.jsx` | Display BOM cost rollup | `bomId` | AdminBOM |
+| BOMDetailView | `bom/BOMDetailView.jsx` | Full BOM detail view | `bomId` | AdminBOM |
+| CreateBOMForm | `bom/CreateBOMForm.jsx` | Create new BOM | `onSuccess` | AdminBOM |
+| CreateProductionOrderModal | `bom/CreateProductionOrderModal.jsx` | Create production order from BOM | `isOpen`, `bomId`, `onClose`, `onSuccess` | AdminBOM |
+| ExplodedBOMView | `bom/ExplodedBOMView.jsx` | Multi-level BOM explosion | `bomId` | AdminBOM |
+| PurchaseRequestModal | `bom/PurchaseRequestModal.jsx` | Request purchase from BOM shortage | `isOpen`, `onClose`, `onSuccess` | AdminBOM |
+| WorkOrderRequestModal | `bom/WorkOrderRequestModal.jsx` | Request work order from BOM | `isOpen`, `onClose`, `onSuccess` | AdminBOM |
 
 ---
 
-### Manufacturing Configuration Components (2)
+### Routing & Manufacturing Configuration Components (4)
 
 | Component | File | Purpose | Props | Used In |
 | --------- | ---- | ------- | ----- | ------- |
-| RoutingEditor | `RoutingEditor.jsx` | Edit routing operations & work centers | `isOpen`, `productId`, `onClose`, `onSuccess` | AdminItems, AdminBOM |
-| ManufacturingBOMEditor | `ManufacturingBOMEditor.jsx` | Edit routing materials | `isOpen`, `productId`, `onClose`, `onSuccess` | AdminBOM |
+| RoutingEditor | `RoutingEditor.jsx` | Thin modal wrapper that delegates to `RoutingEditorContent` | `isOpen`, `productId`, `routingId`, `onClose`, `onSuccess`, `products` | AdminItems, AdminBOM |
+| RoutingEditorContent | `routing/RoutingEditorContent.jsx` | Full routing operations editor with material assignment | `productId`, `routingId`, `products`, `isActive`, `onSuccess` | RoutingEditor |
+| AddOperationForm | `routing/AddOperationForm.jsx` | Add operation to a routing | `routingId`, `onSuccess` | RoutingEditorContent |
+| OperationRow | `routing/OperationRow.jsx` | Display/edit a single routing operation row | `operation`, `onEdit` | RoutingEditorContent |
 
 ---
 
@@ -426,13 +445,12 @@ From `App.jsx`:
 
 ---
 
-### Utility Components (4)
+### Utility Components (3)
 
 | Component | File | Purpose | Props | Used In |
 | --------- | ---- | ------- | ----- | ------- |
 | ExportImport | `ExportImport.jsx` | Import/export data | `resourceType`, `onImport`, `onExport` | Admin pages |
 | SecurityBadge | `SecurityBadge.jsx` | Security level indicator | `level` | SecuritySettings |
-| OperationMaterialModal | `OperationMaterialModal.jsx` | Material assignment | `isOpen`, `operationId`, `onClose`, `onSuccess` | RoutingEditor |
 | OperationActions | `OperationActions.jsx` | Action buttons for operation | `operation`, `onStart`, `onPause`, `onComplete` | OperationsPanel |
 
 ---
@@ -586,5 +604,5 @@ const response = await fetch(`${API_URL}/api/v1/endpoint`, {
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-02-25*
 *Generated for FilaOps Core*

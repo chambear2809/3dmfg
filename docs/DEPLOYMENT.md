@@ -293,7 +293,7 @@ To upgrade to a specific release:
 
 ```bash
 git fetch --tags
-git checkout v3.1.0
+git checkout v3.2.0
 docker compose up -d --build
 ```
 

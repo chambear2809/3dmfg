@@ -56,7 +56,7 @@ When you run MRP, FilaOps:
 
 ## Running MRP
 
-Navigate to **Manufacturing > MRP** in the sidebar and click **Run MRP**.
+MRP runs are initiated from the **Production** page or individual order detail views.
 
 <!-- TODO: screenshot of MRP page -->
 

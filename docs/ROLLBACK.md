@@ -15,11 +15,11 @@ If the deployment failed but no database migrations were involved:
 ```bash
 # Docker deployment
 docker-compose down
-git checkout v3.0.0  # Previous known-good tag
+git checkout v3.1.1  # Previous known-good tag
 docker-compose up --build -d
 
 # Manual deployment
-git checkout v3.0.0
+git checkout v3.1.1
 cd backend && pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
@@ -75,7 +75,7 @@ docker-compose down
 docker-compose down -v
 
 # Checkout previous version
-git checkout v3.0.0
+git checkout v3.1.1
 
 # Rebuild and start
 docker-compose up --build -d

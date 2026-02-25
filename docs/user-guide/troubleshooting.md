@@ -14,7 +14,7 @@ This page collects the most frequently encountered issues across FilaOps, organi
 
 | Check | Fix |
 |-------|-----|
-| Python version | FilaOps requires Python 3.10+. Run `python --version` to verify. |
+| Python version | FilaOps requires Python 3.11+. Run `python --version` to verify. |
 | Virtual environment | Make sure your venv is activated. You should see `(venv)` in your terminal prompt. |
 | Missing dependencies | Run `pip install -r requirements.txt` inside your venv. |
 | Database not running | Verify PostgreSQL is running and accessible. Check with `pg_isready` or your OS service manager. |

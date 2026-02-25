@@ -76,7 +76,7 @@ docker compose start backend
 docker compose down
 
 # Check out the previous release tag
-git checkout v3.0.1
+git checkout v3.1.1
 
 # Rebuild and restart
 docker compose up -d --build

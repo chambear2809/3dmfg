@@ -20,7 +20,7 @@
 
 ## Setting Up Manufacturing
 
-Before you can run production, you need to tell FilaOps about your equipment and processes. Navigate to **Manufacturing > Setup** in the sidebar.
+Before you can run production, you need to tell FilaOps about your equipment and processes. Navigate to **Manufacturing** in the sidebar.
 
 <!-- TODO: screenshot of manufacturing setup page -->
 
@@ -114,7 +114,7 @@ Mark a routing as a **template** to reuse it as a starting point for new product
 
 ## The Production Page
 
-Navigate to **Manufacturing > Production** in the sidebar. This is your primary workspace for managing production orders.
+Navigate to **Production** in the sidebar. This is your primary workspace for managing production orders.
 
 <!-- TODO: screenshot of production page -->
 

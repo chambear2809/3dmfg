@@ -116,7 +116,7 @@ This document maps each feature across all implementation layers:
 | **MIGRATIONS** | `001_initial`, `056_migrate_bom_to_operations` |
 | **API** | `GET/POST /admin/bom/`, `GET/PATCH/DELETE /admin/bom/{id}`, `POST /admin/bom/{id}/lines`, `GET /admin/bom/{id}/explode`, `GET /admin/bom/{id}/cost-rollup`, `GET /admin/bom/where-used/{product_id}` |
 | **SERVICE** | `app/services/bom_service.py` |
-| **UI** | `AdminBOM.jsx`, `BOMEditor.jsx` |
+| **UI** | `AdminBOM.jsx`, `BOMDetailView.jsx`, `BOMAddLineForm.jsx`, `BOMLinesList.jsx`, `BOMCostRollupCard.jsx` |
 
 **Forms**: Product, Components (SKU, Quantity, Unit, Scrap Factor, Notes)
 
@@ -132,7 +132,7 @@ This document maps each feature across all implementation layers:
 | **MIGRATIONS** | `001_initial`, `022_sprint3_cleanup_work_center`, `033_add_operation_materials` |
 | **API** | `GET/POST /routings/`, `GET/PATCH/DELETE /routings/{id}`, operations endpoints, materials endpoints, `GET/POST /work-centers/`, `GET/POST /resources/` |
 | **SERVICE** | `app/services/routing_service.py`, `app/services/work_center_service.py` |
-| **UI** | `AdminManufacturing.jsx`, `RoutingEditor.jsx`, `ManufacturingBOMEditor.jsx` |
+| **UI** | `AdminManufacturing.jsx`, `RoutingEditor.jsx (modal wrapper)`, `RoutingEditorContent.jsx`, `AddOperationForm.jsx`, `OperationRow.jsx` |
 
 **Forms**: Operations (Name, Work Center, Setup Time, Run Time, Materials)
 
@@ -371,5 +371,5 @@ This document maps each feature across all implementation layers:
 
 ---
 
-*Last updated: 2026-01-28*
+*Last updated: 2026-02-25*
 *Generated for FilaOps Core (Open Source)*

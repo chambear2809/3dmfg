@@ -1,5 +1,7 @@
 # God Files Analysis — ARCHITECT-002
 
+**Status: Completed (v3.2.0)** — The refactoring described in this document has been largely completed. See CHANGELOG.md for details of what was actually implemented, which differs from some of the extraction plans below.
+
 ## Summary
 
 | File | Lines | useState | Sub-components | Recommended Splits |

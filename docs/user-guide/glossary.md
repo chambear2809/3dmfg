@@ -9,7 +9,7 @@
 | **Adjustment** | A manual inventory transaction that increases or decreases an item's quantity. Used to correct discrepancies found during cycle counts or to account for waste. |
 | **Bill of Materials (BOM)** | A list of raw materials and components — with quantities — needed to produce one unit of a finished product. BOMs drive both MRP calculations and cost estimates. |
 | **COGS (Cost of Goods Sold)** | The total cost of materials and labor that went into producing items that were sold. Calculated from BOMs and production records. |
-| **Command Center** | The search bar at the top of the dashboard. Type to quickly find orders, items, customers, or production records across the entire system. |
+| **Command Center** | A dedicated monitoring page (`/admin/command-center`) that shows real-time production status, action items, overdue operations, and machine status. |
 | **Confirmed (Order)** | A sales order that has been accepted and is ready for production and fulfillment. Confirmed orders create demand for MRP. |
 | **Consumption** | An inventory transaction that removes material from stock when it's used in production. Consumption quantities come from the BOM. |
 | **Cycle Count** | A process of counting physical inventory and comparing it to system quantities. Used to correct discrepancies without shutting down operations. |
@@ -51,6 +51,6 @@
 | **SKU (Stock Keeping Unit)** | A unique code that identifies a specific item in your catalog. Often used for barcode scanning and external system integration. |
 | **Spool** | A roll of 3D printing filament tracked individually in FilaOps. Spools have properties like material type, color, weight remaining, and location. |
 | **Tax Center** | The accounting tab that summarizes tax collected on shipped orders, broken down by tax rate and time period. |
-| **UOM (Unit of Measure)** | The unit used to track an item's quantity — each, gram, kilogram, meter, liter, etc. FilaOps handles conversions automatically (e.g., grams to kilograms). |
+| **UOM (Unit of Measure)** | The unit used to track an item's quantity — each, gram, kilogram, meter, liter, etc. FilaOps uses a dual-UOM system for materials: a storage unit (e.g., G for grams) for inventory tracking, and a purchase unit (e.g., KG for kilograms) for buying. The `purchase_factor` converts between them (1 KG = 1000 G). Costs are stored per purchase unit ($/KG) and divided by `purchase_factor` for per-storage-unit costs ($/G). |
 | **Vendor** | A supplier that provides raw materials or components. Vendors are linked to purchase orders and can have lead times, payment terms, and contact information. |
 | **Work Center** | A production resource — typically a 3D printer, post-processing station, or assembly area. Work centers have capacity and are assigned to routing operations. |
