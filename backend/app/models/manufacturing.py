@@ -272,16 +272,22 @@ class RoutingOperationMaterial(Base):
     @property
     def unit_cost(self):
         """
-        Cost per unit of this material.
-        
-        Component costs are stored per USAGE unit (e.g., $/G for filament).
-        All UOM conversion happens at PO receiving, so no conversion needed here.
+        Cost per STORAGE unit of this material.
+
+        Component costs are stored per PURCHASE unit (e.g., $/KG for filament).
+        Must divide by purchase_factor to get cost per STORAGE unit (e.g., $/G).
+
+        Examples:
+          - Filament: $20/KG ÷ 1000 = $0.02/G
+          - Hardware: $5/EA  ÷ 1    = $5/EA
         """
         if not self.component:
             return 0
-        # Use standard_cost, average_cost, or last_cost based on availability
         cost = self.component.standard_cost or self.component.average_cost or self.component.last_cost
-        return float(cost) if cost else 0
+        if not cost:
+            return 0
+        purchase_factor = float(self.component.purchase_factor or 1)
+        return float(cost) / purchase_factor
 
     @property
     def extended_cost(self):

@@ -804,10 +804,13 @@ async def complete_print(
     for mat in consumed_materials:
         if mat.get("quantity_consumed", 0) > 0 and mat.get("component_id"):
             product = db.query(Product).filter(Product.id == mat["component_id"]).first()
+            raw_cost = (product.standard_cost or product.average_cost or Decimal("0")) if product else Decimal("0")
+            purchase_factor = Decimal(str(product.purchase_factor or 1)) if product else Decimal("1")
+            cost_per_storage_unit = raw_cost / purchase_factor
             materials_to_consume.append(MaterialConsumption(
                 product_id=mat["component_id"],
                 quantity=Decimal(str(mat["quantity_consumed"])),
-                unit_cost=(product.standard_cost or product.average_cost or Decimal("0")) if product else Decimal("0"),
+                unit_cost=cost_per_storage_unit,
                 unit=product.unit if product and product.unit else "EA",
             ))
 
