@@ -1,7 +1,7 @@
 # FilaOps Database Schema Reference
 
 **Generated:** 2026-01-28
-**Source:** FilaOps Core v3.0.1
+**Source:** FilaOps Core v3.2.0
 **Total Models:** 52 (Core only)
 **Purpose:** AI knowledge source for codebase understanding
 

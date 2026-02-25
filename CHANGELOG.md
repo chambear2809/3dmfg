@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-02-25
+
+### Refactored
+- **Consolidated BOM/routing editors** — Replaced 5 duplicate components (`BOMEditor`, `ManufacturingBOMEditor`, `BOMRoutingSection`, `useRoutingManager`, `AddOperationMaterialForm`) with a single `RoutingEditorContent`. Net -2,852 lines. (#358)
+
+### Fixed
+- Material cost UOM conversion: `unit_cost` now divides by `purchase_factor` (e.g. $20/KG ÷ 1000 = $0.02/G) — previously ~1000x too high for filament (#358)
+- Same UOM bug in fulfillment queue material consumption (#358)
+- Timezone naive/aware datetime mismatches across 9 locations in 7 files: `Quote.is_expired`, quote schemas, quote stats, auth token purge, password reset, command center, operation completion, maintenance, inventory, accounting (#358)
+- Work center rate field mismatch: frontend referenced nonexistent `labor_rate`/`machine_rate` instead of `total_rate_per_hour` — unsaved operations showed $0.00 (#358)
+- Operation/material cost display: OperationRow now uses backend-computed `calculated_cost` and shows material `extended_cost` (#358)
+- CodeRabbit review fixes: stale closure, material fetch fan-out, embedded save button, stale materials on delete (#358)
+- BOM page material save restored after OperationMaterialModal refactor (#357)
+
+### Performance
+- Fixed N+1 query patterns in items list and dashboard endpoints (#356)
+
+### Added
+- Dev seed script for local development (`backend/scripts/seed_dev_data.py`) (#355)
+- Walkthrough screenshot Playwright tests (#355)
+
+### Dependencies
+- 12 dependency upgrades (Dependabot consolidation) (#354)
+
 ## [3.1.1] - 2026-02-23
 
 ### Fixed
@@ -143,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI Invoice Parser (PRO)
 - License management (PRO)
 
-[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/Blb3D/filaops/compare/v3.1.1...v3.2.0
 [3.1.1]: https://github.com/Blb3D/filaops/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/Blb3D/filaops/compare/v3.0.1...v3.1.0
 [3.0.1]: https://github.com/Blb3D/filaops/compare/v3.0.0...v3.0.1

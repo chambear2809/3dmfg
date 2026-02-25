@@ -9,9 +9,9 @@ There is also a last-resort hardcoded fallback, which should never be reached in
 
 | File | Used By | Format |
 |------|---------|--------|
-| `backend/VERSION` | Backend `VersionManager` (fallback) | Plain text, e.g. `3.0.1` |
-| `package.json` (root) | Root project metadata | `"version": "3.0.1"` |
-| `frontend/package.json` | Frontend (imported at Vite build time) | `"version": "3.0.1"` |
+| `backend/VERSION` | Backend `VersionManager` (fallback) | Plain text, e.g. `3.2.0` |
+| `package.json` (root) | Root project metadata | `"version": "3.2.0"` |
+| `frontend/package.json` | Frontend (imported at Vite build time) | `"version": "3.2.0"` |
 
 ## How Version Is Resolved
 
@@ -22,7 +22,7 @@ The `VersionManager.get_current_version()` method resolves the version in this o
 1. **Git tag** (`git describe --tags --abbrev=0`) - works in dev and non-Docker deployments where `.git/` is present.
 2. **`FILAOPS_VERSION` env var** - set by the Dockerfile `ARG` / `ENV`, or by docker-compose. This is the primary mechanism in Docker deployments.
 3. **`backend/VERSION` file** - read at module import time. This is the fallback when git and env vars are unavailable.
-4. **Hardcoded `"3.0.1"`** - last-resort constant. Should never be reached if the VERSION file exists.
+4. **Hardcoded `"3.2.0"`** - last-resort constant. Should never be reached if the VERSION file exists.
 
 ### Frontend (`frontend/src/utils/version.js`)
 
@@ -33,7 +33,7 @@ The `VersionManager.get_current_version()` method resolves the version in this o
 
 The Dockerfile declares:
 ```dockerfile
-ARG FILAOPS_VERSION=3.0.1
+ARG FILAOPS_VERSION=3.2.0
 ENV FILAOPS_VERSION=${FILAOPS_VERSION}
 ```
 

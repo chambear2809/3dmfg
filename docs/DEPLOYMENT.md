@@ -222,7 +222,7 @@ curl -s http://localhost:8000/health | python -m json.tool
 Returns HTTP 200 when healthy, 503 when not:
 
 ```json
-{ "status": "healthy", "checks": { "database": "ok" }, "version": "3.0.1" }
+{ "status": "healthy", "checks": { "database": "ok" }, "version": "3.2.0" }
 ```
 
 ### Docker Health Checks
