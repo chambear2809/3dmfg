@@ -309,6 +309,60 @@ async def health_check():
     )
 
 
+# ─── Optional plugin registration (config-driven) ───
+# Core contains zero package references to any plugin. The operator sets
+# FILAOPS_PRO_MODULE=filaops_pro (or any module with a register(app) callable)
+# in .env to activate a plugin. Removing the env var = Community edition.
+
+
+def load_plugin(app, module_name: str | None = None) -> bool:
+    """Load and register an optional plugin module.
+
+    Args:
+        app: The FastAPI application instance.
+        module_name: Dotted Python module path (e.g. "filaops_pro").
+            If None, reads from FILAOPS_PRO_MODULE env var.
+
+    Returns:
+        True if a plugin was loaded successfully, False otherwise.
+    """
+    import importlib
+
+    module_name = module_name or os.getenv("FILAOPS_PRO_MODULE")
+    if not module_name:
+        return False
+    try:
+        plugin = importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        if exc.name == module_name:
+            logger.warning("Plugin module '%s' configured but not installed", module_name)
+        else:
+            logger.error(
+                "Plugin '%s' import failed — missing dependency '%s'",
+                module_name, exc.name, exc_info=True,
+            )
+        return False
+    except Exception:
+        logger.error("Plugin module '%s' failed during import", module_name, exc_info=True)
+        return False
+
+    register = getattr(plugin, "register", None)
+    if not callable(register):
+        logger.error("Plugin module '%s' has no callable register(app)", module_name)
+        return False
+
+    try:
+        register(app)
+        logger.info("Plugin '%s' registered successfully", module_name)
+        return True
+    except Exception:
+        logger.error("Plugin module '%s' failed during register()", module_name, exc_info=True)
+        return False
+
+
+load_plugin(app)
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
