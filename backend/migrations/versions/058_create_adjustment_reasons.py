@@ -36,16 +36,16 @@ def upgrade():
     """)
 
     op.execute("""
-        INSERT INTO adjustment_reasons (code, name, description, sequence) VALUES
-        ('physical_count', 'Physical Count', 'Discrepancy found during physical inventory count', 10),
-        ('cycle_count', 'Cycle Count', 'Adjustment from cycle counting process', 20),
-        ('correction', 'Data Correction', 'Correcting a data entry error', 30),
-        ('damaged', 'Damaged Goods', 'Item damaged in storage or handling', 40),
-        ('found', 'Found Inventory', 'Previously unaccounted inventory discovered', 50),
-        ('theft_loss', 'Theft/Loss', 'Inventory missing due to theft or unexplained loss', 60),
-        ('expired', 'Expired/Obsolete', 'Item past usable life or obsolete', 70),
-        ('reclassification', 'Reclassification', 'Item moved to different category or account', 80),
-        ('other', 'Other', 'Other adjustment reason - specify in notes', 90)
+        INSERT INTO adjustment_reasons (code, name, description, active, sequence, created_at, updated_at) VALUES
+        ('physical_count', 'Physical Count', 'Discrepancy found during physical inventory count', true, 10, NOW(), NOW()),
+        ('cycle_count', 'Cycle Count', 'Adjustment from cycle counting process', true, 20, NOW(), NOW()),
+        ('correction', 'Data Correction', 'Correcting a data entry error', true, 30, NOW(), NOW()),
+        ('damaged', 'Damaged Goods', 'Item damaged in storage or handling', true, 40, NOW(), NOW()),
+        ('found', 'Found Inventory', 'Previously unaccounted inventory discovered', true, 50, NOW(), NOW()),
+        ('theft_loss', 'Theft/Loss', 'Inventory missing due to theft or unexplained loss', true, 60, NOW(), NOW()),
+        ('expired', 'Expired/Obsolete', 'Item past usable life or obsolete', true, 70, NOW(), NOW()),
+        ('reclassification', 'Reclassification', 'Item moved to different category or account', true, 80, NOW(), NOW()),
+        ('other', 'Other', 'Other adjustment reason - specify in notes', true, 90, NOW(), NOW())
         ON CONFLICT (code) DO NOTHING;
     """)
 
