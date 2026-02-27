@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 def list_tax_rates(db: Session, *, active_only: bool = True) -> list[TaxRate]:
     query = db.query(TaxRate)
     if active_only:
-        query = query.filter(TaxRate.is_active == True)
+        query = query.filter(TaxRate.is_active.is_(True))
     return query.order_by(TaxRate.is_default.desc(), TaxRate.name).all()
 
 
@@ -37,7 +37,7 @@ def get_default_tax_rate(db: Session) -> Optional[TaxRate]:
     """Return the active default tax rate, or None if none configured."""
     return (
         db.query(TaxRate)
-        .filter(TaxRate.is_default == True, TaxRate.is_active == True)
+        .filter(TaxRate.is_default.is_(True), TaxRate.is_active.is_(True))
         .first()
     )
 
@@ -85,4 +85,4 @@ def delete_tax_rate(db: Session, tax_rate_id: int) -> None:
 
 def _clear_default(db: Session) -> None:
     """Remove is_default from any currently-default rates before setting a new one."""
-    db.query(TaxRate).filter(TaxRate.is_default == True).update({"is_default": False})
+    db.query(TaxRate).filter(TaxRate.is_default.is_(True)).update({"is_default": False})
