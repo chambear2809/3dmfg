@@ -4,6 +4,7 @@ import { ToastProvider } from "./components/Toast";
 import { createApiClient } from "./lib/apiClient";
 import { API_URL } from "./config/api";
 import { AppProvider } from "./contexts/AppContext";
+import { LocaleProvider } from "./contexts/LocaleContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ApiErrorToaster from "./components/ApiErrorToaster";
 import AdminLayout from "./components/AdminLayout";
@@ -81,6 +82,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AppProvider>
+      <LocaleProvider>
       <ApiContext.Provider value={api}>
         <ToastProvider>
           {/* Global API error toasts */}
@@ -154,6 +156,7 @@ export default function App() {
           </BrowserRouter>
         </ToastProvider>
       </ApiContext.Provider>
+      </LocaleProvider>
       </AppProvider>
     </ErrorBoundary>
   );

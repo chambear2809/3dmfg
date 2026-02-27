@@ -57,6 +57,10 @@ class CompanySettings(Base):
     accounting_method = Column(String(20), nullable=True, default="cash")  # cash or accrual
     currency_code = Column(String(10), nullable=True, default="USD")
 
+    # Locale / i18n
+    # BCP-47 locale string — controls number/date formatting (e.g. "en-US", "fr-CA", "ar-SA")
+    locale = Column(String(20), nullable=True, default="en-US")
+
     # Timezone
     # IANA timezone name (e.g., "America/New_York", "America/Chicago")
     timezone = Column(String(50), nullable=True, default="America/New_York")

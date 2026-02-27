@@ -64,6 +64,10 @@ class CompanySettingsResponse(BaseModel):
     # Timezone
     timezone: Optional[str] = None  # IANA timezone (e.g., "America/New_York")
 
+    # i18n / Locale
+    currency_code: Optional[str] = "USD"  # ISO 4217 (e.g., "USD", "EUR", "CAD")
+    locale: Optional[str] = "en-US"  # BCP-47 (e.g., "en-US", "fr-CA", "ar-SA")
+
     # Business hours settings
     business_hours_start: Optional[int] = None  # Hour of day (0-23), default 8am
     business_hours_end: Optional[int] = None  # Hour of day (0-23), default 4pm
@@ -101,6 +105,10 @@ class CompanySettingsUpdate(BaseModel):
 
     # Timezone (IANA timezone name)
     timezone: Optional[str] = Field(None, max_length=50)
+
+    # i18n / Locale
+    currency_code: Optional[str] = Field(None, max_length=10, pattern=r"^[A-Z]{3}$")
+    locale: Optional[str] = Field(None, max_length=20)
 
     # Business hours settings
     business_hours_start: Optional[int] = Field(None, ge=0, le=23)  # Hour of day (0-23)
@@ -158,6 +166,8 @@ def settings_to_response(settings: CompanySettings) -> CompanySettingsResponse:
         quote_terms=settings.quote_terms,
         quote_footer=settings.quote_footer,
         timezone=settings.timezone,
+        currency_code=settings.currency_code or "USD",
+        locale=settings.locale or "en-US",
         business_hours_start=settings.business_hours_start,
         business_hours_end=settings.business_hours_end,
         business_days_per_week=settings.business_days_per_week,
