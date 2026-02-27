@@ -665,6 +665,23 @@ def generate_quote_pdf(db: Session, quote_id: int) -> io.BytesIO:
     # Get company settings
     company_settings = db.query(CompanySettings).filter(CompanySettings.id == 1).first()
 
+    # Currency symbol map for PDF rendering (Intl not available in Python)
+    _CURRENCY_SYMBOLS = {
+        "USD": "$", "CAD": "CA$", "AUD": "A$", "NZD": "NZ$",
+        "GBP": "\u00a3", "EUR": "\u20ac", "CHF": "CHF\u00a0",
+        "SEK": "kr\u00a0", "NOK": "kr\u00a0", "DKK": "kr\u00a0",
+        "BRL": "R$", "MXN": "MX$", "INR": "\u20b9",
+        "JPY": "\u00a5", "CNY": "\u00a5", "KRW": "\u20a9",
+        "SGD": "S$", "HKD": "HK$", "SAR": "SAR\u00a0",
+        "AED": "AED\u00a0", "ZAR": "R",
+    }
+    _currency = (company_settings.currency_code if company_settings and company_settings.currency_code else "USD")
+    _sym = _CURRENCY_SYMBOLS.get(_currency, f"{_currency}\u00a0")
+
+    def _fmt(amount: float) -> str:
+        """Format a monetary amount with the company currency symbol."""
+        return f"{_sym}{amount:,.2f}"
+
     # Create PDF buffer
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
@@ -775,13 +792,13 @@ def generate_quote_pdf(db: Session, quote_id: int) -> io.BytesIO:
             esc(quote.product_name or 'Custom Item'),
             material_desc,
             str(quote.quantity),
-            f"${float(quote.unit_price or 0):,.2f}",
-            f"${subtotal:,.2f}"
+            _fmt(float(quote.unit_price or 0)),
+            _fmt(subtotal),
         ],
     ]
 
     # Add subtotal row
-    table_data.append(['', '', '', 'Subtotal:', f"${subtotal:,.2f}"])
+    table_data.append(['', '', '', 'Subtotal:', _fmt(subtotal)])
 
     # Add tax row if applicable
     if quote.tax_rate and quote.tax_amount:
@@ -789,14 +806,14 @@ def generate_quote_pdf(db: Session, quote_id: int) -> io.BytesIO:
         tax_name = "Sales Tax"
         if company_settings and company_settings.tax_name:
             tax_name = esc(company_settings.tax_name)
-        table_data.append(['', '', '', f'{tax_name} ({tax_percent:.2f}%):', f"${float(quote.tax_amount):,.2f}"])
+        table_data.append(['', '', '', f'{tax_name} ({tax_percent:.2f}%):', _fmt(float(quote.tax_amount))])
 
     # Add shipping row if applicable
     if quote.shipping_cost and float(quote.shipping_cost) > 0:
-        table_data.append(['', '', '', 'Shipping:', f"${float(quote.shipping_cost):,.2f}"])
+        table_data.append(['', '', '', 'Shipping:', _fmt(float(quote.shipping_cost))])
 
     # Add total row
-    table_data.append(['', '', '', 'TOTAL:', f"${float(quote.total_price or 0):,.2f}"])
+    table_data.append(['', '', '', 'TOTAL:', _fmt(float(quote.total_price or 0))])
 
     table = Table(table_data, colWidths=[2.5*inch, 1.5*inch, 0.5*inch, 1.2*inch, 0.8*inch])
     table.setStyle(TableStyle([

@@ -5,11 +5,14 @@ import { useToast } from "../../components/Toast";
 import { useVersionCheck } from "../../hooks/useVersionCheck";
 import { getCurrentVersion, getCurrentVersionSync, formatVersion } from "../../utils/version";
 import { formatPhoneNumber, timezoneOptions } from "../../components/settings/constants";
+import { currencyOptions, localeOptions } from "../../components/settings/i18nConstants";
+import { useLocale } from "../../contexts/LocaleContext";
 import AiSettingsSection from "../../components/settings/AiSettingsSection";
 
 const AdminSettings = () => {
   const api = useApi();
   const toast = useToast();
+  const { updateLocaleSettings } = useLocale();
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,6 +37,8 @@ const AdminSettings = () => {
     company_zip: "",
     company_country: "USA",
     timezone: "America/New_York",
+    currency_code: "USD",
+    locale: "en-US",
     company_phone: "",
     company_email: "",
     company_website: "",
@@ -79,6 +84,8 @@ const AdminSettings = () => {
         company_zip: data.company_zip || "",
         company_country: data.company_country || "USA",
         timezone: data.timezone || "America/New_York",
+        currency_code: data.currency_code || "USD",
+        locale: data.locale || "en-US",
         company_phone: data.company_phone || "",
         company_email: data.company_email || "",
         company_website: data.company_website || "",
@@ -129,6 +136,8 @@ const AdminSettings = () => {
         ),
       });
       setSettings(data);
+      // Push locale changes so all components reflect immediately without reload
+      updateLocaleSettings({ currency_code: data.currency_code, locale: data.locale });
       toast.success("Settings saved successfully!");
     } catch (error) {
       toast.error("Failed to save settings: " + error.message);
@@ -413,6 +422,51 @@ const AdminSettings = () => {
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
                 placeholder="https://yourcompany.com"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Regional Settings */}
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-white mb-1">
+            Regional Settings
+          </h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Controls how currency amounts and numbers are displayed across the entire application.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Currency
+              </label>
+              <select
+                name="currency_code"
+                value={form.currency_code}
+                onChange={handleChange}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+              >
+                {currencyOptions.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Number &amp; Date Format
+              </label>
+              <select
+                name="locale"
+                value={form.locale}
+                onChange={handleChange}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+              >
+                {localeOptions.map((l) => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Controls decimal separators, thousands separators, and date formats.
+              </p>
             </div>
           </div>
         </div>
