@@ -157,3 +157,4 @@ frontend/tests/sme/
 
 # PRO features (never in public core — lives in private repo only)
 backend/app/pro/
+.claude/dependabot-upgrade-plan.md

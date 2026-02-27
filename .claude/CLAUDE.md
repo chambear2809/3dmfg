@@ -1,44 +1,88 @@
-# FilaOps - Open Source Core (v3.0.0)
+# FilaOps Core — Open Source ERP (v3.2.x)
 
-## ⚠️ STOP - READ BEFORE ANY CHANGES
+## 🔴 SACRED RULE — READ FIRST, NEVER VIOLATE
 
-This is the **OPEN SOURCE Community edition**. It goes to GitHub.
+**"NO Core Changes from PRO. PRO Must Not Break Core."**
 
-### DO NOT Add Here
+This rule is absolute. It means:
+- Core must run perfectly with zero PRO code installed
+- No imports, references, or dependencies on `filaops-pro` anywhere in Core
+- No PRO-specific tables, columns, or migrations in Core
+- No conditional logic like `if pro_enabled:` in Core code
+- PRO extends Core via the `register()` pattern — Core never knows PRO exists
 
-- ❌ B2B Portal backend/endpoints
-- ❌ Price levels / Customer tiers
-- ❌ Catalog access control
-- ❌ Quote engine / Public quoter API
-- ❌ Integrations (QuickBooks, Shopify, marketplaces)
-- ❌ Any feature that requires subscription/payment
+The ONLY exception is if Brandan explicitly authorizes a specific change.
 
-**Those are PRO features → `C:\BLB3D_Production`**
+## Architecture: How Core and PRO Relate
 
-### DO Add Here
+```
+┌─────────────────────────────────┐
+│         FilaOps Core            │  ← This repo. Open source. Runs standalone.
+│   FastAPI + React + PostgreSQL  │
+└──────────────┬──────────────────┘
+               │ pip install filaops-pro
+               │ (optional, customer's choice)
+               ▼
+┌─────────────────────────────────┐
+│       filaops-pro package       │  ← Separate repo (filaops-ecosystem)
+│   register(app, license_key)    │
+│   Adds PRO routes to Core app   │
+└─────────────────────────────────┘
+```
 
-- ✅ Core ERP (inventory, MRP, production orders, sales orders)
-- ✅ BOM management
-- ✅ Traceability (lots, serials)
-- ✅ UOM system and cost calculations
-- ✅ Basic reporting
-- ✅ Bug fixes to existing Community features
+PRO is a pip-installable package that calls `register(app)` to inject routes into Core's FastAPI app at startup. If PRO is uninstalled, Core runs identically. This is the same pattern as Django's `INSTALLED_APPS` or Flask's `register_blueprint()`.
+
+### Extension Hook Guidance
+
+When adding new tables, APIs, or systems to Core:
+- **Design for extensibility**: PRO should be able to add related tables (FK references) without modifying Core tables
+- **Example**: Core's `tax_rates` table is self-contained. PRO can add a `tax_jurisdictions` table that references `tax_rates.id` — without altering Core's schema
+- **Never add columns "for PRO later"** — that violates the sacred rule
+
+## What IS Core (add here ✅)
+
+- Inventory management, MRP, production orders, sales/purchase orders
+- BOM management and cost calculations
+- Traceability (lots, serials)
+- UOM system (costs stored $/KG, inventory tracked in grams — see `backend/app/core/uom_config.py`)
+- Basic GL accounting (journal entries, chart of accounts, periods)
+- Internationalization: locale, currency formatting, multi-tax rates
+- Basic reporting and dashboards
+- User authentication and role-based access
+- MQTT printer integration
+- Bug fixes and improvements to any of the above
+
+## What is PRO (never add here ❌)
+
+- B2B Portal (customer-facing catalog, ordering, RFQ)
+- Quote engine / public quoter with 3D preview
+- Integrations: QuickBooks, Shopify, marketplace connectors
+- Advanced accounting: jurisdiction-based tax, compound tax, cross-currency GL, Schedule C
+- Catalog access control, price levels, customer tiers
+- AI agents (Cortex: Otto, Sam, Ada)
+- FilaFarm printer automation
+- License management
+- Any feature requiring a subscription/payment
 
 ## Repository Map
 
-| Repo | Purpose | Public? |
-|------|---------|---------|
-| `C:\repos\filaops` | **THIS REPO** - Open source core | ✅ GitHub |
-| `C:\repos\filaops-portal` | Portal frontend (Next.js) | ❌ Private |
-| `C:\BLB3D_Production` | PRO backend development | ❌ Private |
+| Repo | Purpose | Status |
+|------|---------|--------|
+| `C:\repos\filaops` | **THIS REPO** — Open source Core | ✅ Active, GitHub public |
+| `C:\repos\filaops-ecosystem` | PRO monorepo (filaops-pro, license-server, portal, quoter) | ✅ Active, private |
+| `C:\repos\FilaOpsPRO-BLB3D_Production` | Legacy PRO fork | ⚠️ Being consolidated into ecosystem |
+| `C:\BLB3D_Production` | Old production repo | 📦 Archived after extraction |
+
+**All new PRO work goes into `filaops-ecosystem`. No exceptions.**
 
 ## Tech Stack
 
-- Backend: FastAPI + SQLAlchemy + PostgreSQL
-- Frontend: React + Vite + Tailwind
+- **Backend**: FastAPI + SQLAlchemy + PostgreSQL + Alembic
+- **Frontend**: React 19 + Vite + Tailwind CSS
+- **Testing**: pytest (backend), Vitest (frontend)
 - See `.claude/skills/` for detailed patterns
 
-## ⚠️ Database Safety Rule - READ FIRST
+## ⚠️ Database Safety Rule
 
 **BEFORE any database operation (migrations, queries, schema changes):**
 
@@ -47,16 +91,14 @@ This is the **OPEN SOURCE Community edition**. It goes to GitHub.
 3. State explicitly: "Working against database `X`"
 4. If there's ANY mismatch, **STOP and clarify with Brandan**
 
-**Databases:**
-
 | Database | Purpose | Used By |
 |----------|---------|---------|
-| `filaops` | **Dev/open-source testing** | `C:\repos\filaops` (this repo) |
-| `filaops_prod` | Production + PRO dev | `C:\BLB3D_Production` |
+| `filaops` | Dev/open-source testing | This repo |
+| `filaops_prod` | Production + PRO dev | Legacy — being consolidated |
 | `filaops_test` | Automated tests | pytest |
-| `filaops_cortex` | Cortex agent memory | `C:\repos\filaops-cortex` |
+| `filaops_cortex` | Cortex agent memory | filaops-ecosystem/cortex |
 
-**This repo uses `filaops` - never run migrations against `filaops_prod` from here!**
+**This repo uses `filaops`. Never run migrations against `filaops_prod` from here.**
 
 ## UOM Safety
 
@@ -72,16 +114,21 @@ cd backend && .\venv\Scripts\Activate && uvicorn app.main:app --reload
 
 # Frontend
 cd frontend && npm run dev
+
+# Tests
+cd backend && python -m pytest tests/ -v --tb=short -x
+cd frontend && npx vitest run
 ```
 
-## v3.0.0 Changes
+## Testing Requirements
 
-This version represents the first clean Core/PRO separation:
-- Removed B2B Portal features
-- Removed Catalog/Price Levels
-- Removed Shopify integration
-- Removed Amazon import
-- Removed License management
-- Removed AI Invoice Parser
-- Removed PRO accounting features (Schedule C, entity members)
-- Kept: 37 Core features, MQTT, basic GL
+- All backend changes must have corresponding tests
+- Run `python -m pytest tests/ -x -q` before committing
+- Tests run against `filaops_test` database — NEVER against `filaops_prod`
+- See `.claude/skills/testing.md` for coverage analysis workflow
+
+## Git Workflow
+
+- Feature branches off `main`: `feature/description`, `fix/description`
+- PRs require passing CI before merge
+- Commit messages: `feat:`, `fix:`, `refactor:`, `test:`, `docs:` prefixes
