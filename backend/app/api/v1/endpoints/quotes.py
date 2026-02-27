@@ -47,6 +47,7 @@ class ManualQuoteCreate(BaseModel):
 
     # Tax (if not provided, will use company settings default)
     apply_tax: Optional[bool] = Field(None, description="Whether to apply tax (uses company settings if None)")
+    tax_rate_id: Optional[int] = Field(None, description="Specific TaxRate id to apply (overrides apply_tax lookup)")
 
     # Shipping
     shipping_cost: Optional[Decimal] = Field(None, ge=0, description="Shipping cost")

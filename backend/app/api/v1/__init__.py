@@ -28,6 +28,7 @@ from app.api.v1.endpoints import (
     settings,
     payments,
     printers,
+    tax_rates,
     system,
     spools,
     traceability,
@@ -176,6 +177,9 @@ router.include_router(
 
 # Company Settings
 router.include_router(settings.router)
+
+# Tax Rates (multi-rate i18n support)
+router.include_router(tax_rates.router)
 
 # Payments
 router.include_router(payments.router)

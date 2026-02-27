@@ -329,26 +329,26 @@ class TestGetCompanyTaxSettings:
     """Test company tax settings retrieval."""
 
     def test_returns_tax_when_enabled(self, db):
-        """Returns (rate, True) when tax is enabled."""
+        """Returns (rate, True, name) when tax is enabled (falls back to CompanySettings)."""
         _set_company_tax(db, tax_enabled=True, tax_rate=Decimal("0.0825"))
-        rate, is_taxable = sales_order_service.get_company_tax_settings(db)
+        rate, is_taxable, _name = sales_order_service.get_company_tax_settings(db)
         assert rate == Decimal("0.0825")
         assert is_taxable is True
 
     def test_returns_none_when_disabled(self, db):
-        """Returns (None, False) when tax is disabled."""
+        """Returns (None, False, None) when tax is disabled."""
         _set_company_tax(db, tax_enabled=False, tax_rate=Decimal("0.0825"))
-        rate, is_taxable = sales_order_service.get_company_tax_settings(db)
+        rate, is_taxable, _name = sales_order_service.get_company_tax_settings(db)
         assert rate is None
         assert is_taxable is False
 
     def test_returns_none_when_no_settings(self, db):
-        """Returns (None, False) when no company settings exist."""
+        """Returns (None, False, None) when no company settings exist."""
         # Delete any existing settings
         db.query(CompanySettings).filter(CompanySettings.id == 1).delete()
         db.flush()
 
-        rate, is_taxable = sales_order_service.get_company_tax_settings(db)
+        rate, is_taxable, _name = sales_order_service.get_company_tax_settings(db)
         assert rate is None
         assert is_taxable is False
 

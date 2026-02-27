@@ -149,15 +149,35 @@ def create_quote(db: Session, request, user_id: int) -> Quote:
     if apply_tax is None and company_settings:
         apply_tax = company_settings.tax_enabled
 
-    # Calculate tax
+    # Calculate tax — three-tier resolution:
+    #   1. Specific tax_rate_id → use that TaxRate
+    #   2. apply_tax=True → default TaxRate from tax_rates table
+    #   3. Fall back to CompanySettings.tax_rate (legacy single-rate)
+    from app.services.tax_rate_service import get_tax_rate as _get_tr, get_default_tax_rate
     tax_rate = None
     tax_amount = None
+    tax_name = None
     total_price = subtotal
 
-    if apply_tax and company_settings and company_settings.tax_rate:
-        tax_rate = company_settings.tax_rate
+    tax_rate_id = getattr(request, "tax_rate_id", None)
+    if tax_rate_id:
+        tr = _get_tr(db, tax_rate_id)
+        tax_rate = tr.rate
+        tax_name = tr.name
         tax_amount = subtotal * tax_rate
         total_price = subtotal + tax_amount
+    elif apply_tax:
+        default_tr = get_default_tax_rate(db)
+        if default_tr:
+            tax_rate = default_tr.rate
+            tax_name = default_tr.name
+            tax_amount = subtotal * tax_rate
+            total_price = subtotal + tax_amount
+        elif company_settings and company_settings.tax_rate:
+            tax_rate = company_settings.tax_rate
+            tax_name = company_settings.tax_name
+            tax_amount = subtotal * tax_rate
+            total_price = subtotal + tax_amount
 
     # Add shipping cost
     shipping_cost = request.shipping_cost or Decimal("0")
@@ -199,6 +219,7 @@ def create_quote(db: Session, request, user_id: int) -> Quote:
         subtotal=subtotal,
         tax_rate=tax_rate,
         tax_amount=tax_amount,
+        tax_name=tax_name,
         shipping_cost=shipping_cost if shipping_cost > 0 else None,
         total_price=total_price,
         material_type=effective_material_type,

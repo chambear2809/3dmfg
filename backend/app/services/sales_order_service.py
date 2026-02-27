@@ -462,17 +462,26 @@ def validate_product_for_order(db: Session, product_id: int) -> Product:
     return product
 
 
-def get_company_tax_settings(db: Session) -> tuple[Optional[Decimal], bool]:
+def get_company_tax_settings(db: Session) -> tuple[Optional[Decimal], bool, Optional[str]]:
     """
     Get company tax settings.
 
+    Resolution order:
+      1. Default TaxRate from tax_rates table (new multi-rate system)
+      2. CompanySettings.tax_rate (legacy single-rate fallback)
+
     Returns:
-        (tax_rate, is_taxable) tuple
+        (tax_rate, is_taxable, tax_name) tuple
     """
+    from app.services.tax_rate_service import get_default_tax_rate
+    default_tr = get_default_tax_rate(db)
+    if default_tr:
+        return default_tr.rate, True, default_tr.name
+
     company_settings = db.query(CompanySettings).filter(CompanySettings.id == 1).first()
     if company_settings and company_settings.tax_enabled and company_settings.tax_rate:
-        return Decimal(str(company_settings.tax_rate)), True
-    return None, False
+        return Decimal(str(company_settings.tax_rate)), True, company_settings.tax_name
+    return None, False, None
 
 
 def create_sales_order(
@@ -551,7 +560,7 @@ def create_sales_order(
     order_number = generate_order_number(db)
 
     # Calculate tax
-    tax_rate, is_taxable = get_company_tax_settings(db)
+    tax_rate, is_taxable, tax_name = get_company_tax_settings(db)
     tax_amount = Decimal("0")
     if tax_rate:
         tax_amount = (total_price * tax_rate).quantize(Decimal("0.01"))
@@ -594,6 +603,7 @@ def create_sales_order(
         total_price=total_price,
         tax_amount=tax_amount,
         tax_rate=tax_rate,
+        tax_name=tax_name,
         is_taxable=is_taxable,
         shipping_cost=shipping_cost,
         grand_total=grand_total,

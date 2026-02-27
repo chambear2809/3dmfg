@@ -52,6 +52,11 @@ def setup_database():
             "ALTER TABLE inventory_transactions "
             "ADD COLUMN IF NOT EXISTS reason_code VARCHAR(50)"
         ))
+        # i18n / multi-tax additions (migration 062, 063)
+        conn.execute(text("ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS locale VARCHAR(20)"))
+        conn.execute(text("ALTER TABLE quotes ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
+        conn.execute(text("ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
+        conn.execute(text("ALTER TABLE sales_order_lines ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
         conn.commit()
 
     # Seed required data

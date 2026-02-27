@@ -50,6 +50,7 @@ class SalesOrder(Base):
     total_price = Column(Numeric(10, 2), nullable=False)
     tax_amount = Column(Numeric(10, 2), nullable=True, default=0.00)
     tax_rate = Column(Numeric(5, 4), nullable=True)  # Tax rate at time of order (e.g., 0.0825)
+    tax_name = Column(String(100), nullable=True)  # human-readable snapshot, e.g. "GST 5%"
     is_taxable = Column(Boolean, nullable=True, default=True)  # Whether tax applies
     shipping_cost = Column(Numeric(10, 2), nullable=True, default=0.00)
     grand_total = Column(Numeric(10, 2), nullable=False)  # total + tax + shipping
@@ -191,6 +192,7 @@ class SalesOrderLine(Base):
     unit_price = Column(Numeric(10, 2), nullable=False)
     discount = Column(Numeric(10, 2), nullable=True, default=0)
     tax_rate = Column(Numeric(5, 2), nullable=True, default=0)
+    tax_name = Column(String(100), nullable=True)  # human-readable snapshot
     total = Column(Numeric(10, 2), nullable=False)  # quantity * unit_price - discount + tax
     allocated_quantity = Column(Numeric(10, 2), nullable=True, default=0)
     shipped_quantity = Column(Numeric(10, 2), nullable=True, default=0)

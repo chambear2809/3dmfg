@@ -45,6 +45,7 @@ class Quote(Base):
     subtotal = Column(Numeric(10, 2), nullable=True)  # unit_price * quantity
     tax_rate = Column(Numeric(5, 4), nullable=True)  # e.g., 0.0825 for 8.25%
     tax_amount = Column(Numeric(10, 2), nullable=True)  # calculated tax
+    tax_name = Column(String(100), nullable=True)  # human-readable snapshot, e.g. "GST 5%"
     total_price = Column(Numeric(10, 2), nullable=False)  # subtotal + tax (or just subtotal if no tax)
     margin_percent = Column(Numeric(5, 2), nullable=True)
 
