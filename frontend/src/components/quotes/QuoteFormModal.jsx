@@ -15,6 +15,7 @@ export default function QuoteFormModal({ quote, onSave, onClose }) {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
+  const [taxRates, setTaxRates] = useState([]);
   const [productSearch, setProductSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +33,7 @@ export default function QuoteFormModal({ quote, onSave, onClose }) {
     customer_notes: quote?.customer_notes || "",
     admin_notes: quote?.admin_notes || "",
     apply_tax: quote?.tax_rate ? true : null, // null = use company default
+    tax_rate_id: null,
     shipping_cost: quote?.shipping_cost || "",
     valid_days: 30,
   });
@@ -43,6 +45,7 @@ export default function QuoteFormModal({ quote, onSave, onClose }) {
     fetchProducts();
     fetchCustomers();
     fetchCompanySettings();
+    fetchTaxRates();
   }, []);
 
   const fetchProducts = async () => {
@@ -90,6 +93,15 @@ export default function QuoteFormModal({ quote, onSave, onClose }) {
       }
     } catch {
       // Company settings fetch failure is non-critical
+    }
+  };
+
+  const fetchTaxRates = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/tax-rates`, { credentials: "include" });
+      if (res.ok) setTaxRates(await res.json());
+    } catch {
+      // Non-critical — falls back to legacy apply_tax checkbox
     }
   };
 
@@ -444,7 +456,29 @@ export default function QuoteFormModal({ quote, onSave, onClose }) {
 
               {/* Tax & Shipping */}
               <div className="border-t border-gray-700 pt-4 space-y-4">
-                {companySettings?.tax_enabled && (
+                {taxRates.length >= 2 ? (
+                  /* Multi-rate: show dropdown */
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Tax Rate</label>
+                    <select
+                      value={form.tax_rate_id || ""}
+                      onChange={(e) => setForm((f) => ({
+                        ...f,
+                        tax_rate_id: e.target.value ? parseInt(e.target.value) : null,
+                        apply_tax: !!e.target.value,
+                      }))}
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-white"
+                    >
+                      <option value="">No tax</option>
+                      {taxRates.map((tr) => (
+                        <option key={tr.id} value={tr.id}>
+                          {tr.name} ({tr.rate_percent.toFixed(2)}%){tr.is_default ? " ★" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : companySettings?.tax_enabled && (
+                  /* Single rate: legacy checkbox */
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"

@@ -13,6 +13,9 @@ const AdminSettings = () => {
   const api = useApi();
   const toast = useToast();
   const { updateLocaleSettings } = useLocale();
+  const [taxRates, setTaxRates] = useState([]);
+  const [newTaxRate, setNewTaxRate] = useState({ name: "", rate_percent: "", is_default: false });
+  const [savingTaxRate, setSavingTaxRate] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -58,6 +61,7 @@ const AdminSettings = () => {
   useEffect(() => {
     fetchSettings();
     fetchCurrentVersion();
+    fetchTaxRates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -145,6 +149,56 @@ const AdminSettings = () => {
       setSaving(false);
     }
   };
+
+  // --------------- Tax Rate CRUD ---------------
+
+  const fetchTaxRates = async () => {
+    try {
+      const data = await api.get("/api/v1/tax-rates");
+      setTaxRates(data);
+    } catch { /* non-critical */ }
+  };
+
+  const handleAddTaxRate = async (e) => {
+    e.preventDefault();
+    if (!newTaxRate.name || !newTaxRate.rate_percent) return;
+    setSavingTaxRate(true);
+    try {
+      await api.post("/api/v1/tax-rates", {
+        name: newTaxRate.name,
+        rate_percent: parseFloat(newTaxRate.rate_percent),
+        is_default: newTaxRate.is_default,
+      });
+      setNewTaxRate({ name: "", rate_percent: "", is_default: false });
+      await fetchTaxRates();
+      toast.success("Tax rate added");
+    } catch (err) {
+      toast.error("Failed to add tax rate: " + err.message);
+    } finally {
+      setSavingTaxRate(false);
+    }
+  };
+
+  const handleSetDefault = async (id) => {
+    try {
+      await api.patch(`/api/v1/tax-rates/${id}`, { is_default: true });
+      await fetchTaxRates();
+    } catch (err) {
+      toast.error("Failed to update: " + err.message);
+    }
+  };
+
+  const handleDeleteTaxRate = async (id) => {
+    try {
+      await api.delete(`/api/v1/tax-rates/${id}`);
+      await fetchTaxRates();
+      toast.success("Tax rate deactivated");
+    } catch (err) {
+      toast.error("Failed to deactivate: " + err.message);
+    }
+  };
+
+  // --------------- Logo ---------------
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
@@ -543,6 +597,93 @@ const AdminSettings = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Tax Rate Management */}
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-white mb-1">Tax Rates</h2>
+          <p className="text-sm text-gray-400 mb-4">
+            Named tax rates (GST, QST, VAT). When 2+ rates exist, quotes show a dropdown selector.
+          </p>
+
+          {/* Existing rates */}
+          {taxRates.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {taxRates.map((tr) => (
+                <div key={tr.id} className="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-white font-medium">{tr.name}</span>
+                    <span className="text-gray-300 text-sm">{tr.rate_percent.toFixed(2)}%</span>
+                    {tr.is_default && (
+                      <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Default</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {!tr.is_default && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetDefault(tr.id)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        Set default
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTaxRate(tr.id)}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add rate form */}
+          <form onSubmit={handleAddTaxRate} className="flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Name</label>
+              <input
+                type="text"
+                value={newTaxRate.name}
+                onChange={(e) => setNewTaxRate((r) => ({ ...r, name: e.target.value }))}
+                placeholder="e.g. GST"
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm w-36"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Rate (%)</label>
+              <input
+                type="number"
+                step="0.001"
+                min="0"
+                max="100"
+                value={newTaxRate.rate_percent}
+                onChange={(e) => setNewTaxRate((r) => ({ ...r, rate_percent: e.target.value }))}
+                placeholder="5.0"
+                className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm w-24"
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-2">
+              <input
+                type="checkbox"
+                id="new_tr_default"
+                checked={newTaxRate.is_default}
+                onChange={(e) => setNewTaxRate((r) => ({ ...r, is_default: e.target.checked }))}
+                className="w-4 h-4"
+              />
+              <label htmlFor="new_tr_default" className="text-sm text-gray-300">Default</label>
+            </div>
+            <button
+              type="submit"
+              disabled={savingTaxRate}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50"
+            >
+              {savingTaxRate ? "Adding…" : "Add Rate"}
+            </button>
+          </form>
         </div>
 
         {/* Quote Settings */}
