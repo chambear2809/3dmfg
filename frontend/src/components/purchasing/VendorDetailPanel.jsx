@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { API_URL } from "../../config/api";
 
 import { statusColors } from "./constants";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function VendorDetailPanel({
   vendor,
@@ -19,6 +20,7 @@ export default function VendorDetailPanel({
   onCreatePO,
   onViewPO,
 }) {
+  const formatCurrency = useFormatCurrency();
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +110,7 @@ export default function VendorDetailPanel({
             </div>
             <div className="bg-gray-800/50 rounded-lg p-4">
               <div className="text-2xl font-bold text-green-400">
-                {loading ? "..." : `$${(metrics?.total_spend || 0).toLocaleString()}`}
+                {loading ? "..." : formatCurrency(metrics?.total_spend || 0)}
               </div>
               <div className="text-sm text-gray-400">Total Spend</div>
             </div>
@@ -250,7 +252,7 @@ export default function VendorDetailPanel({
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-gray-300">
-                        ${po.total_amount.toLocaleString()}
+                        {formatCurrency(po.total_amount)}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs ${statusColors[po.status]}`}>
                         {po.status}

@@ -5,6 +5,7 @@ import Modal from "../Modal";
 import POActivityTimeline from "../POActivityTimeline";
 import DocumentUploadPanel from "./DocumentUploadPanel";
 import { statusColors } from "./constants";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function PODetailModal({
   po,
@@ -13,6 +14,7 @@ export default function PODetailModal({
   onEdit,
   onReceive,
 }) {
+  const formatCurrency = useFormatCurrency();
 
   return (
     <Modal isOpen={true} onClose={onClose} title={`Purchase Order ${po.po_number}`} className="max-w-3xl w-full mx-auto p-6 max-h-[90vh] overflow-y-auto">
@@ -155,10 +157,10 @@ export default function PODetailModal({
                         </span>
                       </td>
                       <td className="py-2 px-3 text-right text-gray-400">
-                        ${parseFloat(line.unit_cost).toFixed(2)}
+                        {formatCurrency(parseFloat(line.unit_cost))}
                       </td>
                       <td className="py-2 px-3 text-right text-white">
-                        ${parseFloat(line.line_total).toFixed(2)}
+                        {formatCurrency(parseFloat(line.line_total))}
                       </td>
                     </tr>
                   ))}
@@ -170,16 +172,16 @@ export default function PODetailModal({
           {/* Totals */}
           <div className="text-right text-sm mb-6">
             <div className="text-gray-400">
-              Subtotal: ${parseFloat(po.subtotal || 0).toFixed(2)}
+              Subtotal: {formatCurrency(parseFloat(po.subtotal || 0))}
             </div>
             <div className="text-gray-400">
-              Tax: ${parseFloat(po.tax_amount || 0).toFixed(2)}
+              Tax: {formatCurrency(parseFloat(po.tax_amount || 0))}
             </div>
             <div className="text-gray-400">
-              Shipping: ${parseFloat(po.shipping_cost || 0).toFixed(2)}
+              Shipping: {formatCurrency(parseFloat(po.shipping_cost || 0))}
             </div>
             <div className="text-lg font-semibold text-white mt-1">
-              Total: ${parseFloat(po.total_amount || 0).toFixed(2)}
+              Total: {formatCurrency(parseFloat(po.total_amount || 0))}
             </div>
           </div>
 

@@ -1,4 +1,8 @@
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 export default function BOMCostRollupCard({ costRollup }) {
+  const formatCurrency = useFormatCurrency();
+
   if (!costRollup || !costRollup.has_sub_assemblies) return null;
 
   return (
@@ -30,19 +34,19 @@ export default function BOMCostRollupCard({ costRollup }) {
         <div>
           <span className="text-gray-400">Direct Cost:</span>
           <span className="text-white ml-2">
-            ${parseFloat(costRollup.direct_cost || 0).toFixed(2)}
+            {formatCurrency(parseFloat(costRollup.direct_cost || 0))}
           </span>
         </div>
         <div>
           <span className="text-gray-400">Sub-Assembly Cost:</span>
           <span className="text-purple-400 ml-2">
-            ${parseFloat(costRollup.sub_assembly_cost || 0).toFixed(2)}
+            {formatCurrency(parseFloat(costRollup.sub_assembly_cost || 0))}
           </span>
         </div>
         <div>
           <span className="text-gray-400">Rolled-Up Total:</span>
           <span className="text-green-400 ml-2 font-semibold">
-            ${parseFloat(costRollup.rolled_up_cost || 0).toFixed(2)}
+            {formatCurrency(parseFloat(costRollup.rolled_up_cost || 0))}
           </span>
         </div>
       </div>

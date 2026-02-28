@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API_URL } from "../../config/api";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 // Production Order Modal - creates a production order from a BOM
 export default function CreateProductionOrderModal({
@@ -8,6 +9,8 @@ export default function CreateProductionOrderModal({
   onClose,
   onSuccess,
 }) {
+  const formatCurrency = useFormatCurrency();
+
   // Calculate max producible based on inventory
   const calculateMaxProducible = () => {
     if (!bom.lines || bom.lines.length === 0) return Infinity;
@@ -192,7 +195,7 @@ export default function CreateProductionOrderModal({
         <div>
           <span className="text-gray-400">Unit Cost:</span>
           <span className="text-green-400 ml-2">
-            ${parseFloat(bom.total_cost || 0).toFixed(2)}
+            {formatCurrency(parseFloat(bom.total_cost || 0))}
           </span>
         </div>
       </div>
@@ -307,11 +310,10 @@ export default function CreateProductionOrderModal({
         <div className="flex justify-between text-sm">
           <span className="text-gray-400">Estimated Total Cost:</span>
           <span className="text-green-400 font-medium">
-            $
-            {(
+            {formatCurrency(
               parseFloat(bom.total_cost || 0) *
               (createBackorder && !canFulfillAll ? maxProducible : quantity)
-            ).toFixed(2)}
+            )}
           </span>
         </div>
         {createBackorder && !canFulfillAll && (
@@ -320,7 +322,7 @@ export default function CreateProductionOrderModal({
               Backorder ({backorderQty} units):
             </span>
             <span className="text-gray-400">
-              ${(parseFloat(bom.total_cost || 0) * backorderQty).toFixed(2)}{" "}
+              {formatCurrency(parseFloat(bom.total_cost || 0) * backorderQty)}{" "}
               (pending)
             </span>
           </div>

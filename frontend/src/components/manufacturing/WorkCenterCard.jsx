@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { API_URL } from "../../config/api";
 import { useToast } from "../Toast";
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 import {
   getTypeColor,
   getStatusColor,
@@ -21,6 +22,7 @@ export default function WorkCenterCard({
   onDeleteResource,
 }) {
   const toast = useToast();
+  const formatCurrency = useFormatCurrency();
   const [expanded, setExpanded] = useState(false);
   const [resources, setResources] = useState([]);
   const [printers, setPrinters] = useState([]);
@@ -194,8 +196,7 @@ export default function WorkCenterCard({
                 Capacity: {workCenter.capacity_hours_per_day || "-"} hrs/day
               </span>
               <span>
-                Rate: $
-                {parseFloat(workCenter.total_rate_per_hour || 0).toFixed(2)}/hr
+                Rate: {formatCurrency(parseFloat(workCenter.total_rate_per_hour || 0))}/hr
               </span>
               <span>Resources: {workCenter.resource_count || 0}</span>
             </div>

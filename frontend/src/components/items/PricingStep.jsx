@@ -14,6 +14,8 @@
  * - onItemChange: (updatedItem) => void
  * - onTargetMarginChange: (margin) => void
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 export default function PricingStep({
   item,
   calculatedCost,
@@ -24,21 +26,23 @@ export default function PricingStep({
   onItemChange,
   onTargetMarginChange,
 }) {
+  const formatCurrency = useFormatCurrency();
+
   return (
     <div className="space-y-6">
       {/* Cost Summary */}
       <div className="bg-gray-800/50 rounded-lg border border-gray-700 p-4 space-y-3">
         <div className="flex justify-between">
           <span className="text-gray-400">Material Cost</span>
-          <span className="text-white">${calculatedCost.toFixed(2)}</span>
+          <span className="text-white">{formatCurrency(calculatedCost)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Labor Cost</span>
-          <span className="text-white">${laborCost.toFixed(2)}</span>
+          <span className="text-white">{formatCurrency(laborCost)}</span>
         </div>
         <div className="flex justify-between border-t border-gray-700 pt-3">
           <span className="text-white font-medium">Total Cost</span>
-          <span className="text-green-400 font-bold">${totalCost.toFixed(2)}</span>
+          <span className="text-green-400 font-bold">{formatCurrency(totalCost)}</span>
         </div>
       </div>
 
@@ -86,7 +90,7 @@ export default function PricingStep({
               onClick={() => onItemChange({ ...item, selling_price: suggestedPrice })}
               className="px-3 py-2 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg text-sm hover:bg-green-600/30"
             >
-              ${suggestedPrice.toFixed(2)}
+              {formatCurrency(suggestedPrice)}
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">Click suggested price to apply</p>
@@ -103,7 +107,7 @@ export default function PricingStep({
           </div>
           <div className="flex justify-between items-center mt-1">
             <span className="text-blue-400">Profit per Unit</span>
-            <span className="text-green-400 font-bold">${(item.selling_price - totalCost).toFixed(2)}</span>
+            <span className="text-green-400 font-bold">{formatCurrency(item.selling_price - totalCost)}</span>
           </div>
         </div>
       )}

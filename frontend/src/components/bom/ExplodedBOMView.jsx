@@ -2,7 +2,10 @@
  * ExplodedBOMView - Displays flattened BOM with all sub-assembly components.
  * Shows summary stats, hierarchical table with level indentation, and stock status.
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 export default function ExplodedBOMView({ explodedData, onClose }) {
+  const formatCurrency = useFormatCurrency();
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
@@ -51,7 +54,7 @@ export default function ExplodedBOMView({ explodedData, onClose }) {
         </div>
         <div className="bg-gray-800 rounded-lg p-3 text-center">
           <div className="text-2xl font-bold text-green-400">
-            ${parseFloat(explodedData.total_cost || 0).toFixed(2)}
+            {formatCurrency(parseFloat(explodedData.total_cost || 0))}
           </div>
           <div className="text-xs text-gray-400">Total Cost</div>
         </div>
@@ -134,10 +137,10 @@ export default function ExplodedBOMView({ explodedData, onClose }) {
                   {parseFloat(line.extended_quantity || 0).toFixed(2)}
                 </td>
                 <td className="py-2 px-3 text-gray-400">
-                  ${parseFloat(line.unit_cost || 0).toFixed(2)}
+                  {formatCurrency(parseFloat(line.unit_cost || 0))}
                 </td>
                 <td className="py-2 px-3 text-green-400">
-                  ${parseFloat(line.line_cost || 0).toFixed(2)}
+                  {formatCurrency(parseFloat(line.line_cost || 0))}
                 </td>
                 <td className="py-2 px-3">
                   {line.inventory_available >= line.extended_quantity ? (

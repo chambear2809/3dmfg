@@ -3,6 +3,7 @@
  *
  * Extracted from OrderDetail.jsx (ARCHITECT-002)
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
 
 export default function PaymentsSection({
   payments,
@@ -10,6 +11,8 @@ export default function PaymentsSection({
   onRecordPayment,
   onRefund,
 }) {
+  const formatCurrency = useFormatCurrency();
+
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
       <div className="flex justify-between items-center mb-4">
@@ -51,20 +54,20 @@ export default function PaymentsSection({
           <div>
             <div className="text-sm text-gray-400">Order Total</div>
             <div className="text-white font-medium">
-              ${parseFloat(paymentSummary.order_total || 0).toFixed(2)}
+              {formatCurrency(parseFloat(paymentSummary.order_total || 0))}
             </div>
           </div>
           <div>
             <div className="text-sm text-gray-400">Paid</div>
             <div className="text-green-400 font-medium">
-              ${parseFloat(paymentSummary.total_paid || 0).toFixed(2)}
+              {formatCurrency(parseFloat(paymentSummary.total_paid || 0))}
             </div>
           </div>
           {paymentSummary.total_refunded > 0 && (
             <div>
               <div className="text-sm text-gray-400">Refunded</div>
               <div className="text-red-400 font-medium">
-                ${parseFloat(paymentSummary.total_refunded || 0).toFixed(2)}
+                {formatCurrency(parseFloat(paymentSummary.total_refunded || 0))}
               </div>
             </div>
           )}
@@ -77,7 +80,7 @@ export default function PaymentsSection({
                   : "text-green-400"
               }`}
             >
-              ${parseFloat(paymentSummary.balance_due || 0).toFixed(2)}
+              {formatCurrency(parseFloat(paymentSummary.balance_due || 0))}
             </div>
           </div>
         </div>
@@ -144,7 +147,7 @@ export default function PaymentsSection({
                     payment.amount < 0 ? "text-red-400" : "text-green-400"
                   }`}
                 >
-                  ${Math.abs(parseFloat(payment.amount)).toFixed(2)}
+                  {formatCurrency(Math.abs(parseFloat(payment.amount)))}
                 </div>
                 <div className="text-xs text-gray-500">
                   {new Date(payment.payment_date).toLocaleDateString()}

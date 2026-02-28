@@ -1,6 +1,8 @@
 /**
  * ItemsTable - Table view for items with sorting, inline editing, bulk selection, and pagination.
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 // Item type options (for display labels)
 const ITEM_TYPES = [
   { value: "finished_good", label: "Finished Good", color: "blue" },
@@ -70,6 +72,8 @@ export default function ItemsTable({
   onEditItem,
   onEditRouting,
 }) {
+  const formatCurrency = useFormatCurrency();
+
   return (
     <div className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden transition-opacity ${loading ? 'opacity-60' : ''}`}>
       <table className="w-full">
@@ -198,13 +202,13 @@ export default function ItemsTable({
                 {item.standard_cost ? (
                   item.material_type_id ? (
                     <div className="flex flex-col items-end">
-                      <span>${parseFloat(item.standard_cost).toFixed(2)}/KG</span>
+                      <span>{formatCurrency(parseFloat(item.standard_cost))}/KG</span>
                       <span className="text-xs text-gray-500">
-                        ${(parseFloat(item.standard_cost) / 1000).toFixed(4)}/g
+                        {formatCurrency(parseFloat(item.standard_cost) / 1000)}/g
                       </span>
                     </div>
                   ) : (
-                    `$${parseFloat(item.standard_cost).toFixed(2)}`
+                    formatCurrency(parseFloat(item.standard_cost))
                   )
                 ) : (
                   "-"
@@ -214,7 +218,7 @@ export default function ItemsTable({
                 {item.material_type_id || item.item_type === "supply"
                   ? "-"
                   : item.selling_price
-                  ? `$${parseFloat(item.selling_price).toFixed(2)}`
+                  ? formatCurrency(parseFloat(item.selling_price))
                   : "-"}
               </td>
               {/* On Hand - Inline Editable */}

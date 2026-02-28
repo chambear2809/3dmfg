@@ -2,6 +2,8 @@
  * BOMLinesList - Displays BOM component lines with inline editing.
  * Shows component name, quantity, unit cost, line cost, and edit/delete actions.
  */
+import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+
 export default function BOMLinesList({
   lines,
   editingLine,
@@ -10,6 +12,8 @@ export default function BOMLinesList({
   onUpdateLine,
   onDeleteLine,
 }) {
+  const formatCurrency = useFormatCurrency();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -102,7 +106,7 @@ export default function BOMLinesList({
                 )}
               </td>
               <td className="py-2 px-3 text-gray-400">
-                ${parseFloat(line.component_cost || 0).toFixed(2)}/
+                {formatCurrency(parseFloat(line.component_cost || 0))}/
                 {(() => {
                   const isMaterial =
                     line.is_material ||
@@ -118,7 +122,7 @@ export default function BOMLinesList({
                 })()}
               </td>
               <td className="py-2 px-3 text-green-400 font-medium">
-                ${parseFloat(line.line_cost || 0).toFixed(2)}
+                {formatCurrency(parseFloat(line.line_cost || 0))}
               </td>
               <td className="py-2 px-3 text-right">
                 <button
