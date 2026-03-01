@@ -30,13 +30,13 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
 
     # Bridge: set the generic plugin env var so Core's load_plugin finds it
     if python -c "import filaops_pro" 2>/dev/null; then
-        export FILAOPS_PRO_MODULE=filaops_pro
+        FILAOPS_PRO_MODULE=filaops_pro
     fi
 fi
 
 # ─── Run Command ───
 if [ $# -gt 0 ]; then
-    exec "$@"
+    exec env FILAOPS_PRO_MODULE="$FILAOPS_PRO_MODULE" "$@"
 else
-    exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+    exec env FILAOPS_PRO_MODULE="$FILAOPS_PRO_MODULE" uvicorn app.main:app --host 0.0.0.0 --port 8000
 fi
