@@ -1,31 +1,9 @@
 #!/bin/bash
 # docker-migrate.sh — Safe migration wrapper for Docker containers.
-# Detects stale migration state and gives clear recovery instructions
-# instead of a cryptic Python traceback.
+# PRO plugin is already installed by the entrypoint before this runs.
 
 set -e
 
-# ─── PRO Plugin Auto-Download (same logic as entrypoint) ───
-# Migrate service needs the plugin installed to run PRO migrations.
-if [ -n "$FILAOPS_LICENSE_KEY" ]; then
-    if ! python -c "import filaops_pro" 2>/dev/null; then
-        echo "FilaOps: License key detected. Downloading PRO plugin..."
-        LICENSE_URL="${LICENSE_SERVER_URL:-https://license.blb3dprinting.com}"
-        WHEEL_PATH="/tmp/filaops_pro.whl"
-
-        if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
-            "$LICENSE_URL/api/v1/download/filaops-pro" \
-            -o "$WHEEL_PATH"; then
-            pip install --no-cache-dir "$WHEEL_PATH" 2>&1 | tail -1
-            rm -f "$WHEEL_PATH"
-            echo "FilaOps: PRO plugin installed."
-        else
-            echo "FilaOps: Could not download PRO plugin. Skipping PRO migrations."
-        fi
-    fi
-fi
-
-# ─── Core Migrations ───
 echo "FilaOps: Running database migrations..."
 
 # Check if alembic can find the current DB revision.
@@ -52,12 +30,10 @@ if echo "$CURRENT_OUTPUT" | grep -q "Can't locate revision"; then
     exit 1
 fi
 
-# Normal migration — apply any pending Core migrations
+# Core migrations
 alembic upgrade head
 
-# ─── PRO Plugin Migrations ───
-# Each plugin uses a separate version table (e.g. alembic_version_pro)
-# so plugin and Core migration chains never interfere.
+# PRO plugin migrations (if installed by entrypoint)
 if python -c "import filaops_pro" 2>/dev/null; then
     PRO_INI=$(python -c "import filaops_pro, os; print(os.path.join(os.path.dirname(filaops_pro.__file__), 'alembic.ini'))")
     if [ -f "$PRO_INI" ]; then

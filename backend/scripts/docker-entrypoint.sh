@@ -1,10 +1,10 @@
 #!/bin/bash
 # docker-entrypoint.sh — Container startup script.
-# Handles PRO plugin auto-download and starts the application.
+# Handles PRO plugin auto-download, then runs the given command.
 #
-# Flow:
-#   1. If FILAOPS_LICENSE_KEY is set and filaops-pro not installed → download + install
-#   2. Drop to non-root user and start uvicorn
+# Used by both the backend and migrate services:
+#   backend:  entrypoint runs → downloads PRO → starts uvicorn
+#   migrate:  entrypoint runs → downloads PRO → runs migration script
 #
 # This runs at container START (every time), not at build time.
 # No Docker rebuild needed to add or remove PRO.
@@ -12,8 +12,6 @@
 set -e
 
 # ─── PRO Plugin Auto-Download ───
-# If a license key is set, ensure filaops-pro is installed.
-# Downloads from the license server using the key for auth.
 if [ -n "$FILAOPS_LICENSE_KEY" ]; then
     if ! python -c "import filaops_pro" 2>/dev/null; then
         echo "FilaOps: License key detected. Downloading PRO plugin..."
@@ -33,6 +31,11 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
     fi
 fi
 
-# ─── Start Application ───
-# Drop to non-root user for the application process
-exec su -s /bin/bash appuser -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+# ─── Run Command ───
+# If arguments were passed (e.g. from docker-compose command:), run them.
+# Otherwise start the default uvicorn server as non-root.
+if [ $# -gt 0 ]; then
+    exec "$@"
+else
+    exec su -s /bin/bash appuser -c "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+fi
