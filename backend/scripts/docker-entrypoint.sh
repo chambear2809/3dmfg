@@ -38,5 +38,5 @@ fi
 if [ $# -gt 0 ]; then
     exec "$@"
 else
-    exec su -s /bin/bash appuser -c "FILAOPS_PRO_MODULE=$FILAOPS_PRO_MODULE FILAOPS_LICENSE_KEY=$FILAOPS_LICENSE_KEY uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    exec uvicorn app.main:app --host 0.0.0.0 --port 8000
 fi
