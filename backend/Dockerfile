@@ -21,6 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Optional: install plugin wheels if present (e.g. filaops-pro)
+# Drop .whl files into backend/ before building — they're installed
+# here and ignored if none exist. Core works identically without them.
+RUN if ls /app/*.whl 1>/dev/null 2>&1; then \
+        pip install --no-cache-dir /app/*.whl && rm -f /app/*.whl; \
+    fi
+
 # Create directories and non-root user
 # sed strips Windows CRLF line endings that break shebangs on Linux
 RUN mkdir -p /app/uploads /app/logs /app/static/uploads/products \

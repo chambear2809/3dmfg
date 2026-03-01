@@ -36,4 +36,16 @@ fi
 # Normal migration — apply any pending migrations
 alembic upgrade head
 
+# Plugin migrations — run if a plugin with its own Alembic config is installed.
+# Each plugin uses a separate version table (e.g. alembic_version_pro) so
+# plugin and Core migration chains never interfere.
+if python -c "import filaops_pro" 2>/dev/null; then
+    PRO_INI=$(python -c "import filaops_pro, os; print(os.path.join(os.path.dirname(filaops_pro.__file__), 'alembic.ini'))")
+    if [ -f "$PRO_INI" ]; then
+        echo "FilaOps: Running PRO plugin migrations..."
+        alembic -c "$PRO_INI" upgrade head
+        echo "FilaOps: PRO migrations complete."
+    fi
+fi
+
 echo "FilaOps: Migrations complete."
