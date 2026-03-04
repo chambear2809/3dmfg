@@ -1,0 +1,39 @@
+#!/bin/bash
+# T-REX Pre-Commit Hook — The Mechanical Wall
+# Installed by T-REX into target repositories
+# This is Law One at the OS level. No behavioral compliance needed.
+
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+if [ -z "$BRANCH" ]; then
+  echo "🦖 T-REX: WARNING — Detached HEAD state. Proceeding with caution."
+  exit 0
+fi
+
+PROTECTED_BRANCHES="main master production release"
+
+for PROTECTED in $PROTECTED_BRANCHES; do
+  if [ "$BRANCH" = "$PROTECTED" ]; then
+    echo ""
+    echo "🦖 ============================================"
+    echo "🦖  T-REX: LAW ONE VIOLATION"
+    echo "🦖  Attempted commit directly to '$BRANCH'"
+    echo "🦖 ============================================"
+    echo "🦖"
+    echo "🦖  This branch is protected. All changes must"
+    echo "🦖  go through a feature branch and PR."
+    echo "🦖"
+    echo "🦖  Fix:"
+    echo "🦖    git stash"
+    echo "🦖    git checkout -b feature/your-description"
+    echo "🦖    git stash pop"
+    echo "🦖    git add -A && git commit"
+    echo "🦖"
+    echo "🦖 ============================================"
+    echo ""
+    exit 1
+  fi
+done
+
+echo "🦖 T-REX: Branch '$BRANCH' validated. Proceeding."
+exit 0
