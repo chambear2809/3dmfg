@@ -280,6 +280,62 @@ T-REX is platform-agnostic. The pattern applies wherever AI agents operate in re
 
 ---
 
+## March 4: Verification Session (Agent #3)
+
+A third Claude Code session was started specifically to verify that T-REX enforcement was operational — not to build anything, but to break things and see what holds.
+
+### What Held
+
+| Layer | Test | Result |
+|-------|------|--------|
+| Layer 2 (git hook) | Commit on `main` | **BLOCKED** — `🦖 LAW ONE VIOLATION` |
+| Layer 2 (git hook) | Commit on feature branch | **ALLOWED** — `🦖 Branch validated` |
+| MCP — Law One | `rex_validate_branch` on `main` | Violation recorded, session locked |
+| MCP — Law Two | Duplicate task claim | **BLOCKED** — `Task already claimed by...` |
+| MCP — Law Three | Handoff record | Written, visible to next session via `rex_status` |
+
+### What Didn't Hold
+
+**1. Pre-commit hook disappears on branch switch.**
+
+The hook file (`.githooks/pre-commit`) is versioned — it only exists on branches where it's been committed. When checking out `main` (which doesn't have the file yet), the hook vanishes and `main` becomes unprotected:
+
+```
+$ git checkout main
+$ git commit --allow-empty -m "test"   # ← Goes through! No hook.
+
+$ git checkout feature-branch
+$ git commit --allow-empty -m "test"   # ← Blocked by hook.
+```
+
+**Root cause:** `core.hooksPath = .githooks` makes git read hooks from the working tree. Protected branches need to be protected *before* the hook file lands on them — a chicken-and-egg problem inherent to versioned hook directories.
+
+**Fix:** Added the hook to `.claude/settings.local.json` (gitignored, branch-independent) as a Layer 1 safety net. Once the hook PR merges to `main`, Layer 2 covers all future branches.
+
+**2. PreToolUse hook not blocking file edits on protected branches.**
+
+The Claude Code PreToolUse hook (Layer 1) was installed in user-level `~/.claude/settings.json`, but the project-level `.claude/settings.json` defines its own `hooks` object (with `PostToolUse` for auto-testing). Due to Claude Code's settings scope precedence, the project-level `hooks` object shadows the user-level one — the `PreToolUse` hook was never loaded.
+
+```
+User-level:    hooks: { PreToolUse: [...], SessionStart: [...] }
+Project-level: hooks: { PostToolUse: [...] }
+Result:        Only PostToolUse active. PreToolUse silently dropped.
+```
+
+Additionally, hooks appear to be loaded at session start and do not reload mid-session. Fixes applied during the session could not be verified until the next session.
+
+**Fix:** Added `PreToolUse` hook to both:
+- `.claude/settings.json` (versioned, takes effect when PR merges)
+- `.claude/settings.local.json` (gitignored, takes effect next session regardless of branch)
+
+### The Meta-Lesson
+
+Agent #2 built the enforcement system and declared it operational based on controlled tests. Agent #3 found two gaps within 10 minutes of real-world testing. This is the standard pattern: **building a system and validating a system are different disciplines.** The same agent that builds often tests its own happy path. Independent verification catches what the builder's optimism misses.
+
+This applies equally to the governance system itself. T-REX was designed to catch agents cutting corners — but the agent that wired T-REX cut a corner (testing only on the branch where the hook existed, not on the branch it was meant to protect).
+
+---
+
 ## Summary
 
 | Phase | Date | Actor | Action |
@@ -290,10 +346,11 @@ T-REX is platform-agnostic. The pattern applies wherever AI agents operate in re
 | Independent validation | March 4 | Agent #2 (Claude) | Audited PRs, found same failures, arrived at same solution independently |
 | T-REX wired up | March 4 | Agent #2 (Claude) | Installed hooks on both repos, configured user-level enforcement |
 | Live validation | March 4 | Agent #2 (Claude) | Tested all three laws, confirmed mechanical blocking works |
+| Verification session | March 4 | Agent #3 (Claude) | Stress-tested enforcement, found 2 gaps, fixed both |
 
-Two AI agents. Zero shared context. Same diagnosis. Same solution. One built the theory. The other proved it and wired it into production.
+Three AI agents. Zero shared context between #1 and #2. Same diagnosis. Same solution. #3 broke what #2 thought was solid and patched the holes.
 
-**T-REX does not ask the agent to remember the rules. It makes compliance a technical prerequisite for action.**
+**T-REX does not ask the agent to remember the rules. It makes compliance a technical prerequisite for action. But even mechanical gates need independent verification — the agent that builds the wall shouldn't be the only one testing it.**
 
 ---
 
