@@ -37,6 +37,13 @@ updates:
       - "dependencies"
       - "javascript"
     open-pull-requests-limit: 10
+    ignore:
+      # ESLint 10 blocked until eslint-plugin-react-hooks supports it
+      # Tracking: #285
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-security:
         applies-to: security-updates
