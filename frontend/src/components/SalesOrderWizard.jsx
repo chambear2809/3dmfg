@@ -590,7 +590,7 @@ export default function SalesOrderWizard({ isOpen, onClose, onSuccess }) {
     setLineItems(
       lineItems.map((li) =>
         li._key === key
-          ? { ...li, quantity: Math.max(1, quantity) }
+          ? { ...li, quantity: Math.max(li.line_type === "material" ? 0.01 : 1, quantity) }
           : li
       )
     );

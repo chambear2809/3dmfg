@@ -87,8 +87,12 @@ export function createApiClient(/** @type {ApiConfig} */ cfg) {
       } catch {
         payload = await res.text();
       }
+      const detail =
+        payload && typeof payload === "object" ? payload.detail : undefined;
       const message =
-        (payload && (payload.detail || payload.message)) || `HTTP ${res.status}`;
+        (typeof detail === "string" ? detail : detail?.message) ||
+        (payload && typeof payload === "object" ? payload.message : undefined) ||
+        `HTTP ${res.status}`;
       const err = new ApiError(message, res.status, payload);
       // why: notify app-wide error listeners
       try {
@@ -97,7 +101,7 @@ export function createApiClient(/** @type {ApiConfig} */ cfg) {
           method: init.method || "GET",
           status: res.status,
           message,
-          detail: payload && typeof payload === "object" ? payload.detail : undefined,
+          detail,
         });
       } catch { /* emit error silently */ }
       try {

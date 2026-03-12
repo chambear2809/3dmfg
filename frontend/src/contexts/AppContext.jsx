@@ -18,14 +18,14 @@ const AppContext = createContext({
   tier: "community",
   features: [],
   loading: true,
-  smtpConfigured: false,
+  smtpConfigured: null,
 });
 
 export function AppProvider({ children }) {
   const [tier, setTier] = useState("community");
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [smtpConfigured, setSmtpConfigured] = useState(false);
+  const [smtpConfigured, setSmtpConfigured] = useState(null);
 
   useEffect(() => {
     let cancelled = false;

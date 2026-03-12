@@ -283,12 +283,15 @@ export default function ProductSelectionStep({
                   </label>
                   <input
                     type="number"
-                    min="1"
+                    min={li.line_type === "material" ? "0.01" : "1"}
+                    step={li.line_type === "material" ? "0.01" : "1"}
                     value={li.quantity}
                     onChange={(e) =>
                       updateLineQuantity(
                         li._key,
-                        parseInt(e.target.value) || 1
+                        li.line_type === "material"
+                          ? parseFloat(e.target.value) || 0.01
+                          : parseInt(e.target.value, 10) || 1
                       )
                     }
                     className="w-16 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white text-center"
