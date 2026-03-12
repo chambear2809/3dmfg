@@ -1912,12 +1912,17 @@ def generate_production_orders(
             user_id=None,
         )
 
-    # Update order status
-    if order.status == "pending":
-        order.status = "in_production"
-        order.confirmed_at = datetime.now(timezone.utc)
-    elif order.status == "confirmed":
-        order.status = "in_production"
+        # Update order status — only move to in_production when work orders exist
+        if order.status == "pending":
+            order.status = "in_production"
+            order.confirmed_at = datetime.now(timezone.utc)
+        elif order.status == "confirmed":
+            order.status = "in_production"
+    elif order.order_type == "line_item":
+        # All lines are material-only — no production needed (pick and ship)
+        if order.status == "pending":
+            order.status = "confirmed"
+            order.confirmed_at = datetime.now(timezone.utc)
 
     return {
         "message": f"Created {len(created_orders)} production order(s)",

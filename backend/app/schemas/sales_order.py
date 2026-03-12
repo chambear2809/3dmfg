@@ -20,7 +20,7 @@ class SalesOrderLineCreate(BaseModel):
     """
     product_id: Optional[int] = Field(None, description="Product ID (for finished goods)")
     material_inventory_id: Optional[int] = Field(None, description="Material inventory ID (for raw material / filament)")
-    quantity: int = Field(..., gt=0, le=10000, description="Quantity (1-10000)")
+    quantity: Decimal = Field(..., gt=0, le=10000, description="Quantity — integer for products, fractional for materials (e.g. 0.5 kg)")
     unit_price: Optional[Decimal] = Field(None, ge=0, description="Unit price (uses product/material price if not specified)")
     notes: Optional[str] = Field(None, max_length=500)
 

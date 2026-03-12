@@ -7,7 +7,7 @@ Uses material_service for business logic (ARCHITECT-003).
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 from pydantic import BaseModel
 import io
 
@@ -384,6 +384,10 @@ def get_materials_for_order(
         db.query(MaterialInventory)
         .join(MaterialType, MaterialInventory.material_type_id == MaterialType.id)
         .join(Color, MaterialInventory.color_id == Color.id)
+        .options(
+            contains_eager(MaterialInventory.material_type),
+            contains_eager(MaterialInventory.color),
+        )
         .filter(MaterialInventory.active.is_(True))
     )
 
