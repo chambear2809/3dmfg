@@ -32,6 +32,8 @@ class SalesOrderLineCreate(BaseModel):
             raise ValueError(
                 "Exactly one of product_id or material_inventory_id must be provided"
             )
+        if has_product and self.quantity != self.quantity.to_integral_value():
+            raise ValueError("Product line quantity must be a whole number")
         return self
 
 

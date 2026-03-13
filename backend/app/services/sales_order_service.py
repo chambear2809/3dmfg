@@ -659,7 +659,11 @@ def create_sales_order(
     first_line = validated_lines[0]
     if first_line["product"]:
         first_product = first_line["product"]
-        material_type = first_product.item_category.name if first_product.item_category else "PLA"
+        material_type = (
+            getattr(first_product.material_type, "base_material", None)
+            or getattr(first_product.material_type, "name", None)
+            or "Material"
+        )
     elif first_line["material"] and first_line["material"].material_type:
         material_type = first_line["material"].material_type.base_material
     else:

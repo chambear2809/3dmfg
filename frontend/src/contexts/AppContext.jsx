@@ -36,7 +36,7 @@ export function AppProvider({ children }) {
         if (cancelled || !data) return;
         setTier(data.tier ?? "community");
         setFeatures(data.features_enabled ?? []);
-        setSmtpConfigured(data.smtp_configured ?? false);
+        setSmtpConfigured(data.smtp_configured ?? null);
       })
       .catch(() => {
         // Endpoint unreachable — stay on community defaults

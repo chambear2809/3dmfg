@@ -371,6 +371,7 @@ class MaterialInventoryListResponse(BaseModel):
 def get_materials_for_order(
     in_stock_only: bool = Query(False, description="Only return in-stock materials"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> MaterialInventoryListResponse:
     """
     Get material inventory items formatted for sales order line selection.
@@ -409,7 +410,7 @@ def get_materials_for_order(
             color_code=color.code if color else "",
             color_name=color.name if color else "",
             color_hex=color.hex_code if color else None,
-            cost_per_kg=float(inv.cost_per_kg) if inv.cost_per_kg else None,
+            cost_per_kg=float(inv.cost_per_kg) if inv.cost_per_kg is not None else None,
             in_stock=inv.in_stock or False,
             quantity_kg=float(inv.quantity_kg) if inv.quantity_kg else 0.0,
         ))
