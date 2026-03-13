@@ -4,6 +4,7 @@ import SecurityBadge from "./SecurityBadge";
 import useActivityTokenRefresh from "../hooks/useActivityTokenRefresh";
 import { getCurrentVersion, getCurrentVersionSync, formatVersion } from "../utils/version";
 import { API_URL } from "../config/api";
+import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import logoNavbar from "../assets/logo_navbar.png";
 import logoBLB3D from "../assets/logo_blb3d.svg";
 
@@ -425,6 +426,31 @@ const navGroups = [
     ],
   },
   {
+    label: "B2B PORTAL",
+    adminOnly: true,
+    proOnly: true,
+    items: [
+      {
+        path: "/admin/access-requests",
+        label: "Access Requests",
+        icon: CustomersIcon,
+        adminOnly: true,
+      },
+      {
+        path: "/admin/catalogs",
+        label: "Catalogs",
+        icon: ItemsIcon,
+        adminOnly: true,
+      },
+      {
+        path: "/admin/price-levels",
+        label: "Price Levels",
+        icon: AccountingIcon,
+        adminOnly: true,
+      },
+    ],
+  },
+  {
     label: "QUALITY",
     items: [
       { path: "/admin/quality/traceability", label: "Material Traceability", icon: QualityIcon },
@@ -563,6 +589,7 @@ export default function AdminLayout() {
 
   // Filter nav items based on user role
   const isAdmin = user?.account_type === "admin";
+  const { isPro } = useFeatureFlags();
 
   const filteredNavGroups = navGroups
     .filter((group) => !group.adminOnly || isAdmin)
@@ -689,6 +716,11 @@ export default function AdminLayout() {
                         >
                           <item.icon />
                           <span>{item.label}</span>
+                          {group.proOnly && !isPro && (
+                            <svg className="w-3 h-3 ml-auto" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          )}
                         </NavLink>
                       ))}
                     </div>
@@ -761,6 +793,11 @@ export default function AdminLayout() {
                     >
                       <item.icon />
                       {sidebarOpen && <span>{item.label}</span>}
+                      {sidebarOpen && group.proOnly && !isPro && (
+                        <svg className="w-3 h-3 ml-auto" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      )}
                     </NavLink>
                   ))}
                 </div>

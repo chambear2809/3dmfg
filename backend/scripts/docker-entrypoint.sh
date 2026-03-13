@@ -11,9 +11,10 @@ set -e
 
 # ─── PRO Plugin Auto-Download ───
 if [ -n "$FILAOPS_LICENSE_KEY" ]; then
+    LICENSE_URL="${LICENSE_SERVER_URL:-https://license.blb3dprinting.com}"
+
     if ! python -c "import filaops_pro" 2>/dev/null; then
         echo "FilaOps: License key detected. Downloading PRO plugin..."
-        LICENSE_URL="${LICENSE_SERVER_URL:-https://license.blb3dprinting.com}"
         WHEEL_PATH="/tmp/filaops_pro-0.1.0-py3-none-any.whl"
 
         if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
@@ -25,6 +26,25 @@ if [ -n "$FILAOPS_LICENSE_KEY" ]; then
         else
             echo "FilaOps: Could not download PRO plugin. Check your license key."
             echo "FilaOps: Starting in Community mode."
+        fi
+    fi
+
+    # ─── Portal Frontend Auto-Download ───
+    if [ ! -d "/app/portal-dist" ]; then
+        if curl -sf -H "X-License-Key: $FILAOPS_LICENSE_KEY" \
+            "$LICENSE_URL/api/v1/download/filaops-portal" \
+            -o /tmp/portal-dist.tar.gz; then
+            STAGING=$(mktemp -d)
+            if tar -xzf /tmp/portal-dist.tar.gz -C "$STAGING"; then
+                mv "$STAGING" /app/portal-dist
+                echo "FilaOps: Portal frontend installed."
+            else
+                echo "FilaOps: Portal archive corrupt — skipping portal install."
+                rm -rf "$STAGING"
+            fi
+            rm -f /tmp/portal-dist.tar.gz
+        else
+            echo "FilaOps: Could not download portal frontend. Portal UI unavailable."
         fi
     fi
 
