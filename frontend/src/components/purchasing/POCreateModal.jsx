@@ -518,7 +518,7 @@ export default function POCreateModal({
                             }
                             placeholder="0.00"
                             min="0"
-                            step="0.01"
+                            step="0.0001"
                             className="w-full bg-gray-700 border border-gray-600 rounded-lg pl-7 pr-3 py-2 text-white text-right"
                             required
                           />
