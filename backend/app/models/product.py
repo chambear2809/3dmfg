@@ -5,6 +5,8 @@ from sqlalchemy import Column, Integer, String, Numeric, DateTime, Boolean, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
+from sqlalchemy.dialects.postgresql import JSONB
+
 from app.db.base import Base
 
 
@@ -95,6 +97,11 @@ class Product(Base):
     sales_channel = Column(String(20), default='public')  # 'public' | 'b2b' | 'internal'
     customer_id = Column(Integer, ForeignKey('customers.id', ondelete='SET NULL'), nullable=True, index=True)  # Restrict to specific customer (B2B)
 
+    # Variant Matrix
+    parent_product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_template = Column(Boolean, default=False, nullable=False)
+    variant_metadata = Column(JSONB, nullable=True)  # {"material_type_id", "color_id", codes, etc.}
+
     # Flags
     is_raw_material = Column(Boolean, default=False)
     has_bom = Column(Boolean, default=False)
@@ -117,6 +124,10 @@ class Product(Base):
     quotes = relationship("Quote", back_populates="product")  # For auto-created custom products
     item_category = relationship("ItemCategory", back_populates="products")
     routings = relationship("Routing", back_populates="product")
+
+    # Variant relationships
+    parent_product = relationship("Product", remote_side=[id],
+                                  foreign_keys=[parent_product_id], backref="variants")
 
     # Spool tracking (for filament/materials)
     spools = relationship("MaterialSpool", back_populates="product")

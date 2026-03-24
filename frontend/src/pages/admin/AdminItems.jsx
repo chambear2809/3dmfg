@@ -15,6 +15,7 @@ import ItemsFilterBar from "../../components/items/ItemsFilterBar";
 import AdjustmentReasonModal from "../../components/items/AdjustmentReasonModal";
 import DuplicateItemModal from "../../components/items/DuplicateItemModal";
 import SuggestPricesModal from "../../components/items/SuggestPricesModal";
+import VariantMatrixModal from "../../components/items/VariantMatrixModal";
 
 export default function AdminItems() {
   const api = useApi();
@@ -31,6 +32,7 @@ export default function AdminItems() {
     search: "",
     itemType: "all",
     activeOnly: true,
+    includeVariants: false,
   });
   const [quickFilter, setQuickFilter] = useState(null); // null | "all" | "finished_good" | "component" | "material" | "supply" | "needs_reorder"
 
@@ -82,6 +84,7 @@ export default function AdminItems() {
   const [adjustingQty, setAdjustingQty] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [duplicatingItem, setDuplicatingItem] = useState(null);
+  const [variantItem, setVariantItem] = useState(null);
   const [showSuggestPrices, setShowSuggestPrices] = useState(false);
   const [suggestPricesResult, setSuggestPricesResult] = useState(null);
 
@@ -124,6 +127,7 @@ export default function AdminItems() {
         params.set("category_id", selectedCategory.toString());
       if (filters.itemType !== "all") params.set("item_type", filters.itemType);
       if (filters.search) params.set("search", filters.search);
+      if (filters.includeVariants) params.set("exclude_variants", "false");
 
       const data = await api.get(`/api/v1/items?${params}`);
       setItems(data.items || []);
@@ -140,6 +144,7 @@ export default function AdminItems() {
     filters.activeOnly,
     filters.itemType,
     filters.search,
+    filters.includeVariants,
     selectedCategory,
   ]);
 
@@ -150,7 +155,7 @@ export default function AdminItems() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [selectedCategory, filters.itemType, filters.activeOnly]);
+  }, [selectedCategory, filters.itemType, filters.activeOnly, filters.includeVariants]);
 
   // Fetch stats from dedicated lightweight endpoint
   const fetchStats = useCallback(async () => {
@@ -626,6 +631,7 @@ export default function AdminItems() {
               setShowRoutingEditor(true);
             }}
             onDuplicateItem={(item) => setDuplicatingItem(item)}
+            onManageVariants={(item) => setVariantItem(item)}
           />
         )}
       </div>
@@ -760,6 +766,17 @@ export default function AdminItems() {
           fetchStats();
         }}
         sourceItem={duplicatingItem}
+      />
+
+      {/* Variant Matrix Modal */}
+      <VariantMatrixModal
+        isOpen={!!variantItem}
+        onClose={() => setVariantItem(null)}
+        item={variantItem}
+        onSuccess={() => {
+          fetchItems();
+          fetchStats();
+        }}
       />
 
       <SuggestPricesModal
