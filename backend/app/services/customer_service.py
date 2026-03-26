@@ -98,6 +98,11 @@ def _customer_response(customer: User, stats: dict) -> dict:
         "shipping_state": customer.shipping_state,
         "shipping_zip": customer.shipping_zip,
         "shipping_country": customer.shipping_country,
+        "payment_terms": customer.payment_terms or "cod",
+        "credit_limit": float(customer.credit_limit) if customer.credit_limit is not None else None,
+        "approved_for_terms": customer.approved_for_terms or False,
+        "approved_for_terms_at": customer.approved_for_terms_at,
+        "approved_for_terms_by": customer.approved_for_terms_by,
         "created_at": customer.created_at,
         "updated_at": customer.updated_at,
         "last_login_at": customer.last_login_at,
@@ -202,6 +207,7 @@ def list_customers(
             "company_name": customer.company_name,
             "phone": customer.phone,
             "status": customer.status,
+            "payment_terms": customer.payment_terms or "cod",
             "full_name": _build_full_name(customer),
             "shipping_address_line1": customer.shipping_address_line1,
             "shipping_city": customer.shipping_city,
@@ -316,6 +322,11 @@ def create_customer(
         shipping_state=data.shipping_state,
         shipping_zip=data.shipping_zip,
         shipping_country=data.shipping_country or "USA",
+        payment_terms=data.payment_terms or "cod",
+        credit_limit=data.credit_limit,
+        approved_for_terms=data.approved_for_terms or False,
+        approved_for_terms_at=now if data.approved_for_terms else None,
+        approved_for_terms_by=admin_id if data.approved_for_terms else None,
         created_by=admin_id,
         created_at=now,
         updated_at=now,
@@ -351,10 +362,33 @@ def update_customer(
         if existing:
             raise HTTPException(status_code=400, detail="Email already in use")
 
+    # Fields that can be explicitly set to NULL via PATCH
+    clearable_fields = {"credit_limit", "approved_for_terms"}
+    # Audit fields managed by server logic, never set directly from client
+    audit_fields = {"approved_for_terms_at", "approved_for_terms_by"}
+
     update_fields = data.model_dump(exclude_unset=True)
+
+    # Capture prior approval state before setattr overwrites it
+    was_approved = customer.approved_for_terms
+
     for field, value in update_fields.items():
-        if value is not None:
+        if field in audit_fields:
+            continue
+        if value is not None or field in clearable_fields:
             setattr(customer, field, value)
+
+    # Handle terms approval tracking — only on actual transition
+    if "approved_for_terms" in update_fields:
+        new_val = update_fields["approved_for_terms"]
+        if new_val and not was_approved:
+            # Transition: unapproved → approved
+            customer.approved_for_terms_at = datetime.now(timezone.utc)
+            customer.approved_for_terms_by = admin_id
+        elif not new_val and was_approved:
+            # Transition: approved → revoked
+            customer.approved_for_terms_at = None
+            customer.approved_for_terms_by = None
 
     customer.updated_by = admin_id
     db.commit()
