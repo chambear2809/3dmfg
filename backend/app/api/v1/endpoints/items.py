@@ -251,6 +251,8 @@ async def list_items(
             needs_reorder=item["needs_reorder"],
             description=item.get("description"),
             image_url=item.get("image_url"),
+            has_bom=item.get("has_bom", False),
+            has_routing=item.get("has_routing", False),
             parent_product_id=item.get("parent_product_id"),
             is_template=item.get("is_template", False),
             variant_count=item.get("variant_count", 0),
