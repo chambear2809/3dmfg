@@ -61,14 +61,17 @@ DB_PASSWORD=your_password
 
 ## Features
 
-41 core features across 8 modules:
+48 core features across 8 modules:
 
 ### Sales & Customers
 
-- Quotes with material cost rollup
-- Sales orders with fulfillment tracking
-- Customer management and traceability profiles
-- Payment tracking
+- Multi-line item quotes with per-line and customer discounts
+- Sales orders with fulfillment tracking and price level auto-apply
+- Invoice engine with PDF templates and payment recording
+- Customer management with payment terms (COD, net-15, net-30) and credit limits
+- Customer traceability profiles
+- Suggest Prices tool for margin-based bulk pricing
+- External order ingestion with operator notification inbox
 
 ### Inventory & Warehouse
 
@@ -83,6 +86,7 @@ DB_PASSWORD=your_password
 - Production orders (draft > released > in progress > complete)
 - Bill of Materials with multi-level cost rollup
 - Duplicate item with inline BOM component swap (color variants)
+- Variant matrix — bulk create color/material variants from template products
 - Copy BOM to another product
 - Routings and work centers with operation materials
 - Machine overhead and scrap tracking
@@ -119,7 +123,7 @@ DB_PASSWORD=your_password
 - First-run setup wizard with admin account creation
 - Multi-user with role-based access
 - Password reset flow (SMTP or auto-approve)
-- REST API (439 endpoints)
+- REST API (432 endpoints)
 - Shipping and order event tracking
 
 ## Tech Stack
@@ -139,10 +143,10 @@ backend/
   app/
     api/v1/endpoints/   # FastAPI route handlers
     models/             # SQLAlchemy models
-    services/           # 53 focused service modules
+    services/           # 56 focused service modules
     core/               # Config, security, UOM
   alembic/              # Database migrations
-  tests/                # 89 test files, 80%+ coverage
+  tests/                # 95 test files, 80%+ coverage
 frontend/
   src/
     components/         # Shared UI components + Storybook
@@ -153,7 +157,7 @@ frontend/
 ## Testing
 
 ```bash
-# Backend (89 test files, 80%+ coverage)
+# Backend (95 test files, 80%+ coverage)
 cd backend && pytest tests/ -v
 
 # Frontend component tests

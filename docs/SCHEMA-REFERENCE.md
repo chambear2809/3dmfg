@@ -2,9 +2,9 @@
 
 # FilaOps Database Schema Reference
 
-**Generated:** 2026-03-22
-**Source:** FilaOps Core v3.5.0
-**Total Models:** 59 (Core only)
+**Generated:** 2026-03-30
+**Source:** FilaOps Core v3.6.0
+**Total Models:** 63 (Core only)
 **Purpose:** AI knowledge source for codebase understanding
 
 > This is the **Core (Open Source)** schema reference.
@@ -25,7 +25,7 @@
 10. [UOM Models](#uom-models) (1 model)
 11. [Accounting Models](#accounting-models) (4 models)
 12. [Tax Models](#tax-models) (1 model)
-13. [Reference Data Models](#reference-data-models) (4 models)
+13. [Reference Data Models](#reference-data-models) (8 models)
 
 ---
 
@@ -214,7 +214,7 @@
 
 ### Product
 
-**Table:** `products` | **Tier:** Core | **File:** `product.py:11`
+**Table:** `products` | **Tier:** Core | **File:** `product.py:13`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -253,6 +253,9 @@
 | is_public | Boolean | DEFAULT True | Public visibility flag |
 | sales_channel | String(20) | DEFAULT 'public' | Sales channel |
 | customer_id | Integer | FK->customers.id, INDEX | FK reference to customers.id |
+| parent_product_id | Integer | FK->products.id, INDEX | FK reference to products.id |
+| is_template | Boolean | DEFAULT False, NOT NULL | Template flag |
+| variant_metadata | JSONB |  | Variant metadata |
 | is_raw_material | Boolean | DEFAULT False | Raw Material flag |
 | has_bom | Boolean | DEFAULT False | Has Bom flag |
 | track_lots | Boolean | DEFAULT False | Track Lots flag |
@@ -271,6 +274,7 @@
 - `quotes` -> Quote (one-to-many)
 - `item_category` -> ItemCategory (one-to-many)
 - `routings` -> Routing (one-to-many)
+- `parent_product` -> Product (many-to-one)
 - `spools` -> MaterialSpool (one-to-many)
 - `material_type` -> MaterialType (many-to-one)
 - `color` -> Color (many-to-one)
@@ -397,6 +401,7 @@
 | created_at | DateTime | NOT NULL, DEFAULT utcnow, INDEX | Creation timestamp |
 | updated_at | DateTime | NOT NULL, DEFAULT utcnow | Last update timestamp |
 | confirmed_at | DateTime |  | Confirmed timestamp |
+| submitted_at | DateTime |  | Submitted timestamp |
 | mrp_status | String(50) | INDEX | Mrp status |
 | mrp_run_id | Integer | FK->mrp_runs.id, INDEX | FK reference to mrp_runs.id |
 
@@ -414,7 +419,7 @@
 
 ### SalesOrderLine
 
-**Table:** `sales_order_lines` | **Tier:** Core | **File:** `sales_order.py:174`
+**Table:** `sales_order_lines` | **Tier:** Core | **File:** `sales_order.py:175`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -680,7 +685,7 @@
 
 ### Resource
 
-**Table:** `resources` | **Tier:** Core | **File:** `manufacturing.py:15`
+**Table:** `resources` | **Tier:** Core | **File:** `manufacturing.py:16`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -708,7 +713,7 @@
 
 ### Routing
 
-**Table:** `routings` | **Tier:** Core | **File:** `manufacturing.py:73`
+**Table:** `routings` | **Tier:** Core | **File:** `manufacturing.py:74`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -737,7 +742,7 @@
 
 ### RoutingOperation
 
-**Table:** `routing_operations` | **Tier:** Core | **File:** `manufacturing.py:141`
+**Table:** `routing_operations` | **Tier:** Core | **File:** `manufacturing.py:145`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -775,7 +780,7 @@
 
 ### RoutingOperationMaterial
 
-**Table:** `routing_operation_materials` | **Tier:** Core | **File:** `manufacturing.py:253`
+**Table:** `routing_operation_materials` | **Tier:** Core | **File:** `manufacturing.py:262`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -788,6 +793,7 @@
 | scrap_factor | Numeric(5, 2) | DEFAULT 0 | Scrap factor |
 | is_cost_only | Boolean | DEFAULT False, NOT NULL | Cost Only flag |
 | is_optional | Boolean | DEFAULT False, NOT NULL | Optional flag |
+| is_variable | Boolean | DEFAULT False, NOT NULL | Variable flag |
 | notes | Text |  | Additional notes |
 | created_at | DateTime | DEFAULT utcnow, NOT NULL | Creation timestamp |
 | updated_at | DateTime | DEFAULT utcnow, NOT NULL | Last update timestamp |
@@ -905,7 +911,7 @@
 
 ### PasswordResetRequest
 
-**Table:** `password_reset_requests` | **Tier:** Core | **File:** `user.py:137`
+**Table:** `password_reset_requests` | **Tier:** Core | **File:** `user.py:145`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -928,7 +934,7 @@
 
 ### RefreshToken
 
-**Table:** `refresh_tokens` | **Tier:** Core | **File:** `user.py:100`
+**Table:** `refresh_tokens` | **Tier:** Core | **File:** `user.py:108`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -948,7 +954,7 @@
 
 ### User
 
-**Table:** `users` | **Tier:** Core | **File:** `user.py:10`
+**Table:** `users` | **Tier:** Core | **File:** `user.py:11`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -975,6 +981,11 @@
 | shipping_country | String(100) | DEFAULT 'USA' | Shipping country |
 | status | String(20) | DEFAULT 'active', NOT NULL, INDEX | Current status |
 | account_type | String(20) | DEFAULT 'customer', NOT NULL | Account type |
+| payment_terms | String(20) | DEFAULT 'cod' | Payment terms |
+| credit_limit | Numeric(12, 2) |  | Credit limit |
+| approved_for_terms | Boolean | DEFAULT text() | Approved for terms |
+| approved_for_terms_at | DateTime |  | Approved For Terms timestamp |
+| approved_for_terms_by | Integer |  | Approved for terms by |
 | created_at | DateTime | DEFAULT now(), NOT NULL | Creation timestamp |
 | updated_at | DateTime | DEFAULT now(), NOT NULL | Last update timestamp |
 | last_login_at | DateTime |  | Last login timestamp |
@@ -1059,6 +1070,7 @@
 | created_at | DateTime | NOT NULL, DEFAULT now() | Creation timestamp |
 | updated_at | DateTime | NOT NULL, DEFAULT now() | Last update timestamp |
 | expires_at | DateTime | NOT NULL | Expiration timestamp |
+| discount_percent | Numeric(5, 2) |  | Discount percent |
 
 **Relationships:**
 
@@ -1068,12 +1080,13 @@
 - `sales_order` -> SalesOrder (one-to-one)
 - `product` -> Product (many-to-one)
 - `materials` -> QuoteMaterial (one-to-many)
+- `lines` -> QuoteLine (one-to-many)
 
 ---
 
 ### QuoteFile
 
-**Table:** `quote_files` | **Tier:** Core | **File:** `quote.py:188`
+**Table:** `quote_files` | **Tier:** Core | **File:** `quote.py:193`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -1105,7 +1118,7 @@
 
 ### QuoteMaterial
 
-**Table:** `quote_materials` | **Tier:** Core | **File:** `quote.py:243`
+**Table:** `quote_materials` | **Tier:** Core | **File:** `quote.py:248`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -1864,6 +1877,97 @@
 
 ---
 
+### Invoice
+
+**Table:** `invoices` | **Tier:** Core | **File:** `invoice.py:10`
+
+| Column | Type | Constraints | Description |
+| ------ | ---- | ----------- | ----------- |
+| id | Integer | PK, INDEX | Primary key |
+| invoice_number | String(20) | UNIQUE, NOT NULL, INDEX | Invoice number |
+| sales_order_id | Integer | FK->sales_orders.id, INDEX | FK reference to sales_orders.id |
+| customer_id | Integer | INDEX | Customer reference |
+| customer_name | String(200) |  | Customer name |
+| customer_email | String(200) |  | Customer email |
+| customer_company | String(200) |  | Customer company |
+| bill_to_line1 | String(200) |  | Bill to line1 |
+| bill_to_city | String(100) |  | Bill to city |
+| bill_to_state | String(50) |  | Bill to state |
+| bill_to_zip | String(20) |  | Bill to zip |
+| payment_terms | String(20) | NOT NULL | Payment terms |
+| due_date | Date | NOT NULL | Due date |
+| subtotal | Numeric(12, 2) | NOT NULL | Subtotal |
+| discount_amount | Numeric(12, 2) | DEFAULT '0' | Discount amount |
+| tax_rate | Numeric(5, 4) | DEFAULT '0' | Tax rate |
+| tax_amount | Numeric(12, 2) | DEFAULT '0' | Tax amount |
+| shipping_amount | Numeric(12, 2) | DEFAULT '0' | Shipping amount |
+| total | Numeric(12, 2) | NOT NULL | Total |
+| status | String(20) | NOT NULL, DEFAULT 'draft', INDEX | Current status |
+| amount_paid | Numeric(12, 2) | DEFAULT '0' | Amount paid |
+| paid_at | DateTime |  | Paid timestamp |
+| payment_method | String(20) |  | Payment method |
+| payment_reference | String(200) |  | Payment reference |
+| external_invoice_id | String(100) |  | External Invoice reference |
+| external_invoice_url | String(500) |  | External invoice url |
+| external_provider | String(20) |  | External provider |
+| created_at | DateTime | DEFAULT now(), NOT NULL | Creation timestamp |
+| updated_at | DateTime | DEFAULT now(), NOT NULL | Last update timestamp |
+| sent_at | DateTime |  | Sent timestamp |
+| pdf_path | String(500) |  | Pdf path |
+
+**Relationships:**
+
+- `lines` -> InvoiceLine (one-to-many)
+- `sales_order` -> SalesOrder (many-to-one)
+
+---
+
+### InvoiceLine
+
+**Table:** `invoice_lines` | **Tier:** Core | **File:** `invoice.py:67`
+
+| Column | Type | Constraints | Description |
+| ------ | ---- | ----------- | ----------- |
+| id | Integer | PK, INDEX | Primary key |
+| invoice_id | Integer | FK->invoices.id, NOT NULL, INDEX | FK reference to invoices.id |
+| product_id | Integer |  | Product reference |
+| sku | String(50) |  | Stock keeping unit |
+| description | String(200) | NOT NULL | Description text |
+| quantity | Numeric(12, 4) | NOT NULL | Quantity value |
+| unit_price | Numeric(12, 2) | NOT NULL | Unit price |
+| base_price | Numeric(12, 2) |  | Base price |
+| discount_percent | Numeric(5, 2) |  | Discount percent |
+| line_total | Numeric(12, 2) | NOT NULL | Line total |
+
+**Relationships:**
+
+- `invoice` -> Invoice (many-to-one)
+
+---
+
+### Notification
+
+**Table:** `notifications` | **Tier:** Core | **File:** `notification.py:14`
+
+| Column | Type | Constraints | Description |
+| ------ | ---- | ----------- | ----------- |
+| id | Integer | PK, INDEX | Primary key |
+| thread_id | String(36) | NOT NULL, INDEX | Thread reference |
+| thread_subject | String(200) |  | Thread subject |
+| sales_order_id | Integer | FK->sales_orders.id, INDEX | FK reference to sales_orders.id |
+| sender_type | String(20) | NOT NULL, DEFAULT 'system' | Sender type |
+| sender_name | String(200) |  | Sender name |
+| body | Text | NOT NULL | Body |
+| read_at | DateTime |  | Read timestamp |
+| source | String(20) | DEFAULT 'system' | Source |
+| created_at | DateTime | NOT NULL, DEFAULT utcnow | Creation timestamp |
+
+**Relationships:**
+
+- `sales_order` -> SalesOrder (many-to-one)
+
+---
+
 ### ProductionOrderMaterial
 
 **Table:** `production_order_materials` | **Tier:** Core | **File:** `production_order.py:288`
@@ -1890,6 +1994,33 @@
 
 ---
 
+### QuoteLine
+
+**Table:** `quote_lines` | **Tier:** Core | **File:** `quote.py:290`
+
+| Column | Type | Constraints | Description |
+| ------ | ---- | ----------- | ----------- |
+| id | Integer | PK, INDEX | Primary key |
+| quote_id | Integer | FK->quotes.id, NOT NULL, INDEX | FK reference to quotes.id |
+| product_id | Integer | FK->products.id, INDEX | FK reference to products.id |
+| line_number | Integer | NOT NULL, DEFAULT 1 | Line number |
+| product_name | String(255) |  | Product name |
+| quantity | Integer | NOT NULL, DEFAULT 1 | Quantity value |
+| unit_price | Numeric(10, 2) | NOT NULL | Unit price |
+| discount_percent | Numeric(5, 2) |  | Discount percent |
+| total | Numeric(10, 2) | NOT NULL | Total |
+| material_type | String(50) |  | Material type |
+| color | String(50) |  | Color |
+| notes | String(1000) |  | Additional notes |
+| created_at | DateTime | NOT NULL, DEFAULT now() | Creation timestamp |
+
+**Relationships:**
+
+- `quote` -> Quote (many-to-one)
+- `product` -> Product (many-to-one)
+
+---
+
 ## Summary Statistics
 
 | Category | Models | Tables |
@@ -1906,5 +2037,5 @@
 | UOM Models | 1 | 1 |
 | Accounting Models | 4 | 4 |
 | Tax Models | 1 | 1 |
-| Reference Data Models | 4 | 4 |
-| **Total** | **59** | **59** |
+| Reference Data Models | 8 | 8 |
+| **Total** | **63** | **63** |

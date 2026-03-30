@@ -11,7 +11,7 @@
 
 | Metric | Count |
 | ------ | ----- |
-| **Total Migrations** | 50 |
+| **Total Migrations** | 56 |
 | **Database** | PostgreSQL |
 | **Tool** | Alembic |
 
@@ -24,16 +24,17 @@
 | Area | Count | Migrations |
 |------|-------|------------|
 | Initial Schema | 2 | baseline_001, b1815de543ea |
-| Manufacturing | 15 | 017, 021, 65be66a7c00f, 022, 023, 032, 033, 034, 9056086f1897, 054, 056, 057, 058, 060, 067 |
+| Manufacturing | 16 | 017, 021, 65be66a7c00f, 022, 023, 032, 033, 034, 9056086f1897, 054, 056, 057, 058, 060, 067, 068 |
 | Inventory | 8 | 018, 029, 030, 031, 035, 039, 059, 064 |
 | Purchasing | 5 | 019, 027, 028, 036, 2940c6a93ea7 |
 | Settings | 3 | 020, 037, 062 |
 | Performance | 1 | 905ef924f499 |
-| Sales | 5 | 024, 038, 043, 061, 066 |
+| Sales | 8 | 024, 038, 043, 061, 066, 069, 071, 072 |
 | Maintenance | 2 | 025, 026 |
 | Products | 3 | 040, 055, 065 |
 | Accounting | 5 | 044, 045, 046, 052, 053 |
 | Tax | 1 | 063 |
+| Other | 2 | 070, 073 |
 
 ---
 
@@ -1020,6 +1021,106 @@
 
 ---
 
+#### `068_add_unique_constraint_bom_and_routing_materials.py`
+
+**Tier**: Core
+**Date**: Initial
+**Purpose**: Add unique constraints to prevent duplicate materials on BOMs and routing operations.
+**Revises**: 067
+
+---
+
+#### `069_add_customer_payment_terms.py`
+
+**Tier**: Core
+**Date**: Initial
+**Purpose**: Add customer payment terms columns to users table.
+**Revises**: 068
+
+**Adds Columns**:
+
+- `users.payment_terms`
+- `users.credit_limit`
+- `users.approved_for_terms`
+- `users.approved_for_terms_at`
+- `users.approved_for_terms_by`
+
+---
+
+#### `070_create_invoices_tables.py`
+
+**Tier**: Core
+**Date**: Initial
+**Purpose**: Create invoices and invoice_lines tables.
+**Revises**: 068
+
+**Creates Tables**:
+
+- `invoices` - Invoices
+- `invoice_lines` - Invoice Lines
+
+**Creates Indexes**:
+
+- `ix_invoices_sales_order_id`
+- `ix_invoices_customer_id`
+- `ix_invoices_status`
+- `ix_invoices_due_date`
+- `ix_invoice_lines_invoice_id`
+
+---
+
+#### `071_merge_069_070.py`
+
+**Tier**: Core
+**Date**: Initial
+**Purpose**: Merge migration heads 069 and 070.
+**Revises**: 069, 070
+**Type**: Merge migration
+
+*Merge migration — no schema changes.*
+
+---
+
+#### `072_portal_ingestion_notifications.py`
+
+**Tier**: Core
+**Date**: 2026-03-26
+**Purpose**: Add submitted_at to sales_orders and create notifications table
+**Revises**: 071
+
+**Creates Tables**:
+
+- `notifications` - Notifications
+
+**Adds Columns**:
+
+- `sales_orders.submitted_at`
+
+**Creates Indexes**:
+
+- `idx_notifications_thread`
+- `idx_notifications_unread`
+- `idx_notifications_sales_order`
+
+---
+
+#### `073_add_quote_lines_table.py`
+
+**Tier**: Core
+**Date**: 2026-03-30
+**Purpose**: Add quote_lines table and discount_percent to quotes
+**Revises**: 072
+
+**Creates Tables**:
+
+- `quote_lines` - Quote Lines
+
+**Adds Columns**:
+
+- `quotes.discount_percent`
+
+---
+
 ## Migration Dependencies
 
 ```text
@@ -1123,6 +1224,19 @@ b1815de543ea (001_initial_postgres_schema)
 066_add_default_margin_to_company_settings
     |
 067_add_variant_matrix
+    |
+068_add_unique_constraint_bom_and_routing_materials
+    |
+069_add_customer_payment_terms
+    |
+070_create_invoices_tables
+  069, 070
+    \ /
+     071_merge_069_070  [merge]
+    |
+072_portal_ingestion_notifications
+    |
+073_add_quote_lines_table
 ```
 
 
@@ -1147,5 +1261,5 @@ alembic history --verbose
 
 ---
 
-*Last updated: 2026-03-22*
-*Generated for FilaOps Core v3.5.0*
+*Last updated: 2026-03-30*
+*Generated for FilaOps Core v3.6.0*
