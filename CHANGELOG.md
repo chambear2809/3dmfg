@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-03-30
+
+### Added
+- **Invoice engine** — PDF invoice templates, payment recording, and invoice line items (#466, PR #471)
+- **Customer payment terms** — COD, net-15, net-30 with credit limits and aging (#465, PR #469)
+- **Sales order price level auto-apply** — automatic tier-based pricing on order creation (#464, PR #470)
+- **Variant matrix** — bulk create color/material variants from template products with BOM material swaps (#458)
+- **External order ingestion** — portal order import with operator notification inbox (#475)
+- **Suggest Prices tool** — margin-based bulk pricing suggestions for items (#440)
+- **Multi-line item quotes** — quote line items with per-line discount and customer discount support (#488)
+
+### Fixed
+- Routing cost calculation — setup time, materials, deduplication (#441)
+- Routing material unit_cost double-division by purchase_factor (#459), then reverted to correct division (#460)
+- Product image upload — nginx limit, URL handling, schema (#444)
+- Bulk update status not applying — field name mismatch (#446)
+- Routing cost review followup — Decimal consistency, N+1, currency precision (#448)
+- Prevent duplicate materials on BOM lines and routing operations (#442, PR #455)
+- Price level assignment shows current tier, supports reassignment (#461)
+- Allow routing-only items in sales orders (#462) and quotes (#478)
+- Items list endpoint missing has_bom/has_routing fields (#481)
+- Quote product picker filtered to finished goods only (#480)
+- Don't expose exception details in variant sync API response (#477)
+- Merge Alembic heads 069 and 070 (#472)
+
+### Security
+- Pin flatted to 3.4.2 — prototype pollution (CVE-2026-33228) (#453)
+- Bump requests 2.32.5 → 2.33.1 — insecure temp file reuse (#474, #490)
+- Bump picomatch 4.0.3 → 4.0.4 — method injection in POSIX character classes (#473)
+
+### Documentation
+- Full regeneration of API, schema, and migration reference docs (#447)
+
+### Dependencies
+- codecov/codecov-action 5 → 6, actions/deploy-pages 4 → 5
+- fastapi 0.135.1 → 0.135.2, uvicorn 0.41.0 → 0.42.0
+- react-router 7.13.1 → 7.13.2, vitest 4.1.0 → 4.1.2
+- storybook ecosystem 10.3.1 → 10.3.3
+- lucide-react 0.577.0 → 1.7.0
+
+## [3.5.0] - 2026-03-20
+
+### Added
+- **Duplicate item with BOM component swap** — clone items with inline material substitution (#415, PR #425)
+- Portal Admin button in admin header (PRO-gated) (#424)
+
+### Fixed
+- Copy routing and operation materials when duplicating an item (#426)
+- PO modal product dropdown empty on first open (#417)
+- Consistent PRO upgrade card on Access Requests page (#412)
+
+### Documentation
+- MkDocs site synced with v3.5.0 features (#435)
+- README and docs accuracy pass (#433)
+
+### Dependencies
+- jsdom 25.0.1 → 29.0.0
+- pyjwt updated in pip-minor-patch group
+- npm-minor-patch group (7 updates)
+
 ## [3.4.0] - 2026-03-12
 
 ### Added

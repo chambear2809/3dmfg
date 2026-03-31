@@ -10,17 +10,17 @@
 
 | Metric | Count |
 | ------ | ----- |
-| **Total Endpoints** | ~424 |
+| **Total Endpoints** | ~432 |
 | **Router Files** | 49 |
 | **Router Groups** | 28 (including 18 admin sub-modules) |
 | **Base Path** | `/api/v1/` |
 
 ### HTTP Method Distribution
 
-- **GET**: ~210 endpoints (read/query operations)
-- **POST**: ~144 endpoints (create/execute operations)
+- **GET**: ~212 endpoints (read/query operations)
+- **POST**: ~149 endpoints (create/execute operations)
 - **PUT/PATCH**: ~41 endpoints (update operations)
-- **DELETE**: ~29 endpoints (delete operations)
+- **DELETE**: ~30 endpoints (delete operations)
 
 ---
 
@@ -80,7 +80,7 @@ Authorization: Bearer <access_token>
 
 **Tier**: Core
 **File**: `endpoints/sales_orders.py`
-**Endpoints**: 24
+**Endpoints**: 26
 
 | Method | Path | Description | Auth |
 | ------ | ---- | ----------- | ---- |
@@ -101,6 +101,8 @@ Authorization: Bearer <access_token>
 | PATCH | `/sales-orders/{order_id}/shipping` | Update shipping information for an order (admin only). | ADMIN |
 | PATCH | `/sales-orders/{order_id}/address` | Update shipping address for an order (admin only). | ADMIN |
 | POST | `/sales-orders/{order_id}/cancel` | Cancel a sales order. | ADMIN |
+| POST | `/sales-orders/{order_id}/confirm` | Confirm a pending_confirmation order from an external source. | ADMIN |
+| POST | `/sales-orders/{order_id}/reject` | Reject a pending_confirmation order from an external source. | ADMIN |
 | DELETE | `/sales-orders/{order_id}` | Delete a sales order (admin only). | ADMIN |
 | POST | `/sales-orders/{order_id}/ship` | Create shipping label and mark order as shipped. | ADMIN |
 | POST | `/sales-orders/{order_id}/generate-production-orders` | Generate production orders from a sales order (admin only). | ADMIN |
@@ -155,7 +157,7 @@ Authorization: Bearer <access_token>
 
 **Tier**: Core
 **File**: `endpoints/items.py`
-**Endpoints**: 23
+**Endpoints**: 29
 
 | Method | Path | Description | Auth |
 | ------ | ---- | ----------- | ---- |
@@ -182,6 +184,12 @@ Authorization: Bearer <access_token>
 | POST | `/items/recost-all` | Recost all items matching filters. | CUSTOMER |
 | POST | `/items/{item_id}/recost` | Recost a single item. | CUSTOMER |
 | POST | `/items/apply-suggested-prices` | Apply selected suggested prices to items. | CUSTOMER |
+| GET | `/items/{item_id}/variants` | List all variants for a template product. | CUSTOMER |
+| GET | `/items/{item_id}/variant-matrix` | Get the full variant matrix: template, variants, and available combos. | CUSTOMER |
+| POST | `/items/{item_id}/variants` | Create a single variant from a template product. | CUSTOMER |
+| POST | `/items/{item_id}/variants/bulk` | Bulk-create variants from MaterialColor selections. | CUSTOMER |
+| POST | `/items/{item_id}/variants/sync-routing` | Propagate the template's routing to all variants, preserving material substitutions. | CUSTOMER |
+| DELETE | `/items/{item_id}/variants/{variant_id}` | Delete a variant product. | CUSTOMER |
 
 ---
 
@@ -963,5 +971,5 @@ All endpoints are prefixed with `/api/v1/`
 
 ---
 
-*Last updated: 2026-03-22*
-*Generated for FilaOps Core v3.5.0*
+*Last updated: 2026-03-30*
+*Generated for FilaOps Core v3.6.0*
