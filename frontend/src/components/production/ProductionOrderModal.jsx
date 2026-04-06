@@ -62,6 +62,8 @@ export default function ProductionOrderModal({
   const [shortageModalOpen, setShortageModalOpen] = useState(false);
   const [shortageInfo, setShortageInfo] = useState(null);
 
+  const [refreshRoutingLoading, setRefreshRoutingLoading] = useState(false);
+
   // Schedule modal state (for pending ops)
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [operationToSchedule, setOperationToSchedule] = useState(null);
@@ -434,6 +436,39 @@ export default function ProductionOrderModal({
     alert('Claim functionality requires user authentication context');
   };
 
+  // Refresh routing — re-snapshot the product's current active routing
+  const handleRefreshRouting = async () => {
+    if (refreshRoutingLoading) return;
+    if (!window.confirm('Re-apply the current routing to this production order? Any pending operations will be replaced.')) return;
+    setRefreshRoutingLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/v1/production-orders/${productionOrder.id}/refresh-routing`,
+        { method: 'POST', credentials: 'include' }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const detail = data?.detail;
+        const message =
+          typeof detail === 'string'
+            ? detail
+            : Array.isArray(detail)
+              ? detail.map((d) => (typeof d === 'string' ? d : d?.msg)).filter(Boolean).join('; ')
+              : detail
+                ? JSON.stringify(detail)
+                : 'Failed to refresh routing';
+        throw new Error(message);
+      }
+      await fetchOperations();
+      onUpdated?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefreshRoutingLoading(false);
+    }
+  };
+
   // Calculate totals
   const totalMinutes = operations.reduce(
     (sum, op) =>
@@ -456,6 +491,8 @@ export default function ProductionOrderModal({
   );
 
   if (!productionOrder) return null;
+
+  const canRefreshRouting = ['draft', 'released', 'on_hold'].includes(productionOrder.status);
 
   return (
     <Modal isOpen={true} onClose={onClose} title={`Production Order ${productionOrder.code}`} className="w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col">
@@ -535,8 +572,17 @@ export default function ProductionOrderModal({
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
               </div>
             ) : operations.length === 0 ? (
-              <div className="text-gray-500 text-center py-8">
-                No operations defined for this order
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-3">No operations defined for this order</p>
+                {canRefreshRouting && (
+                  <button
+                    onClick={handleRefreshRouting}
+                    disabled={refreshRoutingLoading}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg transition-colors text-sm"
+                  >
+                    {refreshRoutingLoading ? 'Refreshing…' : 'Apply Routing Now'}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -614,12 +660,24 @@ export default function ProductionOrderModal({
 
         {/* Footer */}
         <div className="flex justify-between items-center p-6 border-t border-gray-800">
-          <button
-            onClick={handleClaim}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
-          >
-            Claim for Me
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleClaim}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
+            >
+              Claim for Me
+            </button>
+            {canRefreshRouting && (
+              <button
+                onClick={handleRefreshRouting}
+                disabled={refreshRoutingLoading}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-lg transition-colors text-sm"
+                title="Re-apply the product's current active routing to this order"
+              >
+                {refreshRoutingLoading ? 'Refreshing…' : 'Refresh Routing'}
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"

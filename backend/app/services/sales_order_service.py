@@ -782,6 +782,7 @@ def convert_quote_to_sales_order(
     shipping_zip: str,
     shipping_country: str = "USA",
     customer_notes: Optional[str] = None,
+    source: str = "quote",
 ) -> SalesOrder:
     """
     Convert an accepted quote to a sales order.
@@ -855,7 +856,7 @@ def convert_quote_to_sales_order(
         shipping_country=shipping_country,
         customer_notes=customer_notes or quote.customer_notes,
         order_type="quote_based",
-        source="portal",
+        source=source,
         source_order_id=quote.quote_number,
     )
 
@@ -1356,6 +1357,113 @@ def edit_sales_order_lines(
             "SO %s line %d qty %s → %s (reason: %s)",
             order.order_number, line.id, old_qty, new_qty, update["reason"],
         )
+
+    _recalculate_order_totals(db, order)
+    db.commit()
+    db.refresh(order)
+    return order
+
+
+def remove_sales_order_line(
+    db: Session,
+    order_id: int,
+    line_id: int,
+    user_id: int,
+) -> SalesOrder:
+    """Remove a line item from a sales order.
+
+    Guards:
+    - Order must be in EDITABLE_STATUSES
+    - Line must exist on the order
+    - Cannot remove the last line (order must have ≥1 lines)
+    - Line must have no shipped quantity
+    - Line must have no active production orders (draft/released/in_progress/on_hold)
+
+    Returns:
+        Updated SalesOrder with line removed and totals recalculated.
+    """
+    order = get_sales_order(db, order_id)
+
+    if order.status not in EDITABLE_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove lines on order with status '{order.status}'. "
+                   f"Allowed statuses: {', '.join(sorted(EDITABLE_STATUSES))}",
+        )
+
+    line = db.query(SalesOrderLine).filter(
+        SalesOrderLine.id == line_id,
+        SalesOrderLine.sales_order_id == order_id,
+    ).first()
+
+    if not line:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Line {line_id} not found on order {order.order_number}",
+        )
+
+    # Must keep at least one line
+    remaining = db.query(SalesOrderLine).filter(
+        SalesOrderLine.sales_order_id == order_id
+    ).count()
+    if remaining <= 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot remove the last line from an order. Cancel the order instead.",
+        )
+
+    # Cannot remove a line that has already been (partially) shipped
+    if (line.shipped_quantity or Decimal("0")) > Decimal("0"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot remove line {line_id}: {line.shipped_quantity} units have already been shipped.",
+        )
+
+    # Cannot remove a line that has any non-cancelled production order.
+    # We block on everything except 'cancelled' — completed/qc_hold/closed
+    # still represent real manufacturing work tied to this line.
+    blocking_pos = db.query(ProductionOrder).filter(
+        ProductionOrder.sales_order_line_id == line_id,
+        ProductionOrder.status != "cancelled",
+    ).all()
+    if blocking_pos:
+        po_codes = ", ".join(po.code for po in blocking_pos)
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot remove line {line_id}: production order(s) exist: {po_codes}. "
+                   f"Cancel them first.",
+        )
+
+    # Resolve product name for the event before deleting
+    product_name = "Line"
+    if line.product_id:
+        product = db.query(Product).filter(Product.id == line.product_id).first()
+        if product:
+            product_name = product.name
+    elif line.material_inventory_id:
+        mat = db.query(MaterialInventory).filter(MaterialInventory.id == line.material_inventory_id).first()
+        if mat:
+            product_name = mat.sku or "Material"
+
+    removed_qty = line.quantity
+    db.delete(line)
+    db.flush()
+
+    record_order_event(
+        db=db,
+        order_id=order_id,
+        event_type="line_removed",
+        title=f"{product_name} line removed",
+        description=f"Line {line_id} ({product_name}, qty {removed_qty}) removed from order.",
+        old_value=str(removed_qty),
+        new_value="0",
+        user_id=user_id,
+    )
+
+    logger.info(
+        "SO %s line %d (%s qty %s) removed by user %d",
+        order.order_number, line_id, product_name, removed_qty, user_id,
+    )
 
     _recalculate_order_totals(db, order)
     db.commit()
@@ -2642,7 +2750,7 @@ def generate_packing_slip_pdf(db: Session, order_id: int) -> io.BytesIO:
 
     s_doc_label = ParagraphStyle(
         'PSLabel', parent=s_normal,
-        fontSize=28, fontName='Helvetica-Bold', textColor=BRAND_DARK, spaceAfter=2,
+        fontSize=28, fontName='Helvetica-Bold', textColor=BRAND_DARK, spaceAfter=24,
     )
     s_section = ParagraphStyle(
         'PSSection', parent=s_normal,
