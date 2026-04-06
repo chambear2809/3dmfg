@@ -102,6 +102,18 @@ Once items are produced and in stock, ship the sales order.
 
 ---
 
+## Step 5b: Handle a Production Shortfall (Optional)
+
+If production cannot deliver the full ordered quantity:
+
+1. On the production order, click **Accept Short** to complete it with the quantity actually produced
+2. On the sales order, click **Close Short** — a preview shows per-line achievable quantities
+3. Confirm close-short — FilaOps adjusts quantities, closes the order, and records the shortfall
+
+Skip this step if production completed in full.
+
+---
+
 ## Step 6: Record Payment
 
 When the customer pays, record the payment against the order.
@@ -136,7 +148,8 @@ Confirm the transaction flowed through correctly.
 - [ ] Quote created and sent to customer
 - [ ] Quote accepted and converted to sales order
 - [ ] Production orders created for manufactured items
-- [ ] Production completed and goods in stock
+- [ ] Production completed (or accepted short if partial)
+- [ ] Sales order closed-short if partial fulfillment (optional)
 - [ ] Sales order shipped
 - [ ] Payment recorded
 - [ ] Revenue verified in accounting
