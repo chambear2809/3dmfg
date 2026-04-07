@@ -9,8 +9,8 @@
 
 | Tier | Features | Status |
 | ------ | ---------- | -------- |
-| **Core (Open Source)** | 41 | Released |
-| **Total** | 41 | - |
+| **Core (Open Source)** | 50 | Released |
+| **Total** | 50 | - |
 
 ---
 
@@ -20,7 +20,7 @@
 
 ### Core (Open Source)
 
-## Core Features (41)
+## Core Features (50)
 
 ### Authentication & Access
 
@@ -97,6 +97,30 @@
 | 39 | SMTP & Auto-Approve Reset Delivery | Password reset delivery via SMTP email or auto-approve with direct link | ✅ Complete |
 | 40 | Duplicate Item | Clone items with inline BOM component swap for color variants | ✅ Complete |
 | 41 | Copy BOM | Copy a BOM to a different product with target product picker | ✅ Complete |
+
+### Sales Orders (v3.7.0)
+
+| # | Feature | Description | Status |
+| --- | ------- | ----------- | ------ |
+| 42 | SO Line Editing | Edit quantities on confirmed/in-production/pending order lines with reason tracking | ✅ Complete |
+| 43 | SO Line Removal | Remove a line from an editable order (guards: not shipped, no active POs, not last line) | ✅ Complete |
+| 44 | Close-Short | Accept partial fulfillment — close an order short when full quantity cannot be produced/shipped | ✅ Complete |
+| 45 | Close-Short Preview | Preview achievable quantities per line before executing close-short | ✅ Complete |
+| 46 | Pending Orders Editable | Orders in 'pending' status allow line edits and removal | ✅ Complete |
+
+### Production Orders (v3.7.0)
+
+| # | Feature | Description | Status |
+| --- | ------- | ----------- | ------ |
+| 47 | PO Accept-Short | Complete a production order with less than the ordered quantity | ✅ Complete |
+| 48 | PO Refresh Routing | Re-snapshot a product's current active routing onto an existing PO (useful when routing added after PO created) | ✅ Complete |
+
+### PDF Documents (v3.7.0)
+
+| # | Feature | Description | Status |
+| --- | ------- | ----------- | ------ |
+| 49 | Quote PDF Redesign | Professional B2B quote layout with brand colors, itemized lines, and terms | ✅ Complete |
+| 50 | Invoice PDF Redesign | Professional invoice layout with full customer info, payment terms, and due date | ✅ Complete |
 
 ---
 
@@ -206,5 +230,5 @@ MRP
 
 ---
 
-*Last updated: 2026-01-28*
-*Generated for FilaOps Core (Open Source)*
+*Last updated: 2026-04-06*  
+*Generated for FilaOps Core v3.7.0*

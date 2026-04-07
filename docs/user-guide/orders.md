@@ -448,6 +448,53 @@ For a detailed walkthrough of this end-to-end process, see the [Quote to Cash](w
 
 ---
 
+## Editing Order Lines
+
+Admins can edit line quantities and remove lines on orders in **pending**, **confirmed**, **in_production**, or **on_hold** status.
+
+### Changing a Quantity
+
+1. Open the order detail view
+2. In the **Line Items** table, click **Edit** on the line
+3. Enter the new quantity (cannot go below already-shipped amount)
+4. Enter a reason — this is recorded in the order history
+5. Click ✓ to save
+
+### Removing a Line
+
+A **✕** button appears next to each line when:
+
+- The order has more than one line
+- The line has not been shipped
+- No non-cancelled production orders are linked to that line (including completed or closed POs)
+
+Click **✕** → confirm the prompt → the line is removed and totals recalculate automatically.
+
+> **Note**: If any non-cancelled production order (including completed or closed states) exists for the line, cancel it first before removing the line.
+
+---
+
+## Close-Short Workflow
+
+Close-short lets you accept partial fulfillment when the full ordered quantity cannot be produced or shipped. This closes the order without waiting indefinitely for the remaining units.
+
+### When to Use
+
+- A production order completed with fewer units than ordered (scrap, material shortage)
+- Customer agreed to accept partial shipment
+- You want to close out an order rather than leave it open
+
+### How It Works
+
+1. Open the order detail — you'll see a **Close Short** button when the order is in `confirmed`, `in_production`, or `ready_to_ship` status
+2. Click **Close Short** → a preview modal shows per-line achievable quantities based on completed production
+3. Review the breakdown — lines that can't be fully fulfilled are flagged
+4. Confirm → FilaOps adjusts line quantities to what was actually fulfilled, marks the order closed-short, and updates fulfillment status
+
+> **Tip**: Use **PO Accept-Short** on linked production orders first to lock in completed quantities, then use Close-Short on the sales order.
+
+---
+
 ## Tips & Best Practices
 
 - **Use quotes for custom work** — Quotes give customers time to review pricing and let you track conversion rates
@@ -479,6 +526,9 @@ With orders flowing, you'll want to manage the production and delivery side:
 | View order details | **Sales > Orders** > Click an order card |
 | Generate a production order | Order detail view > **Generate Production Order** |
 | Cancel an order | Order detail view > **Cancel Order** |
+| Edit a line quantity | Order detail view > Line Items table > **Edit** |
+| Remove a line | Order detail view > Line Items table > **✕** |
+| Close an order short | Order detail view > **Close Short** |
 | Add a tracking number | **Sales > Shipping** > **Needs Label** tab > Enter tracking |
 | Mark an order as shipped | **Sales > Shipping** > **Ready to Ship** tab > **Mark Shipped** |
 | Print a packing slip | **Sales > Shipping** > **Packing Slip** button |

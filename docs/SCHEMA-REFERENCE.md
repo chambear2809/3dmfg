@@ -2,9 +2,9 @@
 
 # FilaOps Database Schema Reference
 
-**Generated:** 2026-03-30
-**Source:** FilaOps Core v3.6.0
-**Total Models:** 63 (Core only)
+**Generated:** 2026-04-06
+**Source:** FilaOps Core v3.7.0
+**Total Models:** 64 (Core only)
 **Purpose:** AI knowledge source for codebase understanding
 
 > This is the **Core (Open Source)** schema reference.
@@ -25,7 +25,7 @@
 10. [UOM Models](#uom-models) (1 model)
 11. [Accounting Models](#accounting-models) (4 models)
 12. [Tax Models](#tax-models) (1 model)
-13. [Reference Data Models](#reference-data-models) (8 models)
+13. [Reference Data Models](#reference-data-models) (9 models)
 
 ---
 
@@ -362,7 +362,7 @@
 | material_type | String(50) | NOT NULL | Material type |
 | color | String(50) |  | Color |
 | finish | String(50) | NOT NULL, DEFAULT 'standard' | Finish |
-| unit_price | Numeric(10, 2) | NOT NULL | Unit price |
+| unit_price | Numeric(10, 2) |  | Unit price |
 | total_price | Numeric(10, 2) | NOT NULL | Total price |
 | tax_amount | Numeric(10, 2) | DEFAULT 0.0 | Tax amount |
 | tax_rate | Numeric(5, 4) |  | Tax rate |
@@ -398,6 +398,9 @@
 | production_notes | Text |  | Production notes |
 | cancelled_at | DateTime |  | Cancelled timestamp |
 | cancellation_reason | Text |  | Cancellation reason |
+| closed_short | Boolean | NOT NULL, DEFAULT False | Closed short |
+| closed_short_at | DateTime |  | Closed Short timestamp |
+| close_short_reason | Text |  | Close short reason |
 | created_at | DateTime | NOT NULL, DEFAULT utcnow, INDEX | Creation timestamp |
 | updated_at | DateTime | NOT NULL, DEFAULT utcnow | Last update timestamp |
 | confirmed_at | DateTime |  | Confirmed timestamp |
@@ -419,7 +422,7 @@
 
 ### SalesOrderLine
 
-**Table:** `sales_order_lines` | **Tier:** Core | **File:** `sales_order.py:175`
+**Table:** `sales_order_lines` | **Tier:** Core | **File:** `sales_order.py:180`
 
 | Column | Type | Constraints | Description |
 | ------ | ---- | ----------- | ----------- |
@@ -435,6 +438,8 @@
 | total | Numeric(10, 2) | NOT NULL | Total |
 | allocated_quantity | Numeric(10, 2) | DEFAULT 0 | Quantity allocated to orders |
 | shipped_quantity | Numeric(10, 2) | DEFAULT 0 | Shipped quantity |
+| original_quantity | Numeric(10, 2) |  | Original quantity |
+| fulfillment_status | String(20) |  | Fulfillment status |
 | notes | Text |  | Additional notes |
 | created_by | Integer |  | Creator reference |
 
@@ -1877,6 +1882,24 @@
 
 ---
 
+### CloseShortRecord
+
+**Table:** `close_short_records` | **Tier:** Core | **File:** `close_short_record.py:13`
+
+| Column | Type | Constraints | Description |
+| ------ | ---- | ----------- | ----------- |
+| id | Integer | PK, INDEX | Primary key |
+| entity_type | String(20) | NOT NULL, INDEX | Entity type |
+| entity_id | Integer | NOT NULL, INDEX | Entity reference |
+| performed_by | Integer | FK->users.id | FK reference to users.id |
+| performed_at | DateTime | DEFAULT now(), NOT NULL | Performed timestamp |
+| reason | Text |  | Reason |
+| line_adjustments | JSON |  | Line adjustments |
+| linked_po_states | JSON |  | Linked po states |
+| inventory_snapshot | JSON |  | Inventory snapshot |
+
+---
+
 ### Invoice
 
 **Table:** `invoices` | **Tier:** Core | **File:** `invoice.py:10`
@@ -2037,5 +2060,5 @@
 | UOM Models | 1 | 1 |
 | Accounting Models | 4 | 4 |
 | Tax Models | 1 | 1 |
-| Reference Data Models | 8 | 8 |
-| **Total** | **63** | **63** |
+| Reference Data Models | 9 | 9 |
+| **Total** | **64** | **64** |

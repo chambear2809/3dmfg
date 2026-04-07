@@ -10,17 +10,17 @@
 
 | Metric | Count |
 | ------ | ----- |
-| **Total Endpoints** | ~432 |
+| **Total Endpoints** | ~438 |
 | **Router Files** | 49 |
 | **Router Groups** | 28 (including 18 admin sub-modules) |
 | **Base Path** | `/api/v1/` |
 
 ### HTTP Method Distribution
 
-- **GET**: ~212 endpoints (read/query operations)
-- **POST**: ~149 endpoints (create/execute operations)
-- **PUT/PATCH**: ~41 endpoints (update operations)
-- **DELETE**: ~30 endpoints (delete operations)
+- **GET**: ~213 endpoints (read/query operations)
+- **POST**: ~152 endpoints (create/execute operations)
+- **PUT/PATCH**: ~42 endpoints (update operations)
+- **DELETE**: ~31 endpoints (delete operations)
 
 ---
 
@@ -80,7 +80,7 @@ Authorization: Bearer <access_token>
 
 **Tier**: Core
 **File**: `endpoints/sales_orders.py`
-**Endpoints**: 26
+**Endpoints**: 30
 
 | Method | Path | Description | Auth |
 | ------ | ---- | ----------- | ---- |
@@ -101,6 +101,10 @@ Authorization: Bearer <access_token>
 | PATCH | `/sales-orders/{order_id}/shipping` | Update shipping information for an order (admin only). | ADMIN |
 | PATCH | `/sales-orders/{order_id}/address` | Update shipping address for an order (admin only). | ADMIN |
 | POST | `/sales-orders/{order_id}/cancel` | Cancel a sales order. | ADMIN |
+| PATCH | `/sales-orders/{order_id}/lines` | Edit line item quantities on a sales order. | ADMIN |
+| DELETE | `/sales-orders/{order_id}/lines/{line_id}` | Remove a line item from a sales order. | ADMIN |
+| GET | `/sales-orders/{order_id}/close-short-preview` | Preview close-short: shows per-line achievable quantities and PO status. | ADMIN |
+| POST | `/sales-orders/{order_id}/close-short` | Close an order short — accept partial fulfillment, transition to ready_to_ship. | ADMIN |
 | POST | `/sales-orders/{order_id}/confirm` | Confirm a pending_confirmation order from an external source. | ADMIN |
 | POST | `/sales-orders/{order_id}/reject` | Reject a pending_confirmation order from an external source. | ADMIN |
 | DELETE | `/sales-orders/{order_id}` | Delete a sales order (admin only). | ADMIN |
@@ -197,7 +201,7 @@ Authorization: Bearer <access_token>
 
 **Tier**: Core
 **File**: `endpoints/production_orders.py`, `endpoints/operation_status.py`
-**Endpoints**: 40
+**Endpoints**: 42
 
 | Method | Path | Description | Auth |
 | ------ | ---- | ----------- | ---- |
@@ -217,7 +221,9 @@ Authorization: Bearer <access_token>
 | POST | `/production-orders/{order_id}/release` | Release a production order for manufacturing. | CUSTOMER |
 | POST | `/production-orders/{order_id}/start` | Start production on an order. | CUSTOMER |
 | POST | `/production-orders/{order_id}/complete` | Complete a production order. | CUSTOMER |
+| POST | `/production-orders/{order_id}/accept-short` | Accept a production order short — complete it with the quantity already produced. | CUSTOMER |
 | POST | `/production-orders/{order_id}/cancel` | Cancel a production order. | CUSTOMER |
+| POST | `/production-orders/{order_id}/refresh-routing` | Re-snapshot the product's current active routing onto the production order. | CUSTOMER |
 | POST | `/production-orders/{order_id}/hold` | Put a production order on hold. | CUSTOMER |
 | PUT | `/production-orders/{order_id}/schedule` | Schedule a production order. | CUSTOMER |
 | GET | `/production-orders/schedule/summary` | Get production schedule summary. | CUSTOMER |
@@ -971,5 +977,5 @@ All endpoints are prefixed with `/api/v1/`
 
 ---
 
-*Last updated: 2026-03-30*
-*Generated for FilaOps Core v3.6.0*
+*Last updated: 2026-04-06*
+*Generated for FilaOps Core v3.7.0*

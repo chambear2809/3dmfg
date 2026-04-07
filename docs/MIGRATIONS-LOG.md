@@ -11,7 +11,7 @@
 
 | Metric | Count |
 | ------ | ----- |
-| **Total Migrations** | 56 |
+| **Total Migrations** | 60 |
 | **Database** | PostgreSQL |
 | **Tool** | Alembic |
 
@@ -29,12 +29,12 @@
 | Purchasing | 5 | 019, 027, 028, 036, 2940c6a93ea7 |
 | Settings | 3 | 020, 037, 062 |
 | Performance | 1 | 905ef924f499 |
-| Sales | 8 | 024, 038, 043, 061, 066, 069, 071, 072 |
+| Sales | 11 | 024, 038, 043, 061, 066, 069, 071, 072, 074, 076, 077 |
 | Maintenance | 2 | 025, 026 |
 | Products | 3 | 040, 055, 065 |
 | Accounting | 5 | 044, 045, 046, 052, 053 |
 | Tax | 1 | 063 |
-| Other | 2 | 070, 073 |
+| Other | 3 | 070, 073, 075 |
 
 ---
 
@@ -1121,6 +1121,65 @@
 
 ---
 
+#### `074_add_close_short_and_line_edit_fields.py`
+
+**Tier**: Core
+**Date**: 2026-04-02
+**Purpose**: Add close_short fields to sales_orders and original_quantity to sales_order_lines
+**Revises**: 073
+
+**Adds Columns**:
+
+- `sales_orders.closed_short`
+- `sales_orders.closed_short_at`
+- `sales_orders.close_short_reason`
+- `sales_order_lines.original_quantity`
+
+---
+
+#### `075_add_close_short_records_table.py`
+
+**Tier**: Core
+**Date**: 2026-04-03
+**Purpose**: Add close_short_records audit table
+**Revises**: 074
+
+**Creates Tables**:
+
+- `close_short_records` - Close Short Records
+
+**Creates Indexes**:
+
+- `ix_close_short_records_entity_type_entity_id`
+
+---
+
+#### `076_add_fulfillment_status_to_so_lines.py`
+
+**Tier**: Core
+**Date**: 2026-04-03
+**Purpose**: Add fulfillment_status to sales_order_lines
+**Revises**: 075
+
+**Adds Columns**:
+
+- `sales_order_lines.fulfillment_status`
+
+---
+
+#### `077_make_so_unit_price_nullable.py`
+
+**Tier**: Core
+**Date**: 2026-04-05
+**Purpose**: Make sales_orders.unit_price nullable
+**Revises**: 076
+
+**Alters Columns**:
+
+- `sales_orders.unit_price`
+
+---
+
 ## Migration Dependencies
 
 ```text
@@ -1237,6 +1296,14 @@ b1815de543ea (001_initial_postgres_schema)
 072_portal_ingestion_notifications
     |
 073_add_quote_lines_table
+    |
+074_add_close_short_and_line_edit_fields
+    |
+075_add_close_short_records_table
+    |
+076_add_fulfillment_status_to_so_lines
+    |
+077_make_so_unit_price_nullable
 ```
 
 
@@ -1261,5 +1328,5 @@ alembic history --verbose
 
 ---
 
-*Last updated: 2026-03-30*
-*Generated for FilaOps Core v3.6.0*
+*Last updated: 2026-04-06*
+*Generated for FilaOps Core v3.7.0*

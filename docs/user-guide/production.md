@@ -333,6 +333,36 @@ Each order card in the queue shows:
 
 ---
 
+---
+
+## Accepting Short (Partial Completion)
+
+When a production order cannot be completed at full quantity — due to scrap, material shortage, or equipment failure — use **Accept Short** to close it with what was actually produced.
+
+1. Open the production order detail
+2. Click **Accept Short** (available when the order has some completed quantity but cannot reach the ordered amount)
+3. Confirm — FilaOps records the completed quantity, marks the PO closed-short, and updates inventory accordingly
+
+> **Important**: Accept Short respects BOM assembly dependencies. If the PO is a sub-component for an assembly, FilaOps will warn you if accepting short breaks the parent assembly's material requirements.
+
+After accepting short on all linked POs, use [Close-Short](orders.md#close-short-workflow) on the sales order to accept partial fulfillment at the order level.
+
+---
+
+## Refreshing Routing
+
+If a routing was added or updated *after* a production order was already created, the PO won't automatically pick up the new operations. Use **Refresh Routing** to re-apply the current active routing.
+
+1. Open the production order modal
+2. Click **Refresh Routing** in the footer (visible for `draft`, `released`, and `on_hold` orders)
+3. Confirm — all pending operations are replaced with the current routing's operations and materials
+
+If the order has no operations at all (routing was missing when the PO was created), an **Apply Routing Now** button appears directly in the operations section.
+
+> **Note**: Refresh Routing is blocked if any operation has already been started or completed — you can't rewrite history for work already in progress.
+
+---
+
 ## Tips & Best Practices
 
 - **Set up work centers before creating production orders** — this lets you assign work to specific machines and track capacity
@@ -364,6 +394,8 @@ With production running, you'll need to manage the materials and inventory side:
 | Generate from a sales order | **Sales > Orders** > Order detail > **Generate Production Order** |
 | Release an order to the floor | Production order detail > **Release** |
 | Complete a production order | Production order detail > **Complete** |
+| Accept short (partial completion) | Production order detail > **Accept Short** |
+| Refresh routing on a PO | Production order modal > **Refresh Routing** |
 | Split a production order | Production order detail > **Split Order** |
 | Scrap a production order | Production order detail > **Scrap** |
 | Run a QC inspection | Production order detail > **QC Inspection** |

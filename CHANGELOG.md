@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-04-06
+
+### Added
+
+- **Close-short workflow** — accept partial fulfillment when full quantity cannot be produced or shipped; close-short preview shows per-line achievable quantities before executing (#495, #501)
+- **PO accept-short** — complete a production order with less than the ordered quantity; BOM-aware guard prevents breaking assembly dependencies (#499)
+- **SO line editing** — edit quantities on confirmed/in-production/on-hold/pending orders with reason tracking (#495)
+- **SO line removal** — remove a line from an editable order; guarded by shipped quantity, active PO check, and minimum one-line requirement (#505, #506)
+- **PO refresh-routing** — re-snapshot a product's current active routing onto an existing production order; solves POs created before routing existed (#505)
+- **Quote PDF redesign** — professional B2B layout with brand colors, two-column header, itemized lines, and terms (#497)
+- **Invoice PDF redesign** — professional layout with full customer info, payment terms, calculated due date, and packing slip match (#504)
+- **Packing slip redesign** — matches invoice/quote style with brand header, dark table header, and alternating row stripes (#504)
+- **Admin messaging** — admin-initiated direct messaging (PRO-gated; professional/enterprise tier only) (#493)
+
+### Fixed
+
+- Pending orders now included in editable statuses — line edits and removal were hidden on `pending` orders (#506)
+- Quote-converted orders used `source='portal'` incorrectly — now `source='quote'`; PRO portal passes `source='portal'` explicitly (#505)
+- `sales_orders.unit_price` was NOT NULL — caused conversion failures for multi-line quotes where header price is null by design (migration 077, #505)
+- Packing slip header collision — "PACKING SLIP" title overlapped SO number; fixed with adequate `spaceAfter` spacing (#505)
+- Close-short UI clarity — Short Closed state and multi-line Order Summary display (#502)
+
+### Documentation
+
+- Regenerated API-REFERENCE.md (438 endpoints), SCHEMA-REFERENCE.md (64 models), MIGRATIONS-LOG.md (60 migrations)
+- Added close-short, line editing, and line removal workflows to orders user guide
+- Added accept-short and refresh-routing sections to production user guide
+- Added production shortfall path to quote-to-cash workflow
+- Updated FEATURE-CATALOG.md: 41 → 50 features
+- Removed stale planning document (496-architecture-review.md)
+
 ## [3.6.0] - 2026-03-30
 
 ### Added
@@ -277,7 +308,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI Invoice Parser (PRO)
 - License management (PRO)
 
-[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/Blb3D/filaops/compare/v3.7.0...HEAD
+[3.7.0]: https://github.com/Blb3D/filaops/compare/v3.6.0...v3.7.0
+[3.6.0]: https://github.com/Blb3D/filaops/compare/v3.5.0...v3.6.0
+[3.5.0]: https://github.com/Blb3D/filaops/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/Blb3D/filaops/compare/v3.3.0...v3.4.0
 [3.3.0]: https://github.com/Blb3D/filaops/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/Blb3D/filaops/compare/v3.1.1...v3.2.0
