@@ -448,8 +448,6 @@ For a detailed walkthrough of this end-to-end process, see the [Quote to Cash](w
 
 ---
 
----
-
 ## Editing Order Lines
 
 Admins can edit line quantities and remove lines on orders in **pending**, **confirmed**, **in_production**, or **on_hold** status.

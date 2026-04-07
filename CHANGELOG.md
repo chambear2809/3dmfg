@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quote PDF redesign** — professional B2B layout with brand colors, two-column header, itemized lines, and terms (#497)
 - **Invoice PDF redesign** — professional layout with full customer info, payment terms, calculated due date, and packing slip match (#504)
 - **Packing slip redesign** — matches invoice/quote style with brand header, dark table header, and alternating row stripes (#504)
-- **Admin messaging** — admin-initiated direct messaging (PRO-gated with `isPro` feature flag) (#493)
+- **Admin messaging** — admin-initiated direct messaging (PRO-gated; professional/enterprise tier only) (#493)
 
 ### Fixed
 
