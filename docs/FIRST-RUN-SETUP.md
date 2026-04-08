@@ -21,7 +21,7 @@ The setup wizard walks through seven steps:
 6. **Import Inventory** (CSV, optional)
 7. **Complete** -- redirects to the dashboard
 
-After step 1, the user is immediately authenticated (via httpOnly cookie or bearer token depending on `AUTH_MODE`) and logged in. Steps 2-6 can all be skipped.
+After step 1, the user is immediately authenticated via httpOnly cookies and logged in. The setup response also includes a short-lived `setup_token` for the wizard's bootstrap API calls. Steps 2-6 can all be skipped.
 
 ### Password Requirements
 
@@ -59,20 +59,35 @@ This is the production flow:
 When `SMTP_USER` and `SMTP_PASSWORD` are not set in `.env`:
 
 1. User clicks "Forgot Password" and submits their email.
-2. The backend **auto-approves** the request immediately.
+2. The backend records the request and returns the normal generic success message.
+3. No email is sent and no direct reset link is exposed by default.
+4. Admin access must be restored manually, or in development you can temporarily enable the explicit override below.
+
+This keeps the public flow non-enumerating without exposing reset links on screen.
+
+### Development Override Without SMTP
+
+For local recovery only, you can explicitly opt into direct reset links by setting:
+
+```ini
+ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP=true
+```
+
+When that override is enabled outside production:
+
+1. User submits the reset request.
+2. The backend approves it immediately.
 3. A reset link is returned directly in the API response and displayed on the page.
 4. User clicks the link and sets a new password.
 
-No email is sent. The Forgot Password page displays the reset link directly with a "Reset My Password" button.
-
-> **Production warning:** If SMTP is not configured in production, auto-approval still works but a **SECURITY WARNING** is logged on every password reset. This bypasses admin approval, meaning anyone who knows a valid email address can reset that account's password without inbox verification. **Configure SMTP for production deployments** — see [Email Setup](https://blb3d.github.io/filaops/EMAIL_CONFIGURATION/).
+This override is rejected in production and should be turned off after use.
 
 ### Anti-Enumeration (Security Note)
 
 The password reset endpoint intentionally **does not reveal whether an email exists** in the system. If you submit a non-existent email:
 
 - **With SMTP:** You see a green success message: "If an account exists with this email, a password reset request has been submitted for review." No email is sent, but the response is identical.
-- **Without SMTP:** No reset link is generated (since no user was found), but the generic success message still appears.
+- **Without SMTP:** The generic success message still appears, but no reset link is exposed unless the explicit development override is enabled.
 
 This follows OWASP A07:2021 (Identification and Authentication Failures) best practices. If you are testing and unsure which email your admin account uses, check the database directly rather than relying on the reset form.
 
@@ -132,14 +147,16 @@ Then update the database:
 UPDATE users SET password_hash = '<paste hash here>' WHERE email = 'your-admin@example.com';
 ```
 
-### Option 3: Reset via the Forgot Password Flow (No SMTP)
+### Option 3: Reset via the Forgot Password Flow (Dev Override)
 
-If SMTP is not configured (typical for dev), use the Forgot Password page:
+If you explicitly enable `ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP=true`
+outside production, you can use the Forgot Password page:
 
 1. Go to `http://localhost:5173/forgot-password`
 2. Enter the admin email address
-3. The reset link appears directly on the page (no email needed)
+3. Copy the reset link returned on the page
 4. Click the link and set a new password
+5. Disable `ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP` after recovery
 
 ### Option 4: Delete All Users to Re-trigger Setup Wizard
 

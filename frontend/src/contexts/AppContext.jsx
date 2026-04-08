@@ -13,19 +13,18 @@
  */
 import { createContext, useContext, useState, useEffect } from "react";
 import { API_URL } from "../config/api";
+import { setBrowserRumGlobalAttributes } from "../telemetry/browserTracing";
 
 const AppContext = createContext({
   tier: "community",
   features: [],
   loading: true,
-  smtpConfigured: null,
 });
 
 export function AppProvider({ children }) {
   const [tier, setTier] = useState("community");
   const [features, setFeatures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [smtpConfigured, setSmtpConfigured] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,9 +33,14 @@ export function AppProvider({ children }) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
-        setTier(data.tier ?? "community");
-        setFeatures(data.features_enabled ?? []);
-        setSmtpConfigured(data.smtp_configured ?? null);
+        const nextTier = data.tier ?? "community";
+        const nextFeatures = data.features_enabled ?? [];
+        setTier(nextTier);
+        setFeatures(nextFeatures);
+        void setBrowserRumGlobalAttributes({
+          "app.tier": nextTier,
+          "app.features.count": nextFeatures.length,
+        });
       })
       .catch(() => {
         // Endpoint unreachable — stay on community defaults
@@ -51,7 +55,7 @@ export function AppProvider({ children }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{ tier, features, loading, smtpConfigured }}>
+    <AppContext.Provider value={{ tier, features, loading }}>
       {children}
     </AppContext.Provider>
   );

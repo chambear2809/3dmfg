@@ -93,11 +93,10 @@ Common status codes:
 ## Authentication
 
 All endpoints except `/auth/register`, `/auth/login`, and `/setup/*` require
-a JWT Bearer token:
-
-```
-Authorization: Bearer <access_token>
-```
+an authenticated session. Browser clients use httpOnly cookies set by the
+login and setup flows. A Bearer header is only needed for specialized cases
+where a valid access token already exists, such as the short-lived
+`setup_token` used during onboarding.
 
 ## Versioning
 

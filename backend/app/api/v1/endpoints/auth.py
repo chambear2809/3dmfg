@@ -2,10 +2,6 @@
 Authentication endpoints for FilaOps Core
 
 Handles user registration, login, token refresh, and profile retrieval.
-
-Auth delivery is controlled by ``settings.AUTH_MODE``:
-- ``cookie`` (default): tokens are set as httpOnly cookies — never exposed to JS.
-- ``header``: tokens are returned in the JSON body (legacy / programmatic use).
 """
 from datetime import datetime, timezone, timedelta
 from typing import Annotated
@@ -20,7 +16,6 @@ from app.models.user import User, RefreshToken, PasswordResetRequest
 from app.schemas.auth import (
     UserRegister,
     UserResponse,
-    RefreshTokenRequest,
     PasswordResetRequestCreate,
     PasswordResetRequestResponse,
     PasswordResetApprovalRequest,
@@ -54,8 +49,6 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-_USE_COOKIES = settings.AUTH_MODE.lower() == "cookie"
-
 
 # ============================================================================
 # ENDPOINT: User Registration
@@ -72,9 +65,7 @@ async def register_user(
     """
     Register a new user
 
-    Creates a new user account with the provided email and password.
-    In cookie mode, tokens are set as httpOnly cookies.
-    In header mode, tokens are returned in the response body.
+    Creates a new user account and authenticates them via httpOnly cookies.
     """
     # Check if email already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -120,18 +111,8 @@ async def register_user(
     db.commit()
 
     user_dict = UserResponse.model_validate(new_user).model_dump()
-
-    if _USE_COOKIES:
-        set_auth_cookies(response, access_token, refresh_token)
-        return {**user_dict, "token_type": "cookie"}
-
-    # Header mode — return tokens in body
-    return {
-        **user_dict,
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-    }
+    set_auth_cookies(response, access_token, refresh_token)
+    return {**user_dict, "token_type": "cookie"}
 
 
 # ============================================================================
@@ -149,8 +130,7 @@ async def login_user(
     """
     Login with email and password.
 
-    In cookie mode, tokens are set as httpOnly cookies and user info is returned.
-    In header mode, tokens are returned in the response body (legacy).
+    Tokens are set as httpOnly cookies and user info is returned in the body.
     """
     try:
         # Get user by email (username field in OAuth2 form)
@@ -236,18 +216,9 @@ async def login_user(
         ).delete(synchronize_session=False)
 
         db.commit()
-
-        if _USE_COOKIES:
-            set_auth_cookies(response, access_token, refresh_token)
-            user_dict = UserResponse.model_validate(user).model_dump()
-            return {"message": "Login successful", "user": user_dict, "token_type": "cookie"}
-
-        # Header mode — return tokens in body
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-        }
+        set_auth_cookies(response, access_token, refresh_token)
+        user_dict = UserResponse.model_validate(user).model_dump()
+        return {"message": "Login successful", "user": user_dict, "token_type": "cookie"}
     except HTTPException:
         raise
     except Exception as e:
@@ -268,15 +239,12 @@ async def login_user(
 async def refresh_access_token(
     request: Request,
     response: Response,
-    refresh_data: RefreshTokenRequest | None = None,
     db: Session = Depends(get_db),
 ):
     """
     Refresh access token using refresh token.
 
-    In cookie mode, reads the refresh token from the httpOnly cookie.
-    In header mode, reads from the JSON body.
-    The old refresh token is always revoked (token rotation).
+    Reads the refresh token from the httpOnly cookie and rotates it server-side.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -284,10 +252,8 @@ async def refresh_access_token(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Resolve the raw refresh token: cookie first, then body
+    # Refresh tokens are cookie-only; bearer-in-body mode has been retired.
     raw_refresh_token: str | None = request.cookies.get("refresh_token")
-    if not raw_refresh_token and refresh_data:
-        raw_refresh_token = refresh_data.refresh_token
     if not raw_refresh_token:
         raise credentials_exception
 
@@ -337,16 +303,8 @@ async def refresh_access_token(
     ).delete(synchronize_session=False)
 
     db.commit()
-
-    if _USE_COOKIES:
-        set_auth_cookies(response, new_access_token, new_refresh_token)
-        return {"message": "Token refreshed", "token_type": "cookie"}
-
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer",
-    }
+    set_auth_cookies(response, new_access_token, new_refresh_token)
+    return {"message": "Token refreshed", "token_type": "cookie"}
 
 
 # ============================================================================
@@ -361,7 +319,7 @@ async def get_current_user_profile(
     Get current user profile
 
     Returns the profile of the currently authenticated user.
-    Requires valid access token in Authorization header.
+    Accepts the access token from the httpOnly cookie or a Bearer header.
 
     Args:
         current_user: Current authenticated user (from dependency)
@@ -429,7 +387,15 @@ async def request_password_reset(
     2. Admin receives approval email
     3. Admin clicks approve link
     4. User receives reset link via email
+
+    If SMTP is not configured, password reset stays disabled unless the
+    explicit development-only override is enabled.
     """
+    email_configured = bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
+    direct_reset_enabled = (
+        settings.ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP and not settings.is_production
+    )
+
     # Find user by email
     user = db.query(User).filter(User.email == request_data.email).first()
 
@@ -468,9 +434,6 @@ async def request_password_reset(
     db.commit()
     db.refresh(reset_request)
 
-    # Check if email is configured
-    email_configured = bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
-    
     if email_configured:
         # Send approval email to admin (normal flow)
         email_sent = email_service.send_password_reset_approval_request(
@@ -498,16 +461,8 @@ async def request_password_reset(
             message=success_message,
             request_id=reset_request.id  # type: ignore[arg-type]
         )
-    else:
-        # No SMTP configured - auto-approve and return reset link directly
-        if settings.is_production:
-            logger.warning(
-                "SECURITY WARNING: Password reset auto-approved in production because "
-                "SMTP is not configured. This bypasses admin approval. Configure SMTP "
-                "to enable secure password resets. "
-                "See: https://blb3d.github.io/filaops/EMAIL_CONFIGURATION/",
-                extra={"user_id": user.id, "email": user.email}
-            )
+    elif direct_reset_enabled:
+        # Explicit development-only escape hatch for local recovery.
         reset_request.status = 'approved'  # type: ignore[assignment]
         reset_request.approved_at = datetime.now(timezone.utc).replace(tzinfo=None)  # type: ignore[assignment]
         reset_request.expires_at = (datetime.now(timezone.utc) + timedelta(hours=24)).replace(tzinfo=None)  # type: ignore[assignment] # 24 hours to use
@@ -517,7 +472,7 @@ async def request_password_reset(
         reset_url = f"/reset-password/{reset_token}"
         
         logger.info(
-            "Password reset auto-approved (email not configured)",
+            "Password reset direct link issued because the dev-only override is enabled",
             extra={
                 "user_id": user.id,
                 "email": user.email,
@@ -531,6 +486,19 @@ async def request_password_reset(
             request_id=reset_request.id,  # type: ignore[arg-type]
             reset_token=reset_token,
             reset_url=reset_url
+        )
+    else:
+        logger.warning(
+            "Password reset requested while SMTP is not configured; direct reset links are disabled.",
+            extra={
+                "user_id": user.id,
+                "email": user.email,
+                "request_id": reset_request.id,
+            },
+        )
+        return PasswordResetRequestResponse(
+            message=success_message,
+            request_id=reset_request.id,  # type: ignore[arg-type]
         )
 
 

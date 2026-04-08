@@ -6,6 +6,7 @@
 docs/T-REX-Implementation-Report.md
 docs/T-REX-Implementation-Report.pdf
 docs/AI_Agent_Governance_Gap_Analysis.pdf
+docs/BLIND_TEST_RECOVERY.md
 
 # Binaries (ship instructions, not executables)
 *.exe
@@ -27,8 +28,6 @@ credentials/
 # Claude Code local settings (may contain secrets)
 .claude/settings.local.json
 
-# Windows artifacts
-nul
 *.lnk
 
 # Sync files
@@ -58,11 +57,14 @@ wheels/
 MANIFEST
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 .tox/
 .nox/
 .hypothesis/
 .ruff_cache/
+.mypy_cache/
 
 # Virtual environments
 venv/
@@ -110,11 +112,11 @@ uploads/*
 # Testing
 /playwright-report/
 **/test-results/
-/coverage/
+coverage/
 .nyc_output/
+scripts/loadgen/manifest.json
 
 # OS
-.DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
@@ -129,9 +131,6 @@ ehthumbs.db
 # Alembic
 alembic/versions/__pycache__/
 
-# Binaries
-*.exe
-
 # Output/log files
 *_output.txt
 migration_output.txt
@@ -139,9 +138,6 @@ tables_output.txt
 
 # Working documents
 **/ACTIVE_WORK.md
-
-# Screenshots/images
-*.png
 
 # Temporary review/API cache files
 *tmp_reviews.json
@@ -175,3 +171,6 @@ docs/T-REX-Implementation-Report.pdf
 docs/AI_Agent_Governance_Gap_Analysis.pdf
 docs/BLIND_TEST_RECOVERY.md
 .worktrees/
+
+# Local demo state
+scripts/demo/.state/

@@ -15,11 +15,16 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import Integer, cast, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.logging_config import get_logger
 from app.models.product import Product
 from app.models.sales_order import SalesOrder, SalesOrderLine
 from app.models.user import User
+
+logger = get_logger(__name__)
 
 
 # ============================================================================
@@ -85,7 +90,7 @@ def find_or_create_customer(
     customer = User(
         customer_number=customer_number,
         email=email_lower,
-        password_hash="!import-created-no-password",  # unusable hash; customer must reset password
+        password_hash="!import-created-no-password",
         first_name=first_name or None,
         last_name=last_name or None,
         company_name=shipping_address.get("company") if shipping_address else None,
@@ -113,12 +118,26 @@ def find_or_create_customer(
     return customer
 
 
+def generate_import_order_number(db: Session) -> str:
+    """Generate the next import sales order number using a numeric suffix."""
+    year = datetime.now(timezone.utc).year
+    order_prefix = f"SO-{year}-"
+    max_seq = (
+        db.query(
+            func.max(cast(func.replace(SalesOrder.order_number, order_prefix, ""), Integer))
+        )
+        .filter(SalesOrder.order_number.like(f"{order_prefix}%"))
+        .scalar()
+        or 0
+    )
+    return f"{order_prefix}{int(max_seq) + 1:06d}"
+
+
 # ============================================================================
 # COLUMN NAME VARIATIONS
 # ============================================================================
 
 ORDER_ID_COLS = ["order id", "Order ID", "order_id", "Order_ID", "Order Number", "order_number", "Order #", "Order#"]
-ORDER_DATE_COLS = ["order date", "Order Date", "order_date", "Date", "date", "Order Date/Time"]
 CUSTOMER_EMAIL_COLS = ["customer email", "Customer Email", "customer_email", "Email", "email", "Buyer Email", "buyer_email"]
 CUSTOMER_NAME_COLS = ["customer name", "Customer Name", "customer_name", "Name", "name", "Buyer Name", "buyer_name", "Shipping Name", "shipping name"]
 PRODUCT_SKU_COLS = ["product sku", "Product SKU", "product_sku", "SKU", "sku", "Variant SKU", "variant_sku", "Item SKU", "item_sku"]
@@ -144,37 +163,15 @@ def _find_col(row: dict, candidates: list) -> str:
 
 
 # ============================================================================
-# MAIN IMPORT FUNCTION
+# PARSING
 # ============================================================================
 
-def import_orders_from_csv(
-    db: Session,
-    csv_text: str,
-    *,
-    create_customers: bool = True,
-    source: str = "manual",
-    current_user_id: int,
-) -> Dict[str, Any]:
-    """Import orders from CSV text content.
-
-    Args:
-        db: Database session
-        csv_text: Decoded CSV text content (BOM already stripped)
-        create_customers: Whether to auto-create missing customers
-        source: Order source label (manual, squarespace, shopify, etc.)
-        current_user_id: ID of the admin performing the import
-
-    Returns:
-        Dict with total_rows, created, skipped, errors
-    """
+def parse_orders_from_csv(csv_text: str) -> Dict[str, Any]:
+    """Parse CSV text into normalized order payloads."""
     reader = csv.DictReader(io.StringIO(csv_text))
 
     total_rows = 0
-    created = 0
-    skipped = 0
     errors: List[dict] = []
-
-    # Group rows by Order ID for multi-line orders
     orders_dict: Dict[str, Dict[str, Any]] = {}
 
     for row_num, row in enumerate(reader, start=2):
@@ -192,7 +189,6 @@ def import_orders_from_csv(
                 errors.append({"row": row_num, "error": "Product SKU missing - line item skipped", "order_id": order_id})
                 continue
 
-            # Parse quantity
             quantity = 1
             qty_str = _find_col(row, QUANTITY_COLS)
             if qty_str:
@@ -236,12 +232,13 @@ def import_orders_from_csv(
 
             if order_id not in orders_dict:
                 orders_dict[order_id] = {
+                    "source_order_id": order_id,
                     "customer_email": customer_email,
-                    "customer_name": customer_name,
+                    "customer_name": customer_name or None,
                     "shipping_address": shipping_address,
                     "shipping_cost": shipping_cost,
                     "tax_amount": tax_amount,
-                    "notes": notes,
+                    "notes": notes or None,
                     "lines": [],
                 }
 
@@ -251,148 +248,207 @@ def import_orders_from_csv(
                 "unit_price": unit_price,
             })
 
-        except Exception as e:
-            errors.append({"row": row_num, "error": str(e), "order_id": order_id})
-            skipped += 1
+        except Exception as exc:
+            errors.append({"row": row_num, "error": str(exc), "order_id": order_id})
 
-    # Process each order
-    for order_id, order_data in orders_dict.items():
-        try:
-            customer = None
-            if create_customers:
-                customer = find_or_create_customer(
-                    db,
-                    order_data["customer_email"],
-                    order_data["customer_name"],
-                    order_data["shipping_address"],
-                )
-            else:
-                customer = db.query(User).filter(
-                    User.email.ilike(order_data["customer_email"])
-                ).first()
+    return {"total_rows": total_rows, "orders": list(orders_dict.values()), "errors": errors}
 
-            if not customer:
-                if "@placeholder.local" in order_data["customer_email"] and not create_customers:
-                    errors.append({"order_id": order_id, "error": "Customer email missing and create_customers=false - order skipped"})
+
+# ============================================================================
+# PERSISTENCE
+# ============================================================================
+
+def import_normalized_orders(
+    db: Session,
+    *,
+    parsed_orders: List[Dict[str, Any]],
+    total_rows: int,
+    current_user_id: int,
+    create_customers: bool = True,
+    source: str = "manual",
+    parse_errors: Optional[List[dict]] = None,
+) -> Dict[str, Any]:
+    """Persist normalized orders into the core ERP database."""
+    created = 0
+    skipped = len(parse_errors or [])
+    errors: List[dict] = list(parse_errors or [])
+
+    for order_data in parsed_orders:
+        order_id = order_data["source_order_id"]
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            try:
+                if create_customers:
+                    customer = find_or_create_customer(
+                        db,
+                        order_data["customer_email"],
+                        order_data.get("customer_name"),
+                        order_data.get("shipping_address") or {},
+                    )
                 else:
-                    errors.append({"order_id": order_id, "error": f"Customer not found: {order_data['customer_email']} (set create_customers=true to auto-create)"})
-                skipped += 1
-                continue
+                    customer = db.query(User).filter(
+                        User.email.ilike(order_data["customer_email"])
+                    ).first()
 
-            # Process order lines
-            line_products = []
-            total_price = Decimal("0.00")
-            total_quantity = 0
+                if not customer:
+                    if "@placeholder.local" in order_data["customer_email"] and not create_customers:
+                        errors.append({"order_id": order_id, "error": "Customer email missing and create_customers=false - order skipped"})
+                    else:
+                        errors.append({"order_id": order_id, "error": f"Customer not found: {order_data['customer_email']} (set create_customers=true to auto-create)"})
+                    skipped += 1
+                    break
 
-            for line in order_data["lines"]:
-                product = find_product_by_sku(db, line["sku"])
-                if not product:
-                    errors.append({"order_id": order_id, "error": f"Product not found: {line['sku']}"})
-                    continue
-                if not product.active:
-                    errors.append({"order_id": order_id, "error": f"Product '{line['sku']}' is inactive"})
-                    continue
+                line_products = []
+                total_price = Decimal("0.00")
+                total_quantity = 0
 
-                up = line["unit_price"] or product.selling_price or Decimal("0.00")
-                if up <= 0:
-                    errors.append({"order_id": order_id, "error": f"Product '{line['sku']}' has no price"})
-                    continue
+                for line in order_data["lines"]:
+                    product = find_product_by_sku(db, line["sku"])
+                    if not product:
+                        errors.append({"order_id": order_id, "error": f"Product not found: {line['sku']}"})
+                        continue
+                    if not product.active:
+                        errors.append({"order_id": order_id, "error": f"Product '{line['sku']}' is inactive"})
+                        continue
 
-                line_total = up * line["quantity"]
-                line_products.append({"product": product, "quantity": line["quantity"], "unit_price": up, "line_total": line_total})
-                total_price += line_total
-                total_quantity += line["quantity"]
+                    unit_price_value = line.get("unit_price")
+                    up = (
+                        Decimal(str(unit_price_value))
+                        if unit_price_value is not None
+                        else (product.selling_price or Decimal("0.00"))
+                    )
+                    if up <= 0:
+                        errors.append({"order_id": order_id, "error": f"Product '{line['sku']}' has no price"})
+                        continue
 
-            if not line_products:
-                errors.append({"order_id": order_id, "error": "No valid products found for order"})
-                skipped += 1
-                continue
+                    line_total = up * line["quantity"]
+                    line_products.append(
+                        {
+                            "product": product,
+                            "quantity": line["quantity"],
+                            "unit_price": up,
+                            "line_total": line_total,
+                        }
+                    )
+                    total_price += line_total
+                    total_quantity += line["quantity"]
 
-            # Check duplicate
-            existing = db.query(SalesOrder).filter(SalesOrder.source_order_id == order_id).first()
-            if existing:
-                errors.append({"order_id": order_id, "error": f"Order already exists: {existing.order_number}"})
-                skipped += 1
-                continue
+                if not line_products:
+                    errors.append({"order_id": order_id, "error": "No valid products found for order"})
+                    skipped += 1
+                    break
 
-            # Generate order number
-            year = datetime.now(timezone.utc).year
-            last_order = db.query(SalesOrder).filter(
-                SalesOrder.order_number.like(f"SO-{year}-%")
-            ).order_by(SalesOrder.order_number.desc()).first()
+                existing = db.query(SalesOrder).filter(SalesOrder.source_order_id == order_id).first()
+                if existing:
+                    errors.append({"order_id": order_id, "error": f"Order already exists: {existing.order_number}"})
+                    skipped += 1
+                    break
 
-            if last_order:
-                try:
-                    last_num = int(last_order.order_number.split("-")[2])
-                    order_number = f"SO-{year}-{last_num + 1:06d}"
-                except (ValueError, IndexError):
-                    order_number = f"SO-{year}-000001"
-            else:
-                order_number = f"SO-{year}-000001"
+                order_number = generate_import_order_number(db)
+                shipping_cost = Decimal(str(order_data["shipping_cost"]))
+                tax_amount = Decimal(str(order_data["tax_amount"]))
+                grand_total = total_price + shipping_cost + tax_amount
 
-            shipping_cost = order_data["shipping_cost"]
-            tax_amount = order_data["tax_amount"]
-            grand_total = total_price + shipping_cost + tax_amount
+                ship_addr = order_data.get("shipping_address") or {}
+                shipping_line1 = ship_addr.get("line1") or customer.shipping_address_line1
+                shipping_city = ship_addr.get("city") or customer.shipping_city
+                shipping_state = ship_addr.get("state") or customer.shipping_state
+                shipping_zip = ship_addr.get("zip") or customer.shipping_zip
+                shipping_country = ship_addr.get("country") or customer.shipping_country or "USA"
 
-            ship_addr = order_data["shipping_address"]
-            shipping_line1 = ship_addr.get("line1") or customer.shipping_address_line1
-            shipping_city = ship_addr.get("city") or customer.shipping_city
-            shipping_state = ship_addr.get("state") or customer.shipping_state
-            shipping_zip = ship_addr.get("zip") or customer.shipping_zip
-            shipping_country = ship_addr.get("country") or customer.shipping_country or "USA"
-
-            sales_order = SalesOrder(
-                user_id=customer.id,
-                order_number=order_number,
-                order_type="line_item",
-                source=source,
-                source_order_id=order_id,
-                product_name=line_products[0]["product"].name if line_products else "Imported Order",
-                quantity=total_quantity,
-                material_type="PLA",
-                finish="standard",
-                unit_price=total_price / total_quantity if total_quantity > 0 else Decimal("0.00"),
-                total_price=total_price,
-                tax_amount=tax_amount,
-                shipping_cost=shipping_cost,
-                grand_total=grand_total,
-                status="pending",
-                payment_status="pending",
-                rush_level="standard",
-                shipping_address_line1=shipping_line1,
-                shipping_address_line2=None,
-                shipping_city=shipping_city,
-                shipping_state=shipping_state,
-                shipping_zip=shipping_zip,
-                shipping_country=shipping_country,
-                customer_notes=order_data["notes"],
-                internal_notes=f"Imported from {source} CSV",
-                created_at=datetime.now(timezone.utc),
-                updated_at=datetime.now(timezone.utc),
-            )
-            db.add(sales_order)
-            db.flush()
-
-            for line_data in line_products:
-                order_line = SalesOrderLine(
-                    sales_order_id=sales_order.id,
-                    product_id=line_data["product"].id,
-                    quantity=line_data["quantity"],
-                    unit_price=line_data["unit_price"],
-                    total=line_data["line_total"],
-                    discount=Decimal("0.00"),
-                    tax_rate=Decimal("0.00"),
-                    notes=None,
-                    created_by=current_user_id,
+                sales_order = SalesOrder(
+                    user_id=customer.id,
+                    order_number=order_number,
+                    order_type="line_item",
+                    source=source,
+                    source_order_id=order_id,
+                    product_name=line_products[0]["product"].name if line_products else "Imported Order",
+                    quantity=total_quantity,
+                    material_type="PLA",
+                    finish="standard",
+                    unit_price=total_price / total_quantity if total_quantity > 0 else Decimal("0.00"),
+                    total_price=total_price,
+                    tax_amount=tax_amount,
+                    shipping_cost=shipping_cost,
+                    grand_total=grand_total,
+                    status="pending",
+                    payment_status="pending",
+                    rush_level="standard",
+                    shipping_address_line1=shipping_line1,
+                    shipping_address_line2=None,
+                    shipping_city=shipping_city,
+                    shipping_state=shipping_state,
+                    shipping_zip=shipping_zip,
+                    shipping_country=shipping_country,
+                    customer_notes=order_data.get("notes"),
+                    internal_notes=f"Imported from {source} CSV",
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc),
                 )
-                db.add(order_line)
+                db.add(sales_order)
+                db.flush()
 
-            db.commit()
-            created += 1
+                for line_data in line_products:
+                    order_line = SalesOrderLine(
+                        sales_order_id=sales_order.id,
+                        product_id=line_data["product"].id,
+                        quantity=line_data["quantity"],
+                        unit_price=line_data["unit_price"],
+                        total=line_data["line_total"],
+                        discount=Decimal("0.00"),
+                        tax_rate=Decimal("0.00"),
+                        notes=None,
+                        created_by=current_user_id,
+                    )
+                    db.add(order_line)
 
-        except Exception as e:
-            db.rollback()
-            errors.append({"order_id": order_id, "error": str(e)})
-            skipped += 1
+                db.commit()
+                created += 1
+                break
+
+            except IntegrityError as exc:
+                db.rollback()
+                if "sales_orders_order_number" in str(exc) and attempt < max_retries - 1:
+                    logger.warning(
+                        "Retrying imported order %s after duplicate order_number attempt %s/%s",
+                        order_id,
+                        attempt + 1,
+                        max_retries,
+                    )
+                    continue
+                errors.append({"order_id": order_id, "error": str(exc)})
+                skipped += 1
+                break
+            except Exception as exc:
+                db.rollback()
+                errors.append({"order_id": order_id, "error": str(exc)})
+                skipped += 1
+                break
 
     return {"total_rows": total_rows, "created": created, "skipped": skipped, "errors": errors}
+
+
+# ============================================================================
+# MAIN IMPORT FUNCTION
+# ============================================================================
+
+def import_orders_from_csv(
+    db: Session,
+    csv_text: str,
+    *,
+    create_customers: bool = True,
+    source: str = "manual",
+    current_user_id: int,
+) -> Dict[str, Any]:
+    """Import orders from CSV text content."""
+    parsed = parse_orders_from_csv(csv_text)
+    return import_normalized_orders(
+        db,
+        parsed_orders=parsed["orders"],
+        total_rows=parsed["total_rows"],
+        current_user_id=current_user_id,
+        create_customers=create_customers,
+        source=source,
+        parse_errors=parsed["errors"],
+    )

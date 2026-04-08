@@ -16,7 +16,7 @@ Guides for deploying, configuring, and maintaining a FilaOps instance in product
 ```mermaid
 graph TD
     Internet["🌐 Internet"] -->|"Port 80"| Frontend
-    Frontend["<b>frontend</b><br/>nginx:alpine<br/>React SPA"] -->|"/api proxy"| Backend
+    Frontend["<b>frontend</b><br/>node:20-slim<br/>server.mjs + React SPA"] -->|"/api proxy"| Backend
     Internet -->|"Port 8000"| Backend
     Backend["<b>backend</b><br/>python:3.11-slim<br/>FastAPI + Uvicorn"] --> DB
     Migrate["<b>migrate</b><br/>alembic upgrade head"] --> DB

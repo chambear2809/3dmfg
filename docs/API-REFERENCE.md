@@ -26,16 +26,16 @@
 
 ## Authentication
 
-All endpoints except those marked `PUBLIC` require JWT Bearer token authentication.
-
-```http
-Authorization: Bearer <access_token>
-```
+All endpoints except those marked `PUBLIC` require an authenticated session.
+The browser application uses httpOnly cookies set by `/auth/login` or
+`/setup/initial-admin`. Some endpoints also accept an `Authorization: Bearer`
+header when a valid access token is already available, such as the short-lived
+`setup_token` used during onboarding.
 
 ### Auth Levels
 
 - **PUBLIC**: No authentication required
-- **CUSTOMER**: Requires valid JWT (any user type)
+- **CUSTOMER**: Requires a valid authenticated session (any user type)
 - **STAFF**: Requires `account_type` in ['admin', 'operator']
 - **ADMIN**: Requires `account_type` = 'admin'
 

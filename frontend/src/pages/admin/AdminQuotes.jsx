@@ -440,7 +440,7 @@ export default function AdminQuotes() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" data-rum-mask="true">
                       <span className="text-white">{quote.customer_name || "—"}</span>
                       {quote.customer_email && (
                         <span className="text-gray-500 text-sm block">{quote.customer_email}</span>
@@ -590,4 +590,3 @@ export default function AdminQuotes() {
     </div>
   );
 }
-

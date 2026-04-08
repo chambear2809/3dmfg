@@ -31,7 +31,7 @@ router = APIRouter(prefix="/security", tags=["Security"])
 
 def require_local_remediation():
     """Dependency that blocks remediation endpoints in production."""
-    if getattr(settings, "ENVIRONMENT", "development") == "production":
+    if settings.is_production:
         raise HTTPException(
             status_code=403,
             detail="This endpoint is disabled in production environments"

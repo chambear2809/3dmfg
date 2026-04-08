@@ -75,7 +75,10 @@ The `email-validator` library rejects `.local` domains (RFC 6762 reserved). If y
 
 ### Forgot password but SMTP is not configured
 
-When SMTP is not set up, the password reset flow auto-approves and displays the reset link directly on the Forgot Password page. No email is needed. See the [First-Run Setup Guide](../FIRST-RUN-SETUP.md#without-smtp-configured-development-mode) for details.
+By default, password reset requests stay pending and no direct reset link is
+shown. Configure SMTP for the normal approval flow, or in development only
+temporarily enable `ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP=true` to surface
+a direct reset link. See the [First-Run Setup Guide](../FIRST-RUN-SETUP.md#development-override-without-smtp).
 
 ### Locked out of admin account on a dev database
 

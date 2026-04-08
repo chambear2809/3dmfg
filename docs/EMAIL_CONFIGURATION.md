@@ -25,7 +25,8 @@ SMTP_TLS=true
 ## Disabling Email
 
 If SMTP is not configured, FilaOps will:
-- Auto-approve password reset requests and display reset links directly on the page
-- Log email content to the console instead of sending
+- Keep password reset requests pending without sending email
+- Require manual admin recovery unless you explicitly enable the dev-only
+  `ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP=true` override outside production
 
 For a full description of how password resets work with and without SMTP, see [First-Run Setup and Password Reset](FIRST-RUN-SETUP.md#password-reset-flow).

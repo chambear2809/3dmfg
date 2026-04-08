@@ -12,6 +12,12 @@ from pydantic import BaseModel
 from app.models.user import User
 from app.api.v1.deps import get_current_user
 from app.logging_config import get_logger
+from app.services.asset_dispatch_client import (
+    AssetServiceClientError,
+    AssetServiceNotFoundError,
+    asset_dispatch_client,
+)
+
 router = APIRouter()
 logger = get_logger(__name__)
 
@@ -37,6 +43,10 @@ def get_file_extension(filename: str) -> str:
 def is_allowed_file(filename: str) -> bool:
     """Check if file extension is allowed"""
     return get_file_extension(filename) in ALLOWED_EXTENSIONS
+
+
+def _product_image_url(asset_key: str) -> str:
+    return f"/api/v1/assets/product-images/{asset_key}"
 
 
 @router.post("/product-image", response_model=UploadResponse)
@@ -77,6 +87,23 @@ async def upload_product_image(
     ext = get_file_extension(file.filename)
     unique_filename = f"{uuid.uuid4().hex}{ext}"
 
+    if asset_dispatch_client.is_configured:
+        try:
+            uploaded = asset_dispatch_client.upload(
+                category="product-images",
+                filename=file.filename,
+                content=content,
+                content_type=file.content_type or "application/octet-stream",
+            )
+        except AssetServiceClientError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        return UploadResponse(
+            filename=uploaded["asset_key"],
+            url=_product_image_url(uploaded["asset_key"]),
+            size=file_size,
+        )
+
     # Ensure upload directory exists
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -88,12 +115,9 @@ async def upload_product_image(
 
         logger.info(f"Uploaded product image: {unique_filename} ({file_size} bytes) by user {current_user.id}")
 
-        # Build URL - uses the static file serving path
-        image_url = f"/static/uploads/products/{unique_filename}"
-
         return UploadResponse(
             filename=unique_filename,
-            url=image_url,
+            url=_product_image_url(unique_filename),
             size=file_size
         )
 
@@ -121,6 +145,17 @@ async def delete_product_image(
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     file_path = UPLOAD_DIR / safe_filename
+
+    if asset_dispatch_client.is_configured:
+        try:
+            asset_dispatch_client.delete(category="product-images", asset_key=safe_filename)
+        except AssetServiceNotFoundError as exc:
+            raise HTTPException(status_code=404, detail="File not found") from exc
+        except AssetServiceClientError as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+        logger.info(f"Deleted remote product image: {safe_filename} by user {current_user.id}")
+        return {"message": "File deleted successfully"}
 
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")

@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backend-uploads
+  namespace: 3dprint
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: 3dprint
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        instrumentation.opentelemetry.io/container-names: backend
+        instrumentation.opentelemetry.io/inject-python: 3dprint/filaops-python
+    spec:
+      initContainers:
+        - name: migrate
+          image: 637423309390.dkr.ecr.us-east-1.amazonaws.com/filaops-backend:env-3dprint-20260402-asset-order-ingest-fix-d9b6388
+          args:
+            - bash
+            - scripts/docker-migrate.sh
+          envFrom:
+            - configMapRef:
+                name: filaops-config
+            - secretRef:
+                name: filaops-secrets
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      containers:
+        - name: backend
+          image: 637423309390.dkr.ecr.us-east-1.amazonaws.com/filaops-backend:env-3dprint-20260402-asset-order-ingest-fix-d9b6388
+          imagePullPolicy: Always
+          args:
+            - uvicorn
+            - app.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            - --workers
+            - "1"
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: filaops-config
+            - secretRef:
+                name: filaops-secrets
+          env:
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://splunk-otel-collector-agent.otel-splunk.svc:4318
+            - name: OTEL_LOGS_EXPORTER
+              value: none
+            - name: OTEL_SERVICE_NAME
+              value: filaops-backend
+            - name: SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
+              value: "true"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 18
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: backend-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: 3dprint
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http

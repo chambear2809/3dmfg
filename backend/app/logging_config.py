@@ -24,6 +24,27 @@ from typing import Any, Dict, Optional
 from app.core.settings import settings
 
 
+def _get_trace_context() -> tuple[str | None, str | None]:
+    """Return the active OpenTelemetry trace/span IDs when available."""
+    try:
+        from opentelemetry import trace as otel_trace
+    except Exception:
+        return None, None
+
+    span = otel_trace.get_current_span()
+    if span is None:
+        return None, None
+
+    span_context = span.get_span_context()
+    if not span_context or not span_context.is_valid:
+        return None, None
+
+    return (
+        format(span_context.trace_id, "032x"),
+        format(span_context.span_id, "016x"),
+    )
+
+
 class JSONFormatter(logging.Formatter):
     """
     Formats log records as JSON for log aggregation systems.
@@ -53,6 +74,12 @@ class JSONFormatter(logging.Formatter):
         }
         if cid:
             log_data["correlation_id"] = cid
+
+        trace_id, span_id = _get_trace_context()
+        if trace_id:
+            log_data["trace_id"] = trace_id
+        if span_id:
+            log_data["span_id"] = span_id
 
         # Add location info for errors
         if record.levelno >= logging.ERROR:
@@ -96,6 +123,12 @@ class TextFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         base_msg = f"{timestamp} [{record.levelname}] {record.name}: {record.getMessage()}"
+
+        trace_id, span_id = _get_trace_context()
+        if trace_id:
+            base_msg += f" trace_id={trace_id}"
+        if span_id:
+            base_msg += f" span_id={span_id}"
 
         # Append extra fields
         extras = []

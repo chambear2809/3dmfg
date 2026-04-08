@@ -48,13 +48,6 @@ def _disable_rate_limits():
     limiter.enabled = original_enabled
 
 
-@pytest.fixture(autouse=True)
-def _force_header_mode(monkeypatch):
-    """Force header (bearer-in-body) mode so existing tests see tokens in body."""
-    import app.api.v1.endpoints.auth as auth_mod
-    monkeypatch.setattr(auth_mod, "_USE_COOKIES", False)
-
-
 @pytest.fixture
 def non_admin_user(db):
     """Create a non-admin user (account_type=customer) for 403 tests."""
@@ -662,7 +655,8 @@ class TestAuthMeWithLoginToken:
             },
         )
         assert login_resp.status_code == 200
-        token = login_resp.json()["access_token"]
+        token = login_resp.cookies.get("access_token")
+        assert token is not None
 
         me_resp = unauthed_client.get(
             f"{AUTH_URL}/me",
@@ -1246,7 +1240,8 @@ class TestPasswordResetRevokesTokens:
             },
         )
         assert resp.status_code == 200
-        assert "access_token" in resp.json()
+        assert resp.json()["token_type"] == "cookie"
+        assert "access_token" in resp.cookies
 
 
 # =============================================================================

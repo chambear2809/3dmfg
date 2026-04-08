@@ -12,9 +12,6 @@ from .common import (
 from .auth import (
     UserRegister,
     UserResponse,
-    TokenResponse,
-    UserWithTokens,
-    RefreshTokenRequest,
     TokenData
 )
 from .item import (
@@ -120,9 +117,6 @@ __all__ = [
     # Auth schemas
     "UserRegister",
     "UserResponse",
-    "TokenResponse",
-    "UserWithTokens",
-    "RefreshTokenRequest",
     "TokenData",
     # Item schemas
     "ItemType",

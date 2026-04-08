@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-ingest
+  namespace: 3dprint
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-ingest
+  template:
+    metadata:
+      labels:
+        app: order-ingest
+      annotations:
+        instrumentation.opentelemetry.io/container-names: order-ingest
+        instrumentation.opentelemetry.io/inject-python: 3dprint/filaops-python
+    spec:
+      containers:
+        - name: order-ingest
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          workingDir: /bundle
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - >
+              set -e;
+              python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
+              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8030 --workers 2
+          ports:
+            - containerPort: 8030
+              name: http
+          envFrom:
+            - configMapRef:
+                name: order-ingest-config
+            - secretRef:
+                name: filaops-secrets
+          env:
+            - name: INTERNAL_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: filaops-secrets
+                  key: ORDER_INGEST_SERVICE_TOKEN
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://splunk-otel-collector-agent.otel-splunk.svc:4318
+            - name: OTEL_LOGS_EXPORTER
+              value: none
+            - name: OTEL_SERVICE_NAME
+              value: filaops-order-ingest
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.namespace=3dprint,deployment.environment.name=3dprint,service.version=3.6.0
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: order-ingest-bundle
+              mountPath: /bundle
+              readOnly: true
+      volumes:
+        - name: order-ingest-bundle
+          configMap:
+            name: order-ingest-bundle
+            items:
+              - key: requirements.txt
+                path: requirements.txt
+              - key: app_init_py
+                path: app/__init__.py
+              - key: app_auth_py
+                path: app/auth.py
+              - key: app_config_py
+                path: app/config.py
+              - key: app_main_py
+                path: app/main.py
+              - key: app_models_py
+                path: app/models.py
+              - key: app_parser_py
+                path: app/parser.py
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-ingest
+  namespace: 3dprint
+spec:
+  selector:
+    app: order-ingest
+  ports:
+    - name: http
+      port: 8030
+      targetPort: http

@@ -300,7 +300,7 @@ class SecurityAuditor:
             ))
 
     def _check_environment_production(self):
-        """Check that ENVIRONMENT is set to production"""
+        """Check that ENVIRONMENT is set to a production-like value."""
         check_id = "environment_production"
         name = "Production Environment"
         category = CheckCategory.CRITICAL
@@ -310,31 +310,32 @@ class SecurityAuditor:
                 id=check_id, name=name, category=category,
                 status=CheckStatus.INFO,
                 message="Could not load settings",
-                remediation="Set ENVIRONMENT=production in .env"
+                remediation="Set ENVIRONMENT to a production-like value such as production or 3dprint."
             ))
             return
 
         env = self._settings.ENVIRONMENT.lower()
 
-        if env == "production":
+        if self._settings.is_production:
+            message = "ENVIRONMENT=production" if env == "production" else f"ENVIRONMENT={env} (production-like)"
             self.results.append(CheckResult(
                 id=check_id, name=name, category=category,
                 status=CheckStatus.PASS,
-                message="ENVIRONMENT=production"
+                message=message
             ))
         elif env == "development":
             self.results.append(CheckResult(
                 id=check_id, name=name, category=category,
                 status=CheckStatus.INFO,
                 message="ENVIRONMENT=development (expected for local dev)",
-                details="Set to 'production' before deploying"
+                details="Set to a production-like value before deploying"
             ))
         else:
             self.results.append(CheckResult(
                 id=check_id, name=name, category=category,
                 status=CheckStatus.WARN,
-                message=f"ENVIRONMENT={env} (should be 'production')",
-                remediation="Set ENVIRONMENT=production in .env"
+                message=f"ENVIRONMENT={env} (should be production-like)",
+                remediation="Set ENVIRONMENT to a production-like value such as production or 3dprint."
             ))
 
     def _check_debug_disabled(self):

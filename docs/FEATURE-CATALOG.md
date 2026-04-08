@@ -94,7 +94,7 @@
 | # | Feature | Description | Status |
 | --- | ------- | ----------- | ------ |
 | 38 | First-Run Setup Wizard | Onboarding wizard with initial admin account creation | ✅ Complete |
-| 39 | SMTP & Auto-Approve Reset Delivery | Password reset delivery via SMTP email or auto-approve with direct link | ✅ Complete |
+| 39 | SMTP & Dev Reset Override | Password reset delivery via SMTP email, with an explicit dev-only direct-link override | ✅ Complete |
 | 40 | Duplicate Item | Clone items with inline BOM component swap for color variants | ✅ Complete |
 | 41 | Copy BOM | Copy a BOM to a different product with target product picker | ✅ Complete |
 

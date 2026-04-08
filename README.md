@@ -122,7 +122,7 @@ DB_PASSWORD=your_password
 
 - First-run setup wizard with admin account creation
 - Multi-user with role-based access
-- Password reset flow (SMTP or auto-approve)
+- Password reset flow with admin approval
 - REST API (432 endpoints)
 - Shipping and order event tracking
 

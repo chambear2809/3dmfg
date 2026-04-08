@@ -34,12 +34,11 @@ export async function login(
   await page.goto('/admin/login');
   await page.waitForLoadState('networkidle');
 
-  // Clear any stale auth tokens before logging in fresh
-  // This prevents conflicts when user was deleted and recreated
+  // Clear any stale auth session state before logging in fresh.
+  // This prevents conflicts when a user was deleted and recreated.
   await page.context().clearCookies();
   await page.evaluate(() => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('token');
+    localStorage.removeItem('adminUser');
     sessionStorage.clear();
   });
 

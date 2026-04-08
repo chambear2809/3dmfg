@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: demo-order-ingest-deny
+spec:
+  endpointSelector:
+    matchLabels:
+      app: backend
+  egressDeny:
+    - toEndpoints:
+        - matchLabels:
+            app: order-ingest
+      toPorts:
+        - ports:
+            - port: "8030"
+              protocol: TCP

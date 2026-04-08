@@ -160,10 +160,11 @@ export default function Onboarding() {
         throw new Error(data.detail || "Setup failed");
       }
 
-      // Save short-lived setup token (5 min) for subsequent wizard steps.
-      // The full-duration token is in the httpOnly cookie; this one is just
-      // for the wizard to use as an Authorization header through nginx.
-      const token = data.setup_token || data.access_token;
+      // Save the short-lived setup token (5 min) for subsequent wizard steps.
+      // The normal session lives in the httpOnly cookie; this token exists only
+      // so the onboarding flow can make bootstrap requests before the full app
+      // state has settled.
+      const token = data.setup_token;
       if (token) {
         setSetupToken(token);
       }

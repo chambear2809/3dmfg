@@ -32,151 +32,31 @@ sys.path.insert(0, str(backend_dir))
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
-    """Create tables and seed required data in filaops_test.
+    """Create schema via Alembic migrations and seed required test data.
 
-    Uses Base.metadata.create_all() which is idempotent — safe to run
-    even if tables already exist.
+    Runs the full Alembic migration history against filaops_test so the
+    test schema matches production exactly.  This eliminates drift between
+    create_all() + manual SQL patches and the real migration sequence.
     """
     from app.db.session import engine
     from app.db.base import Base
-
-    # Import all models so Base.metadata knows about them
     import app.models  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
-
-    # Patch columns that create_all() won't add to pre-existing tables
+    from alembic.config import Config as AlembicConfig
+    from alembic import command as alembic_command
     from sqlalchemy import text
+
+    alembic_ini = str(Path(__file__).parent.parent / "alembic.ini")
+    alembic_cfg = AlembicConfig(alembic_ini)
+
+    # Drop all tables (including alembic_version) for a clean slate
+    Base.metadata.drop_all(bind=engine)
     with engine.connect() as conn:
-        conn.execute(text(
-            "ALTER TABLE inventory_transactions "
-            "ADD COLUMN IF NOT EXISTS reason_code VARCHAR(50)"
-        ))
-        # i18n / multi-tax additions (migration 062, 063)
-        # Payment terms columns on users (customer payment terms feature)
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(20) DEFAULT 'cod'"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2)"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_for_terms BOOLEAN DEFAULT FALSE"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_for_terms_at TIMESTAMPTZ"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_for_terms_by INTEGER"
-        ))
-        conn.execute(text("ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS locale VARCHAR(20)"))
-        conn.execute(text("ALTER TABLE quotes ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
-        conn.execute(text("ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
-        conn.execute(text("ALTER TABLE sales_order_lines ADD COLUMN IF NOT EXISTS tax_name VARCHAR(100)"))
-        # Issue #362: material inventory on sales order lines
-        # DROP NOT NULL is idempotent — safe to run if already nullable
-        conn.execute(text(
-            "ALTER TABLE sales_order_lines "
-            "ALTER COLUMN product_id DROP NOT NULL"
-        ))
-        conn.execute(text(
-            "ALTER TABLE sales_order_lines "
-            "ADD COLUMN IF NOT EXISTS material_inventory_id INTEGER "
-            "REFERENCES material_inventory(id)"
-        ))
-        # Migration 065: widen cost columns
-        for col in ("standard_cost", "average_cost", "last_cost"):
-            conn.execute(text(
-                f"ALTER TABLE products ALTER COLUMN {col} TYPE NUMERIC(18,4)"
-            ))
-        # Migration 066: default margin for Suggest Prices tool
-        conn.execute(text(
-            "ALTER TABLE company_settings "
-            "ADD COLUMN IF NOT EXISTS default_margin_percent NUMERIC(5,2)"
-        ))
-        # Migration 067: variant matrix
-        conn.execute(text(
-            "ALTER TABLE products "
-            "ADD COLUMN IF NOT EXISTS parent_product_id INTEGER "
-            "REFERENCES products(id) ON DELETE SET NULL"
-        ))
-        conn.execute(text(
-            "ALTER TABLE products "
-            "ADD COLUMN IF NOT EXISTS is_template BOOLEAN NOT NULL DEFAULT FALSE"
-        ))
-        conn.execute(text(
-            "ALTER TABLE products "
-            "ADD COLUMN IF NOT EXISTS variant_metadata JSONB"
-        ))
-        conn.execute(text(
-            "ALTER TABLE routing_operation_materials "
-            "ADD COLUMN IF NOT EXISTS is_variable BOOLEAN NOT NULL DEFAULT FALSE"
-        ))
-        # Add CHECK constraint if it doesn't already exist
-        conn.execute(text("""
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_constraint
-                    WHERE conname = 'ck_sol_product_or_material'
-                ) THEN
-                    ALTER TABLE sales_order_lines ADD CONSTRAINT ck_sol_product_or_material
-                    CHECK (
-                        (product_id IS NOT NULL AND material_inventory_id IS NULL) OR
-                        (product_id IS NULL AND material_inventory_id IS NOT NULL)
-                    );
-                END IF;
-            END
-            $$;
-        """))
-        # Migration 069: customer payment terms
-        conn.execute(text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS payment_terms VARCHAR(20) DEFAULT 'cod'"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS credit_limit NUMERIC(12,2)"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS approved_for_terms BOOLEAN DEFAULT FALSE"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS approved_for_terms_at TIMESTAMPTZ"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users "
-            "ADD COLUMN IF NOT EXISTS approved_for_terms_by INTEGER"
-        ))
-        # Migration 072: portal order ingestion
-        conn.execute(text(
-            "ALTER TABLE sales_orders "
-            "ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ"
-        ))
-        # Migration 074: close short and line editing
-        conn.execute(text(
-            "ALTER TABLE sales_orders "
-            "ADD COLUMN IF NOT EXISTS closed_short BOOLEAN NOT NULL DEFAULT FALSE"
-        ))
-        conn.execute(text(
-            "ALTER TABLE sales_orders "
-            "ADD COLUMN IF NOT EXISTS closed_short_at TIMESTAMPTZ"
-        ))
-        conn.execute(text(
-            "ALTER TABLE sales_orders "
-            "ADD COLUMN IF NOT EXISTS close_short_reason TEXT"
-        ))
-        conn.execute(text(
-            "ALTER TABLE sales_order_lines "
-            "ADD COLUMN IF NOT EXISTS original_quantity NUMERIC(10,2)"
-        ))
-        conn.execute(text(
-            "ALTER TABLE sales_order_lines "
-            "ADD COLUMN IF NOT EXISTS fulfillment_status VARCHAR(20)"
-        ))
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
         conn.commit()
+
+    # Run all migrations from scratch — schema matches production exactly
+    alembic_command.upgrade(alembic_cfg, "head")
 
     # Seed required data
     from sqlalchemy.orm import Session as SASession
@@ -290,6 +170,26 @@ def auth_token():
 
 
 @pytest.fixture
+def customer_user(db):
+    """Create an active customer user for authorization boundary tests."""
+    from app.models.user import User
+    from app.core.security import hash_password
+
+    uid = uuid.uuid4().hex[:8]
+    user = User(
+        email=f"customer-{uid}@filaops.dev",
+        password_hash=hash_password("TestPass123!"),
+        first_name="Test",
+        last_name="Customer",
+        account_type="customer",
+        status="active",
+    )
+    db.add(user)
+    db.flush()
+    return user
+
+
+@pytest.fixture
 def client(db, auth_token):
     """FastAPI TestClient with DB session override and auth.
 
@@ -316,6 +216,31 @@ def client(db, auth_token):
 
     with TestClient(app, raise_server_exceptions=False) as c:
         c.headers["Authorization"] = f"Bearer {auth_token}"
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def customer_client(db, customer_user):
+    """FastAPI TestClient authenticated as a customer user."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+    from app.db.session import get_db
+    from app.core.security import create_access_token
+
+    token = create_access_token(customer_user.id)
+
+    def _override_get_db():
+        try:
+            yield db
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = _override_get_db
+
+    with TestClient(app, raise_server_exceptions=False) as c:
+        c.headers["Authorization"] = f"Bearer {token}"
         yield c
 
     app.dependency_overrides.clear()

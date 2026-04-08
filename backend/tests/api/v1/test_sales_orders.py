@@ -98,6 +98,22 @@ class TestSalesOrderAuth:
         })
         assert response.status_code == 401
 
+    def test_shipping_events_require_auth(self, unauthed_client):
+        response = unauthed_client.get(f"{BASE_URL}/1/shipping-events")
+        assert response.status_code == 401
+
+    def test_blocking_issues_require_auth(self, unauthed_client):
+        response = unauthed_client.get(f"{BASE_URL}/1/blocking-issues")
+        assert response.status_code == 401
+
+    def test_fulfillment_status_requires_auth(self, unauthed_client):
+        response = unauthed_client.get(f"{BASE_URL}/1/fulfillment-status")
+        assert response.status_code == 401
+
+    def test_preflight_check_requires_auth(self, unauthed_client):
+        response = unauthed_client.post(f"{BASE_URL}/1/pre-flight-check")
+        assert response.status_code == 401
+
 
 # =============================================================================
 # Status Transitions Metadata
@@ -1042,6 +1058,46 @@ class TestShippingEvents:
         response = client.get(f"{BASE_URL}/999999/shipping-events")
         assert response.status_code == 404
 
+    def test_customer_cannot_view_other_order_shipping_events(
+        self, customer_client, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(product_id=product.id, status="shipped", user_id=1)
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/shipping-events")
+        assert response.status_code == 403
+
+    def test_owner_can_view_own_shipping_events(
+        self, customer_client, customer_user, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(
+            product_id=product.id,
+            status="shipped",
+            user_id=customer_user.id,
+        )
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/shipping-events")
+        assert response.status_code == 200
+
+    def test_customer_cannot_add_shipping_events(
+        self, customer_client, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(product_id=product.id, status="shipped", user_id=1)
+        db.flush()
+
+        response = customer_client.post(
+            f"{BASE_URL}/{so.id}/shipping-events",
+            json={
+                "event_type": "in_transit",
+                "title": "Carrier update",
+            },
+        )
+        assert response.status_code == 403
+
 
 # =============================================================================
 # Blocking Issues -- GET /api/v1/sales-orders/{id}/blocking-issues
@@ -1062,6 +1118,30 @@ class TestBlockingIssues:
         response = client.get(f"{BASE_URL}/999999/blocking-issues")
         assert response.status_code == 404
 
+    def test_customer_cannot_view_other_order_blocking_issues(
+        self, customer_client, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(product_id=product.id, status="confirmed", user_id=1)
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/blocking-issues")
+        assert response.status_code == 403
+
+    def test_owner_can_view_own_blocking_issues(
+        self, customer_client, customer_user, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(
+            product_id=product.id,
+            status="confirmed",
+            user_id=customer_user.id,
+        )
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/blocking-issues")
+        assert response.status_code == 200
+
 
 # =============================================================================
 # Fulfillment Status -- GET /api/v1/sales-orders/{id}/fulfillment-status
@@ -1081,6 +1161,30 @@ class TestFulfillmentStatus:
     def test_fulfillment_status_nonexistent_order(self, client):
         response = client.get(f"{BASE_URL}/999999/fulfillment-status")
         assert response.status_code == 404
+
+    def test_customer_cannot_view_other_order_fulfillment_status(
+        self, customer_client, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(product_id=product.id, status="confirmed", user_id=1)
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/fulfillment-status")
+        assert response.status_code == 403
+
+    def test_owner_can_view_own_fulfillment_status(
+        self, customer_client, customer_user, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(
+            product_id=product.id,
+            status="confirmed",
+            user_id=customer_user.id,
+        )
+        db.flush()
+
+        response = customer_client.get(f"{BASE_URL}/{so.id}/fulfillment-status")
+        assert response.status_code == 200
 
 
 # =============================================================================
@@ -1128,6 +1232,20 @@ class TestPreFlightCheck:
     def test_preflight_check_nonexistent_order(self, client):
         response = client.post(f"{BASE_URL}/999999/pre-flight-check")
         assert response.status_code == 404
+
+    def test_preflight_check_requires_staff(
+        self, customer_client, customer_user, db, make_sales_order, make_product,
+    ):
+        product = make_product(selling_price=Decimal("10.00"))
+        so = make_sales_order(
+            product_id=product.id,
+            status="pending",
+            user_id=customer_user.id,
+        )
+        db.flush()
+
+        response = customer_client.post(f"{BASE_URL}/{so.id}/pre-flight-check")
+        assert response.status_code == 403
 
 
 # =============================================================================

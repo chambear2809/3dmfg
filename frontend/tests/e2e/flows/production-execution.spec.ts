@@ -16,15 +16,15 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe.serial('E2E-401: Production Execution Flow', () => {
 
-  // Store auth token to reuse across tests (avoid rate limiting)
-  let authToken: string | null = null;
+  let authCookies: any[] = [];
+  let adminUser: any = null;
 
   // Seed once before all tests in this file
   test.beforeAll(async ({ request }) => {
     await cleanupTestData();
     await seedTestScenario('production-in-progress');
 
-    // Get auth token once via API to avoid rate limiting browser logins
+    // Log in once and reuse the resulting session state in UI tests.
     const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
       form: {
         username: 'admin@filaops.test',
@@ -33,36 +33,40 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
     });
     if (response.ok()) {
       const data = await response.json();
-      authToken = data.access_token;
+      adminUser = data.user;
+      const state = await request.storageState();
+      authCookies = state.cookies.filter((cookie: any) =>
+        cookie.name === 'access_token' || cookie.name === 'refresh_token'
+      );
     }
   });
 
-  // Helper: login via stored token (fast, no rate limit)
+  async function loginApi(request: any) {
+    const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
+      form: {
+        username: 'admin@filaops.test',
+        password: 'TestPass123!',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+
   async function loginAsAdmin(page: any) {
     await page.goto('http://localhost:5173/admin/login');
 
-    // Inject token directly instead of filling form
-    if (authToken) {
-      await page.evaluate((token: string) => {
-        localStorage.setItem('adminToken', token);
-      }, authToken);
+    if (authCookies.length > 0 && adminUser) {
+      await page.context().addCookies(authCookies);
+      await page.evaluate((user: any) => {
+        localStorage.setItem('adminUser', JSON.stringify(user));
+      }, adminUser);
       await page.goto('http://localhost:5173/admin/production');
       await expect(page).toHaveURL(/\/admin\/production/);
     } else {
-      // Fallback to form login if token not available
       await page.getByRole('textbox', { name: 'Email Address' }).fill('admin@filaops.test');
       await page.getByRole('textbox', { name: 'Password' }).fill('TestPass123!');
       await page.getByRole('button', { name: 'Sign In' }).click();
       await expect(page).toHaveURL(/\/admin(?!\/login)/);
     }
-  }
-
-  // Helper: get token (reuses cached token from beforeAll)
-  function getApiToken(): string {
-    if (!authToken) {
-      throw new Error('Auth token not available - beforeAll may have failed');
-    }
-    return authToken;
   }
 
   // =====================
@@ -159,12 +163,10 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
   // =====================
 
   test('API: Operations endpoint returns operations with quantity info', async ({ request }) => {
-    const token = getApiToken();
+    await loginApi(request);
 
     // First get a production order
-    const poResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const poResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/');
     expect(poResponse.ok()).toBeTruthy();
 
     const poData = await poResponse.json();
@@ -175,8 +177,7 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
 
       // Get operations for this PO
       const opsResponse = await request.get(
-        `http://127.0.0.1:8000/api/v1/production-orders/${poId}/operations`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        `http://127.0.0.1:8000/api/v1/production-orders/${poId}/operations`
       );
       expect(opsResponse.ok()).toBeTruthy();
 
@@ -194,12 +195,10 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
   });
 
   test('API: Next available slot endpoint works', async ({ request }) => {
-    const token = getApiToken();
+    await loginApi(request);
 
     // Get a resource to test with
-    const resourcesResponse = await request.get('http://127.0.0.1:8000/api/v1/resources/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const resourcesResponse = await request.get('http://127.0.0.1:8000/api/v1/resources/');
 
     if (resourcesResponse.ok()) {
       const resources = await resourcesResponse.json();
@@ -213,7 +212,6 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
           'http://127.0.0.1:8000/api/v1/production-orders/resources/next-available',
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             data: {
@@ -234,12 +232,10 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
   });
 
   test('API: Operation complete accepts scrap_reason', async ({ request }) => {
-    const token = getApiToken();
+    await loginApi(request);
 
     // Get a production order with a running operation
-    const poResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const poResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/');
 
     if (!poResponse.ok()) return;
 
@@ -248,8 +244,7 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
 
     for (const order of orders) {
       const opsResponse = await request.get(
-        `http://127.0.0.1:8000/api/v1/production-orders/${order.id}/operations`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
+        `http://127.0.0.1:8000/api/v1/production-orders/${order.id}/operations`
       );
 
       if (!opsResponse.ok()) continue;
@@ -263,7 +258,6 @@ test.describe.serial('E2E-401: Production Execution Flow', () => {
           `http://127.0.0.1:8000/api/v1/production-orders/${order.id}/operations/${runningOp.id}/complete`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             data: {

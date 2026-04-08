@@ -1,0 +1,241 @@
+{
+  "admin": {
+    "email": "loadgen-admin@example.com"
+  },
+  "customers": [
+    {
+      "email": "lg-cust-01@filaops.local",
+      "id": 3,
+      "name": "LG Benchmark Customer 01"
+    },
+    {
+      "email": "lg-cust-02@filaops.local",
+      "id": 4,
+      "name": "LG Benchmark Customer 02"
+    },
+    {
+      "email": "lg-cust-03@filaops.local",
+      "id": 5,
+      "name": "LG Benchmark Customer 03"
+    },
+    {
+      "email": "lg-cust-04@filaops.local",
+      "id": 6,
+      "name": "LG Benchmark Customer 04"
+    }
+  ],
+  "generated_at": "2026-04-02T00:02:14.673584+00:00",
+  "orders": {
+    "all_ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "detail_targets": [
+      {
+        "id": 1,
+        "order_number": "SO-2026-001",
+        "source_order_id": "LG-pending",
+        "status": "pending"
+      },
+      {
+        "id": 2,
+        "order_number": "SO-2026-002",
+        "source_order_id": "LG-confirmed",
+        "status": "confirmed"
+      },
+      {
+        "id": 3,
+        "order_number": "SO-2026-003",
+        "source_order_id": "LG-blocked",
+        "status": "in_production"
+      },
+      {
+        "id": 4,
+        "order_number": "SO-2026-004",
+        "source_order_id": "LG-partial-ready",
+        "status": "in_production"
+      },
+      {
+        "id": 5,
+        "order_number": "SO-2026-005",
+        "source_order_id": "LG-ready",
+        "status": "ready_to_ship"
+      },
+      {
+        "id": 6,
+        "order_number": "SO-2026-006",
+        "source_order_id": "LG-shipped",
+        "status": "shipped"
+      },
+      {
+        "id": 7,
+        "order_number": "SO-2026-007",
+        "source_order_id": "LG-completed",
+        "status": "completed"
+      },
+      {
+        "id": 8,
+        "order_number": "SO-2026-008",
+        "source_order_id": "LG-extra-001",
+        "status": "pending"
+      },
+      {
+        "id": 9,
+        "order_number": "SO-2026-009",
+        "source_order_id": "LG-extra-002",
+        "status": "confirmed"
+      },
+      {
+        "id": 10,
+        "order_number": "SO-2026-010",
+        "source_order_id": "LG-extra-003",
+        "status": "ready_to_ship"
+      },
+      {
+        "id": 11,
+        "order_number": "SO-2026-011",
+        "source_order_id": "LG-extra-004",
+        "status": "shipped"
+      },
+      {
+        "id": 12,
+        "order_number": "SO-2026-012",
+        "source_order_id": "LG-extra-005",
+        "status": "completed"
+      }
+    ],
+    "representative": {
+      "blocked": {
+        "id": 3,
+        "order_number": "SO-2026-003",
+        "source_order_id": "LG-blocked",
+        "status": "in_production"
+      },
+      "completed": {
+        "id": 7,
+        "order_number": "SO-2026-007",
+        "source_order_id": "LG-completed",
+        "status": "completed"
+      },
+      "confirmed": {
+        "id": 2,
+        "order_number": "SO-2026-002",
+        "source_order_id": "LG-confirmed",
+        "status": "confirmed"
+      },
+      "partial_ready": {
+        "id": 4,
+        "order_number": "SO-2026-004",
+        "source_order_id": "LG-partial-ready",
+        "status": "in_production"
+      },
+      "pending": {
+        "id": 1,
+        "order_number": "SO-2026-001",
+        "source_order_id": "LG-pending",
+        "status": "pending"
+      },
+      "ready_to_ship": {
+        "id": 5,
+        "order_number": "SO-2026-005",
+        "source_order_id": "LG-ready",
+        "status": "ready_to_ship"
+      },
+      "shipped": {
+        "id": 6,
+        "order_number": "SO-2026-006",
+        "source_order_id": "LG-shipped",
+        "status": "shipped"
+      }
+    }
+  },
+  "products": {
+    "buy": [
+      {
+        "id": 7,
+        "item_type": "finished_good",
+        "name": "LG Ready Kit",
+        "procurement_type": "buy",
+        "sku": "LG-FG-KIT"
+      }
+    ],
+    "components": [
+      {
+        "id": 3,
+        "item_type": "component",
+        "name": "LG M3 Insert",
+        "procurement_type": "buy",
+        "sku": "LG-COMP-INS-M3"
+      },
+      {
+        "id": 4,
+        "item_type": "supply",
+        "name": "LG Shipping Box",
+        "procurement_type": "buy",
+        "sku": "LG-SUP-BOX-SM"
+      }
+    ],
+    "make": [
+      {
+        "id": 5,
+        "item_type": "finished_good",
+        "name": "LG Grid Fixture",
+        "procurement_type": "make",
+        "sku": "LG-FG-GRID"
+      },
+      {
+        "id": 6,
+        "item_type": "finished_good",
+        "name": "LG Bracket Kit",
+        "procurement_type": "make",
+        "sku": "LG-FG-BRACKET"
+      }
+    ],
+    "materials": [
+      {
+        "id": 1,
+        "item_type": "supply",
+        "name": "LG PLA Black",
+        "procurement_type": "buy",
+        "sku": "LG-MAT-PLA-BLK"
+      },
+      {
+        "id": 2,
+        "item_type": "supply",
+        "name": "LG PLA Natural",
+        "procurement_type": "buy",
+        "sku": "LG-MAT-PLA-NAT"
+      }
+    ]
+  },
+  "profile": "small",
+  "purchase_orders": [
+    "PO-2026-001",
+    "PO-2026-002"
+  ],
+  "resources": {
+    "print": [
+      "LG-PRN-01",
+      "LG-PRN-02"
+    ]
+  },
+  "tag": "LG",
+  "version": 1
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API_URL } from "../../config/api";
+import { recordWorkflowEvent } from "../../telemetry/browserTracing";
 
 export default function AdminOrderImport() {
   const [step, setStep] = useState("upload"); // upload, importing, complete
@@ -88,6 +89,12 @@ export default function AdminOrderImport() {
       params.set("create_customers", createCustomers.toString());
       params.set("source", source);
 
+      recordWorkflowEvent("orders.import.submit", {
+        "app.order_import.source": source,
+        "app.order_import.create_customers": createCustomers,
+        "app.order_import.file_size_bytes": file.size,
+      });
+
       const res = await fetch(
         `${API_URL}/api/v1/admin/orders/import?${params}`,
         {
@@ -103,9 +110,26 @@ export default function AdminOrderImport() {
         throw new Error(data.detail || "Import failed");
       }
 
+      recordWorkflowEvent("orders.import.complete", {
+        "app.order_import.source": source,
+        "app.order_import.total_rows": data.total_rows,
+        "app.order_import.created": data.created,
+        "app.order_import.skipped": data.skipped,
+        "app.order_import.errors": Array.isArray(data.errors)
+          ? data.errors.length
+          : 0,
+      });
       setResult(data);
       setStep("complete");
     } catch (err) {
+      recordWorkflowEvent(
+        "orders.import.failure",
+        {
+          "app.order_import.source": source,
+          "app.order_import.failure_reason": err.message || "Import failed",
+        },
+        { error: err }
+      );
       setError(err.message || "Import failed");
       setStep("upload");
     } finally {
@@ -400,4 +424,3 @@ export default function AdminOrderImport() {
     </div>
   );
 }
-

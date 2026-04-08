@@ -66,6 +66,10 @@ function PageLoader() {
   );
 }
 
+function RumMaskedPage({ children }) {
+  return <div data-rum-mask="true">{children}</div>;
+}
+
 export default function App() {
   const api = useMemo(
     () =>
@@ -98,16 +102,16 @@ export default function App() {
           <Route path="/" element={<Navigate to="/admin" replace />} />
 
           {/* First-run setup */}
-          <Route path="/setup" element={<Setup />} />
-          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/setup" element={<RumMaskedPage><Setup /></RumMaskedPage>} />
+          <Route path="/onboarding" element={<RumMaskedPage><Onboarding /></RumMaskedPage>} />
 
           {/* Auth */}
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/admin/login" element={<RumMaskedPage><AdminLogin /></RumMaskedPage>} />
+          <Route path="/forgot-password" element={<RumMaskedPage><ForgotPassword /></RumMaskedPage>} />
+          <Route path="/reset-password/:token" element={<RumMaskedPage><ResetPassword /></RumMaskedPage>} />
           <Route
             path="/admin/password-reset/:action/:token"
-            element={<AdminPasswordResetApproval />}
+            element={<RumMaskedPage><AdminPasswordResetApproval /></RumMaskedPage>}
           />
 
           {/* Public Pricing Page */}

@@ -16,7 +16,7 @@ function getClient() {
     _sharedClient = createApiClient({
       baseUrl: API_URL,
       onUnauthorized: () => {
-        // Redirect to login on 401
+        localStorage.removeItem("adminUser");
         if (!window.location.pathname.includes("/login")) {
           window.location.href = "/admin/login";
         }

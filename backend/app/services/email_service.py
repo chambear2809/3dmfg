@@ -13,6 +13,7 @@ from typing import Optional
 
 from app.core.config import settings
 from app.logging_config import get_logger
+from app.services.notification_dispatch_client import notification_dispatch_client
 
 logger = get_logger(__name__)
 
@@ -40,6 +41,15 @@ class EmailService:
 
         Returns True if successful, False otherwise
         """
+        delegated = notification_dispatch_client.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+        )
+        if delegated is not None:
+            return delegated
+
         if not self.user or not self.password:
             logger.warning("SMTP credentials not configured - email not sent")
             logger.info(f"Would have sent email to {to_email}: {subject}")

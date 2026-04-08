@@ -991,13 +991,13 @@ export default function OrderDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <div className="text-sm text-gray-400">Name</div>
-              <div className="text-white font-medium">
+              <div className="text-white font-medium" data-rum-mask="true">
                 {order.customer_name || "\u2014"}
               </div>
             </div>
             <div>
               <div className="text-sm text-gray-400">Email</div>
-              <div className="text-white font-medium">
+              <div className="text-white font-medium" data-rum-mask="true">
                 {order.customer_email ? (
                   <a href={`mailto:${order.customer_email}`} className="text-blue-400 hover:underline">
                     {order.customer_email}
@@ -1007,14 +1007,14 @@ export default function OrderDetail() {
             </div>
             <div>
               <div className="text-sm text-gray-400">Phone</div>
-              <div className="text-white font-medium">
+              <div className="text-white font-medium" data-rum-mask="true">
                 {order.customer_phone || "\u2014"}
               </div>
             </div>
             {order.customer_id && (
               <div>
                 <div className="text-sm text-gray-400">Customer ID</div>
-                <div className="text-white font-medium">
+                <div className="text-white font-medium" data-rum-mask="true">
                   <button
                     onClick={() => navigate(`/admin/customers/${order.customer_id}`)}
                     className="text-blue-400 hover:underline"

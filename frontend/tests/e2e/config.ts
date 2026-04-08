@@ -9,8 +9,8 @@
 
 export const E2E_CONFIG = {
   // Test credentials - must match backend test scenarios (backend/tests/scenarios.py)
-  email: process.env.E2E_ADMIN_EMAIL || 'admin@filaops.test',
-  password: process.env.E2E_ADMIN_PASSWORD || 'TestPass123!',
+  email: process.env.LOADGEN_ADMIN_EMAIL || process.env.E2E_ADMIN_EMAIL || 'admin@filaops.test',
+  password: process.env.LOADGEN_ADMIN_PASSWORD || process.env.E2E_ADMIN_PASSWORD || 'TestPass123!',
   name: 'Admin User',
 
   // API URLs

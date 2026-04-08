@@ -14,6 +14,8 @@ from app.core.version import VersionManager
 from app.core.plugin_registry import get_tier, get_features
 from app.core.settings import settings
 from app.db.session import get_db
+from app.api.v1.deps import get_current_staff_user
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,6 @@ class SystemInfoResponse(BaseModel):
     tier: str
     features_enabled: list[str]
     version: str
-    smtp_configured: bool = False
 
 
 class UpdateCheckResponse(BaseModel):
@@ -120,7 +121,6 @@ async def get_system_info():
             tier=get_tier(),
             features_enabled=get_features(),
             version=version_info.get("version", "unknown"),
-            smtp_configured=bool(settings.SMTP_USER and settings.SMTP_PASSWORD),
         )
     except Exception as e:
         logger.error(f"Failed to get system info: {e}", exc_info=True)
@@ -131,7 +131,9 @@ async def get_system_info():
 
 
 @router.get("/updates/check", response_model=UpdateCheckResponse)
-async def check_for_updates():
+async def check_for_updates(
+    current_user: User = Depends(get_current_staff_user),
+):
     """
     Check GitHub releases for available updates
 
@@ -155,7 +157,9 @@ async def check_for_updates():
 
 
 @router.get("/updates/instructions", response_model=UpdateInstructionsResponse)
-async def get_update_instructions():
+async def get_update_instructions(
+    current_user: User = Depends(get_current_staff_user),
+):
     """
     Get step-by-step update instructions for current deployment method
 

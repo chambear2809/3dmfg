@@ -501,15 +501,8 @@ test.describe.serial('Functional Workflow Tests', () => {
       });
       expect(loginResponse.ok()).toBeTruthy();
 
-      const loginData = await loginResponse.json();
-      const token = loginData.access_token;
-
       // Get customers list (admin endpoint)
-      const customersResponse = await request.get(`${apiBase}/api/v1/admin/customers/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const customersResponse = await request.get(`${apiBase}/api/v1/admin/customers/`);
       expect(customersResponse.ok()).toBeTruthy();
 
       const customers = await customersResponse.json();
@@ -527,15 +520,9 @@ test.describe.serial('Functional Workflow Tests', () => {
           password: TEST_PASSWORD
         }
       });
-      const loginData = await loginResponse.json();
-      const token = loginData.access_token;
 
       // Get orders list
-      const ordersResponse = await request.get(`${apiBase}/api/v1/sales-orders/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const ordersResponse = await request.get(`${apiBase}/api/v1/sales-orders/`);
       expect(ordersResponse.ok()).toBeTruthy();
 
       const orders = await ordersResponse.json();
@@ -553,15 +540,9 @@ test.describe.serial('Functional Workflow Tests', () => {
           password: TEST_PASSWORD
         }
       });
-      const loginData = await loginResponse.json();
-      const token = loginData.access_token;
 
       // Get items list
-      const itemsResponse = await request.get(`${apiBase}/api/v1/items/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const itemsResponse = await request.get(`${apiBase}/api/v1/items/`);
       expect(itemsResponse.ok()).toBeTruthy();
 
       const items = await itemsResponse.json();

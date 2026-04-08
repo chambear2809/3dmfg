@@ -18,7 +18,7 @@ from app.core.config import settings
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = 7  # 7 days
 
 
@@ -287,7 +287,7 @@ def set_auth_cookies(
     Args:
         response: FastAPI/Starlette Response object
         access_token: JWT access token
-        refresh_token: JWT refresh token (optional, e.g. setup only returns access)
+        refresh_token: JWT refresh token (optional)
     """
     response.set_cookie(
         key="access_token",

@@ -1,4 +1,4 @@
-import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import SecurityBadge from "./SecurityBadge";
 import useActivityTokenRefresh from "../hooks/useActivityTokenRefresh";
@@ -541,7 +541,23 @@ const navGroups = [
   },
 ];
 
+const RUM_MASKED_ROUTE_PREFIXES = [
+  "/admin/accounting",
+  "/admin/access-requests",
+  "/admin/customers",
+  "/admin/invoices",
+  "/admin/payments",
+  "/admin/security",
+  "/admin/settings",
+  "/admin/users",
+];
+
+function isRumMaskedRoute(pathname) {
+  return RUM_MASKED_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 export default function AdminLayout() {
+  const location = useLocation();
   const navigate = useNavigate();
   // Persist sidebar state in localStorage
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -695,6 +711,8 @@ export default function AdminLayout() {
     localStorage.removeItem("adminUser");
     navigate("/admin/login");
   };
+
+  const maskMainContentForReplay = isRumMaskedRoute(location.pathname);
 
   return (
     <>
@@ -906,7 +924,11 @@ export default function AdminLayout() {
                   </button>
                 )}
                 {user && (
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <span
+                    className="text-sm"
+                    style={{ color: 'var(--text-secondary)' }}
+                    data-rum-mask="true"
+                  >
                     <span style={{ color: 'var(--text-primary)' }}>
                       {user.first_name} {user.last_name}
                     </span>
@@ -923,7 +945,12 @@ export default function AdminLayout() {
               </div>
             </div>
           </header>
-          <main id="main-content" className="flex-1 p-6 overflow-auto grid-pattern" tabIndex="-1">
+          <main
+            id="main-content"
+            className={`flex-1 p-6 overflow-auto grid-pattern ${maskMainContentForReplay ? "rum-mask-page" : ""}`}
+            tabIndex="-1"
+            data-rum-mask={maskMainContentForReplay ? "true" : undefined}
+          >
             <Outlet />
           </main>
         </div>

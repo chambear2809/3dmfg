@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API_URL } from "../../config/api";
+import { recordWorkflowEvent } from "../../telemetry/browserTracing";
 import logoFull from "../../assets/logo_full.png";
 import logoBLB3D from "../../assets/logo_blb3d.svg";
 
@@ -73,26 +74,10 @@ export default function AdminLogin() {
 
       const data = await res.json();
 
-      // In cookie mode, tokens are in httpOnly cookies — verify user via /me
-      // In header mode (legacy), tokens are in the body
-      let userData;
-      if (data.user) {
-        // Cookie mode: user info returned directly in login response
-        userData = data.user;
-      } else {
-        // Header mode fallback: use access_token to call /me
-        const meRes = await fetch(`${API_URL}/api/v1/auth/me`, {
-          credentials: "include",
-          headers: data.access_token
-            ? { Authorization: `Bearer ${data.access_token}` }
-            : {},
-        });
-
-        if (!meRes.ok) {
-          throw new Error("Failed to verify user");
-        }
-        userData = await meRes.json();
+      if (!data.user) {
+        throw new Error("Login response did not include user details");
       }
+      const userData = data.user;
 
       if (!["admin", "operator"].includes(userData.account_type)) {
         throw new Error(
@@ -100,12 +85,23 @@ export default function AdminLogin() {
         );
       }
 
+      recordWorkflowEvent("auth.login.success", {
+        "app.auth.role": userData.account_type,
+      });
+
       // Store non-sensitive user info for display (name, role, etc.)
       localStorage.setItem("adminUser", JSON.stringify(userData));
 
       // Redirect to admin dashboard
       navigate("/admin");
     } catch (err) {
+      recordWorkflowEvent(
+        "auth.login.failure",
+        {
+          "app.auth.failure_reason": err.message || "Login failed",
+        },
+        { error: err }
+      );
       setError(err.message);
     } finally {
       setLoading(false);

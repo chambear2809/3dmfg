@@ -30,8 +30,8 @@ async function ensureTestUser(): Promise<void> {
 }
 
 /**
- * Check if stored JWT token is expired or will expire soon
- * Returns true if token is missing, invalid, or expires within 7 days
+ * Check if the stored authenticated session is missing or near expiry.
+ * Returns true if the refresh cookie is missing or expires within 7 days.
  */
 function isTokenExpiredOrExpiringSoon(): boolean {
   try {
@@ -40,26 +40,20 @@ function isTokenExpiredOrExpiringSoon(): boolean {
     }
 
     const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-    const tokenValue = authData.origins?.[0]?.localStorage?.find(
-      (item: any) => item.name === 'adminToken'
-    )?.value;
-
-    if (!tokenValue) {
-      return true; // No token found
-    }
-
-    // Decode JWT (middle part between dots)
-    const payload = JSON.parse(
-      Buffer.from(tokenValue.split('.')[1], 'base64').toString()
+    const refreshCookie = authData.cookies?.find(
+      (cookie: any) => cookie.name === 'refresh_token'
     );
 
-    if (!payload.exp) {
-      return true; // No expiration claim
+    if (!refreshCookie) {
+      return true; // No session cookie found
     }
 
-    // Check if token expires within 7 days (604800 seconds)
+    if (!refreshCookie.expires || refreshCookie.expires <= 0) {
+      return true; // Session cookie missing an expiry
+    }
+
     const now = Math.floor(Date.now() / 1000);
-    const expiresIn = payload.exp - now;
+    const expiresIn = refreshCookie.expires - now;
     const SEVEN_DAYS = 604800;
 
     if (expiresIn < SEVEN_DAYS) {

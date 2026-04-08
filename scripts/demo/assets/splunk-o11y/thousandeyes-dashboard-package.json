@@ -1,0 +1,1358 @@
+{
+  "chartExports": [
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GejajEAAwAA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Latency (seconds)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "network.latency",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": "Second",
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('network.latency').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "Gejb4nQAwAE",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "HTTP server availability (%)",
+        "options": {
+          "colorBy": "Dimension",
+          "colorScale": null,
+          "colorScale2": null,
+          "maximumPrecision": null,
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "http.server.request.availability",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": "",
+              "valueSuffix": "%",
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "refreshInterval": null,
+          "secondaryVisualization": "None",
+          "showSparkLine": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "timestampHidden": false,
+          "type": "SingleValue",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('http.server.request.availability').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GejdCKhAwAw",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Jitter (ms)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "network.jitter",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": "Millisecond",
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('network.jitter').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "Geje6GCAwAE",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "HTTP throughput (bytes/s)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "http.server.throughput",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": "Byte",
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('http.server.throughput').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GejfojBA0A4",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Network Loss (%)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "network.loss",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": "%",
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('network.loss').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GejfojDA4AA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Client request duration (seconds)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "http.client.request.duration",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": "Second",
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('http.client.request.duration').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerjM3_AwAE",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Page load duration (seconds)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "web.page_load.duration",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": "Second",
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('web.page_load.duration').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerjM3_AwAI",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "BGP reachability (%)",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "bgp.reachability",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": "%",
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('bgp.reachability').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerjNuEA0AA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Web page load completion (%)",
+        "options": {
+          "colorBy": "Dimension",
+          "colorScale": null,
+          "colorScale2": null,
+          "maximumPrecision": null,
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "web.page_load.completion",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": "%",
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "refreshInterval": null,
+          "secondaryVisualization": "None",
+          "showSparkLine": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "timestampHidden": false,
+          "type": "SingleValue",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('web.page_load.completion').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GermudcA0AA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "BGP update count",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "bgp.updates.count",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('bgp.updates.count').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerpC8-A0AA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Path change count",
+        "options": {
+          "areaChartOptions": {
+            "showDataMarkers": false
+          },
+          "axes": [
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            },
+            {
+              "highWatermark": null,
+              "highWatermarkLabel": null,
+              "label": "",
+              "lowWatermark": null,
+              "lowWatermarkLabel": null,
+              "max": null,
+              "min": null
+            }
+          ],
+          "axisPrecision": null,
+          "colorBy": "Dimension",
+          "defaultPlotType": "LineChart",
+          "eventPublishLabelOptions": [],
+          "histogramChartOptions": {
+            "colorThemeIndex": 16
+          },
+          "includeZero": false,
+          "legendOptions": {
+            "fields": null
+          },
+          "lineChartOptions": {
+            "showDataMarkers": false
+          },
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "onChartLegendOptions": {
+            "dimensionInLegend": null,
+            "showLegend": false
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "bgp.path_changes.count",
+              "label": "A",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "showEventLines": false,
+          "stacked": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "type": "TimeSeriesChart",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('bgp.path_changes.count').publish(label='A')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerqYWzA0AQ",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Number of Thousandeyes Stream",
+        "options": {
+          "colorBy": "Dimension",
+          "colorScale": null,
+          "colorScale2": null,
+          "maximumPrecision": null,
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "Number of Distinct ThousandEyes Tests",
+              "label": "Number of Distinct ThousandEyes Tests",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "refreshInterval": null,
+          "secondaryVisualization": "None",
+          "showSparkLine": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "timestampHidden": false,
+          "type": "SingleValue",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('*', filter=filter('thousandeyes.stream.id', '*')).count().publish(label='Number of Distinct ThousandEyes Tests')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "Gerty5WA0AE",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Number of Thousandeyes Test",
+        "options": {
+          "colorBy": "Dimension",
+          "colorScale": null,
+          "colorScale2": null,
+          "maximumPrecision": null,
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "Number of Distinct ThousandEyes Tests",
+              "label": "Number of Distinct ThousandEyes Tests",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "refreshInterval": null,
+          "secondaryVisualization": "None",
+          "showSparkLine": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "timestampHidden": false,
+          "type": "SingleValue",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('*', filter=filter('thousandeyes.test.id', '*')).count().publish(label='Number of Distinct ThousandEyes Tests')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    },
+    {
+      "chart": {
+        "autoDetectRelatedDetectorIds": [],
+        "created": 0,
+        "creator": null,
+        "customProperties": {},
+        "description": "",
+        "id": "GerwlpMAwAA",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "name": "Number of Thousandeyes Account",
+        "options": {
+          "colorBy": "Dimension",
+          "colorScale": null,
+          "colorScale2": null,
+          "maximumPrecision": null,
+          "noDataOptions": {
+            "linkText": null,
+            "linkUrl": null,
+            "noDataMessage": null
+          },
+          "programOptions": {
+            "disableSampling": false,
+            "maxDelay": 0,
+            "minimumResolution": 0,
+            "timezone": null
+          },
+          "publishLabelOptions": [
+            {
+              "displayName": "Number of Distinct ThousandEyes Tests",
+              "label": "Number of Distinct ThousandEyes Tests",
+              "paletteIndex": null,
+              "plotType": null,
+              "valuePrefix": null,
+              "valueSuffix": null,
+              "valueUnit": null,
+              "yAxis": 0
+            }
+          ],
+          "refreshInterval": null,
+          "secondaryVisualization": "None",
+          "showSparkLine": false,
+          "time": {
+            "range": 900000,
+            "rangeEnd": 0,
+            "type": "relative"
+          },
+          "timestampHidden": false,
+          "type": "SingleValue",
+          "unitPrefix": "Metric"
+        },
+        "packageSpecifications": "",
+        "programText": "A = data('*', filter=filter('thousandeyes.test.id', '*')).count().publish(label='Number of Distinct ThousandEyes Tests')",
+        "relatedDetectorIds": [],
+        "tags": []
+      }
+    }
+  ],
+  "crossLinkExports": [],
+  "dashboardExports": [
+    {
+      "dashboard": {
+        "authorizedWriters": null,
+        "chartDensity": "DEFAULT",
+        "charts": [
+          {
+            "chartId": "Geje6GCAwAE",
+            "column": 3,
+            "height": 1,
+            "row": 0,
+            "width": 9
+          },
+          {
+            "chartId": "Gejb4nQAwAE",
+            "column": 0,
+            "height": 1,
+            "row": 0,
+            "width": 3
+          },
+          {
+            "chartId": "GejfojDA4AA",
+            "column": 0,
+            "height": 1,
+            "row": 1,
+            "width": 12
+          },
+          {
+            "chartId": "GerjM3_AwAE",
+            "column": 3,
+            "height": 1,
+            "row": 2,
+            "width": 9
+          },
+          {
+            "chartId": "GerjNuEA0AA",
+            "column": 0,
+            "height": 1,
+            "row": 2,
+            "width": 3
+          }
+        ],
+        "created": 0,
+        "creator": null,
+        "customProperties": null,
+        "description": "Application: HTTP Server, Page Load",
+        "discoveryOptions": null,
+        "eventOverlays": null,
+        "filters": {
+          "sources": null,
+          "time": null,
+          "variables": []
+        },
+        "groupId": "GejajDdA4AA",
+        "groupName": "ThousandEyes Network monitoring",
+        "id": "GejdCKhAwAg",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "maxDelayOverride": null,
+        "name": "Application",
+        "permissions": null,
+        "selectedEventOverlays": [],
+        "tags": null
+      }
+    },
+    {
+      "dashboard": {
+        "authorizedWriters": null,
+        "chartDensity": "DEFAULT",
+        "charts": [
+          {
+            "chartId": "GejdCKhAwAw",
+            "column": 6,
+            "height": 1,
+            "row": 0,
+            "width": 6
+          },
+          {
+            "chartId": "GejajEAAwAA",
+            "column": 0,
+            "height": 1,
+            "row": 0,
+            "width": 6
+          },
+          {
+            "chartId": "GejfojBA0A4",
+            "column": 0,
+            "height": 1,
+            "row": 1,
+            "width": 12
+          },
+          {
+            "chartId": "GerpC8-A0AA",
+            "column": 0,
+            "height": 1,
+            "row": 2,
+            "width": 6
+          },
+          {
+            "chartId": "GerjM3_AwAI",
+            "column": 6,
+            "height": 1,
+            "row": 2,
+            "width": 6
+          },
+          {
+            "chartId": "GermudcA0AA",
+            "column": 0,
+            "height": 1,
+            "row": 3,
+            "width": 6
+          }
+        ],
+        "created": 0,
+        "creator": null,
+        "customProperties": null,
+        "description": "Network: Agent to Server, BGP",
+        "discoveryOptions": null,
+        "eventOverlays": null,
+        "filters": {
+          "sources": null,
+          "time": null,
+          "variables": []
+        },
+        "groupId": "GejajDdA4AA",
+        "groupName": "ThousandEyes Network monitoring",
+        "id": "GejZe8ZA0AI",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "maxDelayOverride": null,
+        "name": "Network",
+        "permissions": null,
+        "selectedEventOverlays": [],
+        "tags": null
+      }
+    },
+    {
+      "dashboard": {
+        "authorizedWriters": null,
+        "chartDensity": "DEFAULT",
+        "charts": [
+          {
+            "chartId": "Gerty5WA0AE",
+            "column": 0,
+            "height": 1,
+            "row": 0,
+            "width": 4
+          },
+          {
+            "chartId": "GerwlpMAwAA",
+            "column": 4,
+            "height": 1,
+            "row": 0,
+            "width": 4
+          },
+          {
+            "chartId": "GerqYWzA0AQ",
+            "column": 8,
+            "height": 1,
+            "row": 0,
+            "width": 4
+          }
+        ],
+        "created": 0,
+        "creator": null,
+        "customProperties": null,
+        "description": "",
+        "discoveryOptions": null,
+        "eventOverlays": null,
+        "filters": {
+          "sources": null,
+          "time": null,
+          "variables": []
+        },
+        "groupId": "GejajDdA4AA",
+        "groupName": "ThousandEyes Network monitoring",
+        "id": "GejdCKhAwAo",
+        "lastUpdated": 0,
+        "lastUpdatedBy": null,
+        "maxDelayOverride": null,
+        "name": "Configuration",
+        "permissions": null,
+        "selectedEventOverlays": [],
+        "tags": null
+      }
+    }
+  ],
+  "groupExport": {
+    "group": {
+      "authorizedWriters": null,
+      "created": 0,
+      "creator": null,
+      "dashboardConfigs": [
+        {
+          "configId": "GejdCKhAwAk",
+          "dashboardId": "GejdCKhAwAg",
+          "descriptionOverride": null,
+          "filtersOverride": null,
+          "nameOverride": null
+        },
+        {
+          "configId": "GejZe8ZA0AM",
+          "dashboardId": "GejZe8ZA0AI",
+          "descriptionOverride": null,
+          "filtersOverride": null,
+          "nameOverride": null
+        },
+        {
+          "configId": "GejdCKhAwAs",
+          "dashboardId": "GejdCKhAwAo",
+          "descriptionOverride": null,
+          "filtersOverride": null,
+          "nameOverride": null
+        }
+      ],
+      "dashboards": [
+        "GejdCKhAwAg",
+        "GejZe8ZA0AI",
+        "GejdCKhAwAo"
+      ],
+      "description": "Monitor ThousandEyes test:\n- Network: Agent to Server, BGP\n- Application: HTTP Server, Page Load",
+      "email": null,
+      "id": "GejajDdA4AA",
+      "importQualifiers": [
+        {
+          "filters": [],
+          "metric": ""
+        }
+      ],
+      "lastUpdated": 0,
+      "lastUpdatedBy": null,
+      "name": "ThousandEyes Network monitoring",
+      "permissions": null,
+      "teams": null
+    }
+  },
+  "hashCode": 21908013,
+  "id": "GejajDdA4AA",
+  "modelVersion": 1,
+  "packageType": "GROUP"
+}

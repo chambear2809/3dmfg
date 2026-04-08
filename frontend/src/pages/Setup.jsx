@@ -104,14 +104,11 @@ export default function Setup() {
         throw new Error(data.detail || "Setup failed");
       }
 
-      // Token is now in an httpOnly cookie (or in body for header mode)
-      // Fetch and store user data so AdminLayout knows the user is an admin
+      // Auth is now in an httpOnly cookie. Fetch user data so AdminLayout
+      // knows the current session belongs to an admin.
       try {
         const meRes = await fetch(`${API_URL}/api/v1/auth/me`, {
           credentials: "include",
-          headers: data.access_token
-            ? { Authorization: `Bearer ${data.access_token}` }
-            : {},
         });
         if (meRes.ok) {
           const userData = await meRes.json();

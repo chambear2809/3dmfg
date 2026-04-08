@@ -31,16 +31,6 @@ def _disable_rate_limits():
     limiter.enabled = original_enabled
 
 
-@pytest.fixture(autouse=True)
-def _force_header_mode(monkeypatch):
-    """Force header (bearer-in-body) mode for existing tests.
-
-    Cookie-mode tests are in a dedicated class that overrides this.
-    """
-    import app.api.v1.endpoints.auth as auth_mod
-    monkeypatch.setattr(auth_mod, "_USE_COOKIES", False)
-
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -89,13 +79,17 @@ def inactive_user(db):
 
 @pytest.fixture
 def login_tokens(unauthed_client, registered_user):
-    """Log in as registered_user and return the token response."""
+    """Log in as registered_user and return the response plus cookie values."""
     resp = unauthed_client.post(
         f"{BASE_URL}/login",
         data={"username": registered_user.email, "password": "TestPass123!"},
     )
     assert resp.status_code == 200, f"Login setup failed: {resp.text}"
-    return resp.json()
+    return {
+        "response": resp,
+        "access_token": resp.cookies.get("access_token"),
+        "refresh_token": resp.cookies.get("refresh_token"),
+    }
 
 
 # =============================================================================
@@ -119,9 +113,11 @@ class TestRegister:
         assert resp.status_code == 201
         data = resp.json()
         assert data["email"] == email
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["token_type"] == "bearer"
+        assert data["token_type"] == "cookie"
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert "access_token" in resp.cookies
+        assert "refresh_token" in resp.cookies
 
     def test_register_duplicate_email(self, unauthed_client, registered_user):
         resp = unauthed_client.post(
@@ -190,9 +186,12 @@ class TestLogin:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["token_type"] == "bearer"
+        assert data["token_type"] == "cookie"
+        assert "user" in data
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert "access_token" in resp.cookies
+        assert "refresh_token" in resp.cookies
 
     def test_login_wrong_password(self, unauthed_client, registered_user):
         resp = unauthed_client.post(
@@ -238,19 +237,22 @@ class TestLogin:
 class TestRefreshToken:
 
     def test_refresh_success(self, unauthed_client, login_tokens):
+        old_refresh = login_tokens["refresh_token"]
         resp = unauthed_client.post(
             f"{BASE_URL}/refresh",
-            json={"refresh_token": login_tokens["refresh_token"]},
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
+        assert data["token_type"] == "cookie"
+        assert "access_token" not in data
+        assert "refresh_token" not in data
+        assert resp.cookies.get("refresh_token")
+        assert resp.cookies.get("refresh_token") != old_refresh
 
     def test_refresh_invalid_token(self, unauthed_client):
         resp = unauthed_client.post(
             f"{BASE_URL}/refresh",
-            json={"refresh_token": "totally-invalid-token"},
+            cookies={"refresh_token": "totally-invalid-token"},
         )
         assert resp.status_code == 401
 
@@ -261,14 +263,13 @@ class TestRefreshToken:
         # First refresh — should succeed
         resp1 = unauthed_client.post(
             f"{BASE_URL}/refresh",
-            json={"refresh_token": old_refresh},
         )
         assert resp1.status_code == 200
 
         # Second refresh with same token — should fail (revoked)
         resp2 = unauthed_client.post(
             f"{BASE_URL}/refresh",
-            json={"refresh_token": old_refresh},
+            cookies={"refresh_token": old_refresh},
         )
         assert resp2.status_code == 401
 
@@ -313,6 +314,30 @@ class TestPasswordResetRequest:
         data = resp.json()
         assert "message" in data
 
+    def test_request_reset_without_smtp_does_not_expose_direct_link(
+        self, unauthed_client, registered_user, monkeypatch
+    ):
+        import app.api.v1.endpoints.auth as auth_mod
+
+        monkeypatch.setattr(auth_mod.settings, "SMTP_USER", "", raising=False)
+        monkeypatch.setattr(auth_mod.settings, "SMTP_PASSWORD", "", raising=False)
+        monkeypatch.setattr(
+            auth_mod.settings,
+            "ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP",
+            False,
+            raising=False,
+        )
+        monkeypatch.setattr(auth_mod.settings, "ENVIRONMENT", "development", raising=False)
+
+        resp = unauthed_client.post(
+            f"{BASE_URL}/password-reset/request",
+            json={"email": registered_user.email},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["reset_token"] is None
+        assert data["reset_url"] is None
+
     def test_request_reset_nonexistent_email(self, unauthed_client):
         """Should still return 200 to prevent email enumeration."""
         resp = unauthed_client.post(
@@ -352,7 +377,21 @@ class TestPasswordResetComplete:
 
 
 class TestPasswordResetFullFlow:
-    """End-to-end password reset in dev mode (no email configured = auto-approve)."""
+    """End-to-end password reset with the explicit dev-only direct-link override."""
+
+    @pytest.fixture(autouse=True)
+    def _enable_direct_reset_override(self, monkeypatch):
+        import app.api.v1.endpoints.auth as auth_mod
+
+        monkeypatch.setattr(auth_mod.settings, "SMTP_USER", "", raising=False)
+        monkeypatch.setattr(auth_mod.settings, "SMTP_PASSWORD", "", raising=False)
+        monkeypatch.setattr(
+            auth_mod.settings,
+            "ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP",
+            True,
+            raising=False,
+        )
+        monkeypatch.setattr(auth_mod.settings, "ENVIRONMENT", "development", raising=False)
 
     def test_full_reset_flow(self, unauthed_client, registered_user):
         # Step 1: Request reset
@@ -363,10 +402,7 @@ class TestPasswordResetFullFlow:
         assert resp.status_code == 200
         data = resp.json()
 
-        # In dev mode (no SMTP), reset_token should be returned directly
-        if "reset_token" not in data or data["reset_token"] is None:
-            pytest.skip("SMTP configured — auto-approve not available")
-
+        assert data["reset_token"] is not None
         reset_token = data["reset_token"]
 
         # Step 2: Check status (should be approved)
@@ -394,9 +430,10 @@ class TestPasswordResetFullFlow:
             },
         )
         assert resp.status_code == 200
-        # In header mode: token in body; in cookie mode: token in cookie
         data = resp.json()
-        assert "access_token" in data or data.get("token_type") == "cookie"
+        assert data["token_type"] == "cookie"
+        assert "access_token" not in data
+        assert "access_token" in resp.cookies
 
     def test_reset_with_weak_password_fails(self, unauthed_client, registered_user):
         # Request reset
@@ -405,9 +442,7 @@ class TestPasswordResetFullFlow:
             json={"email": registered_user.email},
         )
         data = resp.json()
-        if "reset_token" not in data or data["reset_token"] is None:
-            pytest.skip("SMTP configured — auto-approve not available")
-
+        assert data["reset_token"] is not None
         reset_token = data["reset_token"]
 
         # Try to complete with weak password
@@ -456,12 +491,6 @@ class TestPasswordResetApproval:
 
 class TestCookieMode:
     """Test httpOnly cookie auth delivery."""
-
-    @pytest.fixture(autouse=True)
-    def _enable_cookie_mode(self, monkeypatch):
-        """Override the module-level header-mode fixture for this class."""
-        import app.api.v1.endpoints.auth as auth_mod
-        monkeypatch.setattr(auth_mod, "_USE_COOKIES", True)
 
     def test_login_sets_httponly_cookies(self, unauthed_client, registered_user):
         resp = unauthed_client.post(

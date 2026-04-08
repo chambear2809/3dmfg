@@ -4,16 +4,22 @@ First-run setup endpoint for FilaOps
 Allows creating the initial admin account when no users exist.
 This endpoint is disabled once any user has been created.
 """
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.user import User
-from app.core.security import hash_password, create_access_token, validate_password_strength, set_auth_cookies
-from app.core.config import settings
+from app.models.user import User, RefreshToken
+from app.core.security import (
+    hash_password,
+    create_access_token,
+    create_refresh_token,
+    hash_refresh_token,
+    validate_password_strength,
+    set_auth_cookies,
+)
 from app.core.limiter import limiter
 from app.api.v1.deps import get_current_admin_user
 from app.services import seed_service
@@ -42,8 +48,8 @@ class SetupCompleteResponse(BaseModel):
     """Response after successful setup"""
     message: str
     email: str
-    access_token: str
-    token_type: str = "bearer"
+    setup_token: str
+    token_type: str = "cookie"
 
 
 @router.get("/status", response_model=SetupStatusResponse)
@@ -68,7 +74,7 @@ def get_setup_status(db: Session = Depends(get_db)):
     )
 
 
-@router.post("/initial-admin")
+@router.post("/initial-admin", response_model=SetupCompleteResponse)
 @limiter.limit("3/minute")  # type: ignore
 def create_initial_admin(
     request: Request,
@@ -82,8 +88,9 @@ def create_initial_admin(
     This endpoint ONLY works when no users exist in the database.
     Once any user is created, this endpoint returns 403 Forbidden.
 
-    In cookie mode, the access token is set as an httpOnly cookie.
-    In header mode, the token is returned in the response body.
+    A normal browser session is established via httpOnly cookies. The response
+    body also includes a short-lived setup token for the onboarding wizard's
+    bootstrap API calls.
     """
     # Check if any users already exist
     user_count = db.query(User).count()
@@ -130,32 +137,31 @@ def create_initial_admin(
     db.commit()
     db.refresh(admin)
 
-    # Generate access token so they're logged in immediately
+    # Generate a normal browser session so setup lands in the same auth state
+    # as a standard login.
     access_token = create_access_token(user_id=admin.id)
-
-    if settings.AUTH_MODE.lower() == "cookie":
-        set_auth_cookies(response, access_token)
-        # The full-duration token lives in the httpOnly cookie (not JS-accessible).
-        # The response body gets a short-lived token (5 min) for the onboarding
-        # wizard, which needs Authorization headers because httpOnly cookies are
-        # not reliably forwarded through nginx reverse proxies on immediate
-        # same-page requests.  5 minutes is enough for the wizard to complete,
-        # and this endpoint only works when zero users exist (line 85).
-        setup_token = create_access_token(
+    refresh_token = create_refresh_token(user_id=admin.id)
+    db.add(
+        RefreshToken(
             user_id=admin.id,
-            expires_delta=timedelta(minutes=5),
+            token_hash=hash_refresh_token(refresh_token),
+            expires_at=(datetime.now(timezone.utc) + timedelta(days=7)).replace(tzinfo=None),
         )
-        return {
-            "message": "Admin account created successfully! Welcome to FilaOps.",
-            "email": admin.email,
-            "setup_token": setup_token,
-            "token_type": "cookie",
-        }
+    )
+    db.commit()
 
+    set_auth_cookies(response, access_token, refresh_token)
+
+    # The normal session lives in httpOnly cookies. The short-lived setup token
+    # exists only for the onboarding wizard's immediate bootstrap requests.
+    setup_token = create_access_token(
+        user_id=admin.id,
+        expires_delta=timedelta(minutes=5),
+    )
     return SetupCompleteResponse(
         message="Admin account created successfully! Welcome to FilaOps.",
         email=admin.email,
-        access_token=access_token,
+        setup_token=setup_token,
     )
 
 

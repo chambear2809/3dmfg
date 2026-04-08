@@ -9,7 +9,12 @@
     "test:customer": "npx playwright test customer-flow",
     "test:admin": "npx playwright test admin-flow",
     "test:report": "npx playwright show-report tests/e2e/reports",
-    "test:debug": "npx playwright test --debug"
+    "test:debug": "npx playwright test --debug",
+    "loadgen:seed": "backend/.venv/bin/python backend/scripts/seed_loadgen_data.py --profile small --manifest scripts/loadgen/manifest.json",
+    "loadgen:seed:docker": "bash scripts/loadgen/run-seed-docker.sh --profile small",
+    "loadgen:k6": "bash scripts/loadgen/run-k6.sh",
+    "loadgen:smoke": "npm --prefix frontend run test:load:smoke",
+    "demo:3dprint:observability": "bash scripts/demo/3dprint-observability.sh"
   },
   "keywords": [],
   "author": "",

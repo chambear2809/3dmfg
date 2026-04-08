@@ -12,15 +12,15 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe.serial('E2E-201: Blocking Issues Flow', () => {
 
-  // Store auth token to reuse across tests (avoid rate limiting)
-  let authToken: string | null = null;
+  let authCookies: any[] = [];
+  let adminUser: any = null;
 
   // Seed once before all tests in this file
   test.beforeAll(async ({ request }) => {
     await cleanupTestData();
     await seedTestScenario('low-stock-with-allocations');
 
-    // Get auth token once via API to avoid rate limiting browser logins
+    // Log in once and reuse the resulting session state in UI tests.
     const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
       form: {
         username: 'admin@filaops.test',
@@ -29,36 +29,40 @@ test.describe.serial('E2E-201: Blocking Issues Flow', () => {
     });
     if (response.ok()) {
       const data = await response.json();
-      authToken = data.access_token;
+      adminUser = data.user;
+      const state = await request.storageState();
+      authCookies = state.cookies.filter((cookie: any) =>
+        cookie.name === 'access_token' || cookie.name === 'refresh_token'
+      );
     }
   });
 
-  // Helper: login via stored token (fast, no rate limit)
+  async function loginApi(request: any) {
+    const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
+      form: {
+        username: 'admin@filaops.test',
+        password: 'TestPass123!',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+
   async function loginAsAdmin(page: any) {
     await page.goto('http://localhost:5173/admin/login');
 
-    // Inject token directly instead of filling form
-    if (authToken) {
-      await page.evaluate((token: string) => {
-        localStorage.setItem('adminToken', token);
-      }, authToken);
+    if (authCookies.length > 0 && adminUser) {
+      await page.context().addCookies(authCookies);
+      await page.evaluate((user: any) => {
+        localStorage.setItem('adminUser', JSON.stringify(user));
+      }, adminUser);
       await page.goto('http://localhost:5173/admin/orders');
       await expect(page).toHaveURL(/\/admin\/orders/);
     } else {
-      // Fallback to form login if token not available
       await page.getByRole('textbox', { name: 'Email Address' }).fill('admin@filaops.test');
       await page.getByRole('textbox', { name: 'Password' }).fill('TestPass123!');
       await page.getByRole('button', { name: 'Sign In' }).click();
       await expect(page).toHaveURL(/\/admin(?!\/login)/);
     }
-  }
-
-  // Helper: get token (reuses cached token from beforeAll)
-  function getApiToken(): string {
-    if (!authToken) {
-      throw new Error('Auth token not available - beforeAll may have failed');
-    }
-    return authToken;
   }
 
   // =====================
@@ -142,22 +146,17 @@ test.describe.serial('E2E-201: Blocking Issues Flow', () => {
   // API Tests: Use direct API auth (no browser login needed)
   // =====================
   test('API-201 & API-202: blocking-issues endpoints return correct structure', async ({ request }) => {
-    // Get cached token (from beforeAll)
-    const token = getApiToken();
+    await loginApi(request);
 
     // --- API-201: SO blocking-issues ---
-    const soListResponse = await request.get('http://127.0.0.1:8000/api/v1/sales-orders/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const soListResponse = await request.get('http://127.0.0.1:8000/api/v1/sales-orders/');
     expect(soListResponse.ok()).toBeTruthy();
     
     const soOrders = await soListResponse.json();
     const soId = soOrders.items?.[0]?.id || soOrders[0]?.id;
     expect(soId).toBeTruthy();
 
-    const soResponse = await request.get(`http://127.0.0.1:8000/api/v1/sales-orders/${soId}/blocking-issues`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const soResponse = await request.get(`http://127.0.0.1:8000/api/v1/sales-orders/${soId}/blocking-issues`);
     expect(soResponse.ok()).toBeTruthy();
 
     const soData = await soResponse.json();
@@ -170,9 +169,7 @@ test.describe.serial('E2E-201: Blocking Issues Flow', () => {
     expect(Array.isArray(soData.resolution_actions)).toBe(true);
 
     // --- API-202: PO blocking-issues ---
-    const poListResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const poListResponse = await request.get('http://127.0.0.1:8000/api/v1/production-orders/');
     
     if (!poListResponse.ok()) {
       console.log('Production orders list failed - skipping PO test');
@@ -187,9 +184,7 @@ test.describe.serial('E2E-201: Blocking Issues Flow', () => {
       return;
     }
 
-    const poResponse = await request.get(`http://127.0.0.1:8000/api/v1/production-orders/${poId}/blocking-issues`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const poResponse = await request.get(`http://127.0.0.1:8000/api/v1/production-orders/${poId}/blocking-issues`);
     expect(poResponse.ok()).toBeTruthy();
 
     const poData = await poResponse.json();

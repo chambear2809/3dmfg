@@ -8,7 +8,7 @@ Production deployment for the FilaOps ERP system using Docker Compose.
 graph TD
     Internet["🌐 Internet"] -->|"Port 80"| Frontend
     Internet -->|"Port 8000"| Backend
-    Frontend["<b>frontend</b><br/>nginx:alpine<br/>React SPA<br/>(port 8080)"] -->|"/api proxy"| Backend
+    Frontend["<b>frontend</b><br/>node:20-slim<br/>server.mjs + React SPA<br/>(port 8080)"] -->|"/api proxy"| Backend
     Backend["<b>backend</b><br/>python:3.11-slim<br/>FastAPI + Uvicorn<br/>(port 8000)"] --> DB
     Migrate["<b>migrate</b><br/>alembic upgrade head<br/>(runs then exits)"] --> DB
     DB["<b>db</b><br/>postgres:16<br/>(port 5432)"] --- Volume["filaops_pgdata<br/>(named volume)"]
@@ -26,7 +26,7 @@ graph TD
 | `db` | `postgres:16` | PostgreSQL database |
 | `migrate` | Backend image | Runs `alembic upgrade head`, then exits |
 | `backend` | `python:3.11-slim` | FastAPI API server on port 8000 |
-| `frontend` | `nginx:alpine` | Serves React SPA, proxies `/api` to backend |
+| `frontend` | `node:20-slim` | Serves React SPA, proxies `/api` to backend, and can be auto-instrumented as a service |
 
 ## 1. Prerequisites
 
@@ -103,7 +103,7 @@ See `backend/.env.example` for the full list including SMTP, shipping, MRP, and 
 The included `docker-compose.yml` is production-ready:
 
 - **Backend** runs as `appuser` (non-root) inside the container
-- **Frontend** runs as `nginx` user (non-root)
+- **Frontend** runs as the non-root `node` user
 - **Database** data persists in the `filaops_pgdata` named volume
 - **Uploads** are bind-mounted at `./uploads:/app/uploads`
 
@@ -348,8 +348,10 @@ docker compose exec frontend wget -qO- http://backend:8000/health
 docker compose exec backend env | grep ALLOWED
 ```
 
-The frontend nginx proxies `/api` to the backend. Check `VITE_API_URL` build arg
-and `frontend/nginx.conf` if API calls fail.
+The frontend Node service proxies `/api` to the backend. Check
+`FRONTEND_API_UPSTREAM` and
+[`server.mjs`](/Users/alecchamberlain/Documents/GitHub/3d-mfg/frontend/server.mjs)
+if API calls fail.
 
 ### Migrations: "relation already exists"
 

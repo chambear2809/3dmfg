@@ -2,6 +2,7 @@
 FilaOps ERP - Main FastAPI Application
 """
 import os
+from collections.abc import Iterable
 from contextlib import asynccontextmanager
 
 try:
@@ -16,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.datastructures import MutableHeaders
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
@@ -52,34 +54,187 @@ else:
 # ===================
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
+    """Add security and trace-response headers to HTTP responses."""
 
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-
-        # Prevent clickjacking
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        # Prevent MIME type sniffing
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        # XSS protection (legacy)
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        # Referrer policy
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Permissions policy
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        # HSTS in production
-        if getattr(settings, "ENVIRONMENT", "development") == "production":
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        _apply_security_headers(response.headers)
+        _apply_trace_response_headers(
+            response.headers,
+            request=request,
+            status_code=response.status_code,
+        )
         return response
 
 
+def _apply_security_headers(headers: MutableHeaders) -> None:
+    """Populate the standard security headers for every HTTP response."""
+    headers["X-Frame-Options"] = "SAMEORIGIN"
+    headers["X-Content-Type-Options"] = "nosniff"
+    headers["X-XSS-Protection"] = "1; mode=block"
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    headers["Content-Security-Policy"] = (
+        "default-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
+    )
+    if settings.is_production:
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+
+def _is_truthy_env(value: str | None) -> bool:
+    return (value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _trace_response_header_enabled() -> bool:
+    return _is_truthy_env(os.getenv("SPLUNK_TRACE_RESPONSE_HEADER_ENABLED"))
+
+
+def _split_header_values(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def _merge_csv_header(existing: str | None, additions: Iterable[str]) -> str | None:
+    values = _split_header_values(existing)
+    seen = {value.lower() for value in values}
+
+    for addition in additions:
+        if not addition:
+            continue
+        candidate = addition.strip()
+        if not candidate:
+            continue
+        lowered = candidate.lower()
+        if lowered in seen:
+            continue
+        values.append(candidate)
+        seen.add(lowered)
+
+    return ", ".join(values) if values else None
+
+
+def _server_timing_has_traceparent(value: str | None) -> bool:
+    return any(part.lower().startswith("traceparent") for part in _split_header_values(value))
+
+
+def _disable_trace_response_header_propagator() -> None:
+    """Disable the global response propagator and rely on app-layer header injection."""
+    if not _trace_response_header_enabled():
+        return
+
+    try:
+        from opentelemetry.instrumentation.propagators import set_global_response_propagator
+    except Exception:
+        return
+
+    set_global_response_propagator(None)
+
+
+def _apply_trace_response_headers(
+    headers: MutableHeaders,
+    request: Request | None = None,
+    status_code: int | None = None,
+) -> None:
+    """Append Splunk RUM trace-linking headers when enabled and a span is active."""
+    if not _trace_response_header_enabled():
+        return
+
+    existing_server_timing = headers.get("Server-Timing")
+    has_traceparent = _server_timing_has_traceparent(existing_server_timing)
+    server_timing = None if has_traceparent else _build_server_timing_traceparent(
+        request=request,
+        status_code=status_code,
+    )
+
+    if server_timing:
+        merged_server_timing = _merge_csv_header(existing_server_timing, [server_timing])
+        if merged_server_timing:
+            headers["Server-Timing"] = merged_server_timing
+        has_traceparent = True
+
+    if not has_traceparent:
+        return
+
+    expose_headers = _merge_csv_header(
+        headers.get("Access-Control-Expose-Headers"),
+        ["Server-Timing"],
+    )
+    if expose_headers:
+        headers["Access-Control-Expose-Headers"] = expose_headers
+
+
+def _build_server_timing_traceparent(
+    request: Request | None = None,
+    status_code: int | None = None,
+) -> str | None:
+    """Return a Splunk RUM-compatible traceparent entry for the Server-Timing header."""
+    try:
+        from opentelemetry import trace as otel_trace
+        from opentelemetry.propagate import extract as otel_extract
+    except Exception:
+        return None
+
+    span = otel_trace.get_current_span()
+    if span is None:
+        span_context = None
+    else:
+        span_context = span.get_span_context()
+
+    if span_context and span_context.is_valid and span_context.trace_flags.sampled:
+        trace_id = format(span_context.trace_id, "032x")
+        span_id = format(span_context.span_id, "016x")
+        return f'traceparent;desc="00-{trace_id}-{span_id}-01"'
+
+    if request is None:
+        return None
+
+    parent_context = otel_extract(request.headers)
+    parent_span = otel_trace.get_current_span(parent_context)
+    parent_span_context = parent_span.get_span_context()
+    if (
+        not parent_span_context
+        or not parent_span_context.is_valid
+        or not parent_span_context.trace_flags.sampled
+    ):
+        return None
+
+    tracer = otel_trace.get_tracer(__name__)
+    with tracer.start_as_current_span("server_timing.link", context=parent_context) as link_span:
+        link_span.set_attribute("rum.link_fallback", True)
+        link_span.set_attribute("http.method", request.method)
+        link_span.set_attribute("http.route", request.url.path)
+        if status_code is not None:
+            link_span.set_attribute("http.status_code", status_code)
+
+        link_context = link_span.get_span_context()
+        if not link_context or not link_context.is_valid or not link_context.trace_flags.sampled:
+            return None
+
+        trace_id = format(link_context.trace_id, "032x")
+        span_id = format(link_context.span_id, "016x")
+        return f'traceparent;desc="00-{trace_id}-{span_id}-01"'
+
+
+_disable_trace_response_header_propagator()
+
+
 def init_database():
-    """Initialize database tables on startup (idempotent)."""
+    """Initialize database tables on startup.
+
+    In production, Alembic migrations are the source of truth for schema.
+    create_all() is only used in development to bootstrap a fresh database
+    without running migrations manually.
+    """
+    if settings.is_production:
+        logger.info("Production mode — skipping create_all (use Alembic migrations)")
+        return
+
     try:
         from app.db.session import engine
         from app.db.base import Base
         import app.models  # noqa: F401
-        logger.info("Checking database tables...")
+        logger.info("Development mode — checking database tables via create_all...")
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables ready")
     except Exception as e:
@@ -91,8 +246,17 @@ def seed_default_data():
     try:
         from app.db.session import SessionLocal
         from app.models.user import User
+        from app.services.bootstrap_service import bootstrap_demo_admin
         db = SessionLocal()
         try:
+            bootstrapped_admin = bootstrap_demo_admin(db)
+            if bootstrapped_admin is not None:
+                logger.warning(
+                    "Demo admin bootstrap complete",
+                    extra={"email": bootstrapped_admin.email},
+                )
+                return
+
             user_count = db.query(User).count()
             if user_count == 0:
                 logger.info("No users found - first-run setup required at /setup")
@@ -169,7 +333,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 # Disable Swagger/OpenAPI in production to prevent API schema exposure
-_is_production = getattr(settings, "ENVIRONMENT", "development") == "production"
+_is_production = settings.is_production
 app = FastAPI(
     title="FilaOps ERP API",
     description="Open-source ERP for 3D print farms",

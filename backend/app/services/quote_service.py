@@ -18,8 +18,17 @@ from app.models.company_settings import CompanySettings
 from app.models.quote import Quote, QuoteLine
 from app.models.sales_order import SalesOrder, SalesOrderLine
 from app.models.user import User
+from app.services.asset_dispatch_client import (
+    AssetServiceClientError,
+    AssetServiceNotFoundError,
+    asset_dispatch_client,
+)
 
 logger = get_logger(__name__)
+
+
+def _quote_image_asset_key(quote_id: int) -> str:
+    return f"quote-{quote_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -786,6 +795,31 @@ def upload_quote_image(
             detail="File too large. Maximum size: 5MB"
         )
 
+    if asset_dispatch_client.is_configured:
+        try:
+            asset_dispatch_client.upload(
+                category="quote-images",
+                asset_key=_quote_image_asset_key(quote_id),
+                filename=filename,
+                content=content,
+                content_type=content_type,
+            )
+        except AssetServiceClientError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
+
+        quote.image_data = None
+        quote.image_filename = filename
+        quote.image_mime_type = content_type
+        quote.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+
+        logger.info(f"Image uploaded for quote {quote.quote_number} via asset service")
+        return {"message": "Image uploaded successfully", "filename": filename}
+
     quote.image_data = content
     quote.image_filename = filename
     quote.image_mime_type = content_type
@@ -805,6 +839,29 @@ def get_quote_image(db: Session, quote_id: int) -> dict:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Quote {quote_id} not found"
         )
+
+    if asset_dispatch_client.is_configured and quote.image_filename:
+        try:
+            asset = asset_dispatch_client.fetch(
+                category="quote-images",
+                asset_key=_quote_image_asset_key(quote_id),
+            )
+        except AssetServiceNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No image uploaded for this quote"
+            ) from exc
+        except AssetServiceClientError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
+
+        return {
+            "image_data": asset["content"],
+            "mime_type": asset["content_type"],
+            "filename": asset["filename"],
+        }
 
     if not quote.image_data:
         raise HTTPException(
@@ -827,6 +884,20 @@ def delete_quote_image(db: Session, quote_id: int) -> str:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Quote {quote_id} not found"
         )
+
+    if asset_dispatch_client.is_configured and quote.image_filename:
+        try:
+            asset_dispatch_client.delete(
+                category="quote-images",
+                asset_key=_quote_image_asset_key(quote_id),
+            )
+        except AssetServiceNotFoundError:
+            pass
+        except AssetServiceClientError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from exc
 
     quote.image_data = None
     quote.image_filename = None
@@ -1053,9 +1124,20 @@ def generate_quote_pdf(db: Session, quote_id: int) -> io.BytesIO:
     if quote.customer_email:
         customer_block.append(Paragraph(esc(quote.customer_email), s_detail))
 
-    if quote.image_data:
+    image_bytes = quote.image_data
+    if image_bytes is None and asset_dispatch_client.is_configured and quote.image_filename:
         try:
-            img_buffer = io.BytesIO(quote.image_data)
+            asset = asset_dispatch_client.fetch(
+                category="quote-images",
+                asset_key=_quote_image_asset_key(quote.id),
+            )
+            image_bytes = asset["content"]
+        except AssetServiceClientError:
+            image_bytes = None
+
+    if image_bytes:
+        try:
+            img_buffer = io.BytesIO(image_bytes)
             quote_img = Image(img_buffer, width=1.8 * inch, height=1.8 * inch)
             quote_img.hAlign = 'RIGHT'
             cust_table = Table(

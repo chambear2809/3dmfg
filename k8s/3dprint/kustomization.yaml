@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - instrumentation.yaml
+  - postgres.yaml
+  - backend.yaml
+  - frontend.yaml
+  - notification-service.yaml
+  - asset-service.yaml
+  - order-ingest.yaml

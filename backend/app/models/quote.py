@@ -142,7 +142,7 @@ class Quote(Base):
     @property
     def has_image(self) -> bool:
         """Check if quote has an image attached"""
-        return self.image_data is not None
+        return self.image_data is not None or bool(self.image_filename)
 
     @property
     def is_auto_approvable(self) -> bool:

@@ -17,15 +17,15 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
 
-  // Store auth token to reuse across tests (avoid rate limiting)
-  let authToken: string | null = null;
+  let authCookies: any[] = [];
+  let adminUser: any = null;
 
   // Seed once before all tests in this file
   test.beforeAll(async ({ request }) => {
     await cleanupTestData();
     await seedTestScenario('low-stock-with-allocations');
 
-    // Get auth token once via API to avoid rate limiting browser logins
+    // Log in once and reuse the resulting session state in UI tests.
     const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
       form: {
         username: 'admin@filaops.test',
@@ -34,36 +34,41 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
     });
     if (response.ok()) {
       const data = await response.json();
-      authToken = data.access_token;
+      adminUser = data.user;
+      const state = await request.storageState();
+      authCookies = state.cookies.filter((cookie: any) =>
+        cookie.name === 'access_token' || cookie.name === 'refresh_token'
+      );
     }
   });
 
-  // Helper: login via stored token (fast, no rate limit)
+  async function loginApi(request: any) {
+    const response = await request.post('http://127.0.0.1:8000/api/v1/auth/login', {
+      form: {
+        username: 'admin@filaops.test',
+        password: 'TestPass123!',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+  }
+
+  // Helper: reuse the stored session to avoid rate-limited UI logins.
   async function loginAsAdmin(page: any) {
     await page.goto('http://localhost:5173/admin/login');
 
-    // Inject token directly instead of filling form
-    if (authToken) {
-      await page.evaluate((token: string) => {
-        localStorage.setItem('adminToken', token);
-      }, authToken);
+    if (authCookies.length > 0 && adminUser) {
+      await page.context().addCookies(authCookies);
+      await page.evaluate((user: any) => {
+        localStorage.setItem('adminUser', JSON.stringify(user));
+      }, adminUser);
       await page.goto('http://localhost:5173/admin/orders');
       await expect(page).toHaveURL(/\/admin\/orders/);
     } else {
-      // Fallback to form login if token not available
       await page.getByRole('textbox', { name: 'Email Address' }).fill('admin@filaops.test');
       await page.getByRole('textbox', { name: 'Password' }).fill('TestPass123!');
       await page.getByRole('button', { name: 'Sign In' }).click();
       await expect(page).toHaveURL(/\/admin(?!\/login)/);
     }
-  }
-
-  // Helper: get token (reuses cached token from beforeAll)
-  function getApiToken(): string {
-    if (!authToken) {
-      throw new Error('Auth token not available - beforeAll may have failed');
-    }
-    return authToken;
   }
 
   // =====================
@@ -199,12 +204,10 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
   // =====================
 
   test('API-301 & API-302 & API-303: fulfillment endpoints work correctly', async ({ request }) => {
-    const token = getApiToken();
+    await loginApi(request);
 
     // --- API-301: Single order fulfillment status ---
-    const listResponse = await request.get('http://127.0.0.1:8000/api/v1/sales-orders/', {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+    const listResponse = await request.get('http://127.0.0.1:8000/api/v1/sales-orders/');
     expect(listResponse.ok()).toBeTruthy();
 
     const orders = await listResponse.json();
@@ -212,8 +215,7 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
     expect(soId).toBeTruthy();
 
     const statusResponse = await request.get(
-      `http://127.0.0.1:8000/api/v1/sales-orders/${soId}/fulfillment-status`,
-      { headers: { 'Authorization': `Bearer ${token}` } }
+      `http://127.0.0.1:8000/api/v1/sales-orders/${soId}/fulfillment-status`
     );
     expect(statusResponse.ok()).toBeTruthy();
 
@@ -232,8 +234,7 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
 
     // --- API-302: Bulk fulfillment in list ---
     const bulkResponse = await request.get(
-      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true',
-      { headers: { 'Authorization': `Bearer ${token}` } }
+      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true'
     );
     expect(bulkResponse.ok()).toBeTruthy();
 
@@ -246,8 +247,7 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
 
     // --- API-303: Filtering by state ---
     const filteredResponse = await request.get(
-      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true&fulfillment_state=blocked',
-      { headers: { 'Authorization': `Bearer ${token}` } }
+      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true&fulfillment_state=blocked'
     );
     expect(filteredResponse.ok()).toBeTruthy();
 
@@ -260,8 +260,7 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
 
     // --- API-303: Sorting by priority ---
     const sortedResponse = await request.get(
-      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true&sort_by=fulfillment_priority&sort_order=asc',
-      { headers: { 'Authorization': `Bearer ${token}` } }
+      'http://127.0.0.1:8000/api/v1/sales-orders/?include_fulfillment=true&sort_by=fulfillment_priority&sort_order=asc'
     );
     expect(sortedResponse.ok()).toBeTruthy();
 
@@ -285,11 +284,10 @@ test.describe.serial('E2E-301: Fulfillment Status Flow', () => {
   });
 
   test('API: invalid fulfillment_state returns 400', async ({ request }) => {
-    const token = getApiToken();
+    await loginApi(request);
 
     const response = await request.get(
-      'http://127.0.0.1:8000/api/v1/sales-orders/?fulfillment_state=invalid_state',
-      { headers: { 'Authorization': `Bearer ${token}` } }
+      'http://127.0.0.1:8000/api/v1/sales-orders/?fulfillment_state=invalid_state'
     );
 
     expect(response.status()).toBe(400);

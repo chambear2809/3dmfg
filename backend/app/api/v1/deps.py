@@ -73,6 +73,24 @@ async def get_current_user(
     return user
 
 
+async def get_optional_current_user(
+    request: Request,
+    token: Annotated[str | None, Depends(oauth2_scheme)] = None,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """
+    Return the current authenticated user when credentials are present.
+
+    This behaves like ``get_current_user`` for valid/invalid credentials, but
+    allows anonymous access when no auth token is supplied at all.
+    """
+    access_token = request.cookies.get("access_token") or token
+    if not access_token:
+        return None
+
+    return await get_current_user(request=request, token=token, db=db)
+
+
 async def get_current_admin_user(
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> User:

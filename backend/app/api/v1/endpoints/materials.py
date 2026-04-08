@@ -13,7 +13,10 @@ import io
 
 from app.db.session import get_db
 from app.models.user import User
-from app.api.v1.deps import get_current_user
+from app.api.v1.deps import (
+    get_current_staff_user,
+    get_optional_current_user,
+)
 from app.models.inventory import Inventory
 from app.logging_config import get_logger
 from app.services.material_service import (
@@ -29,6 +32,24 @@ from app.services.material_service import (
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+def _is_staff_user(user: User | None) -> bool:
+    """Return True when the requester is internal staff."""
+    return bool(user and user.account_type in ("admin", "operator"))
+
+
+def _require_staff_visibility(
+    *,
+    customer_visible_only: bool,
+    current_user: User | None,
+) -> None:
+    """Reject requests that try to bypass customer-visible filtering."""
+    if not customer_visible_only and not _is_staff_user(current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Staff access required for non-customer-visible materials",
+        )
 
 
 # ============================================================================
@@ -194,16 +215,22 @@ def get_material_options(
             ]
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to load material options: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to load material options")
 
 
 @router.get("/types", response_model=MaterialTypesResponse)
 def list_material_types(
     customer_visible_only: bool = True,
+    current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ) -> MaterialTypesResponse:
     """Get list of material types (for first dropdown)."""
     try:
+        _require_staff_visibility(
+            customer_visible_only=customer_visible_only,
+            current_user=current_user,
+        )
         materials = get_available_material_types(
             db, customer_visible_only=customer_visible_only
         )
@@ -222,8 +249,11 @@ def list_material_types(
                 for m in materials
             ]
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to list material types: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to list material types")
 
 
 @router.get("/types/{material_type_code}/colors", response_model=ColorsResponse)
@@ -231,10 +261,15 @@ def list_colors_for_material(
     material_type_code: str,
     in_stock_only: bool = True,
     customer_visible_only: bool = True,
+    current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ):
     """Get available colors for a specific material type (for second dropdown)."""
     try:
+        _require_staff_visibility(
+            customer_visible_only=customer_visible_only,
+            current_user=current_user,
+        )
         colors = get_available_colors_for_material(
             db,
             material_type_code=material_type_code,
@@ -253,8 +288,11 @@ def list_colors_for_material(
         raise HTTPException(
             status_code=404, detail=f"Material type not found: {material_type_code}"
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to list colors for material %s: %s", material_type_code, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to list colors for material type")
 
 
 @router.post("/types/{material_type_code}/colors", response_model=ColorCreateResponse)
@@ -262,7 +300,7 @@ def create_color_for_material_endpoint(
     material_type_code: str,
     color_data: ColorCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_staff_user),
 ):
     """Create a new color and link it to a material type."""
     if not current_user.is_admin:
@@ -289,7 +327,10 @@ def create_color_for_material_endpoint(
 
 
 @router.get("/for-bom", response_model=MaterialsForBOMResponse)
-def get_materials_for_bom(db: Session = Depends(get_db)) -> MaterialsForBOMResponse:
+def get_materials_for_bom(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_staff_user),
+) -> MaterialsForBOMResponse:
     """Get all materials formatted for BOM usage."""
     try:
         materials = get_available_material_types(db, customer_visible_only=False)
@@ -344,8 +385,11 @@ def get_materials_for_bom(db: Session = Depends(get_db)) -> MaterialsForBOMRespo
                     continue
 
         return {"items": result}
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to load materials for BOM: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to load materials for BOM")
 
 
 class MaterialInventoryItem(BaseModel):
@@ -371,7 +415,7 @@ class MaterialInventoryListResponse(BaseModel):
 def get_materials_for_order(
     in_stock_only: bool = Query(False, description="Only return in-stock materials"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_staff_user),
 ) -> MaterialInventoryListResponse:
     """
     Get material inventory items formatted for sales order line selection.
@@ -421,11 +465,15 @@ def get_materials_for_order(
 @router.get("/pricing/{material_type_code}", response_model=MaterialPricingResponse)
 def get_material_pricing(
     material_type_code: str,
+    current_user: User | None = Depends(get_optional_current_user),
     db: Session = Depends(get_db),
 ) -> MaterialPricingResponse:
     """Get pricing information for a material type."""
     try:
-        materials = get_available_material_types(db, customer_visible_only=False)
+        materials = get_available_material_types(
+            db,
+            customer_visible_only=not _is_staff_user(current_user),
+        )
         material = next((m for m in materials if m.code == material_type_code), None)
 
         if not material:
@@ -452,7 +500,8 @@ def get_material_pricing(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to load pricing for material %s: %s", material_type_code, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to load material pricing")
 
 
 # ============================================================================
@@ -460,7 +509,9 @@ def get_material_pricing(
 # ============================================================================
 
 @router.get("/import/template")
-async def download_material_import_template():
+async def download_material_import_template(
+    current_user: User = Depends(get_current_staff_user),
+):
     """Download CSV template for material inventory import."""
     template = """Category,SKU,Name,Material Type,Material Color Name,HEX Code,Unit,Status,Price,On Hand (g)
 PLA Matte,MAT-FDM-PLA-MATTE-CHAR,PLA Matte Charcoal,PLA_MATTE,Charcoal,#0C0C0C,kg,Active,19.99,0
@@ -482,7 +533,7 @@ async def import_materials_csv_endpoint(
     update_existing: bool = Query(False, description="Update existing materials if SKU exists"),
     import_categories: bool = Query(True, description="Import categories from CSV and nest under Filament"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_staff_user),
 ):
     """Import material inventory from CSV file."""
     if not file.filename or not file.filename.endswith(".csv"):

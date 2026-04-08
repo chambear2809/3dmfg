@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Read version from VERSION file (single source of truth)
@@ -22,6 +22,7 @@ _VERSION = _VERSION_FILE.read_text().strip() if _VERSION_FILE.exists() else "0.0
 # Calculate path to .env in backend folder (3 levels up from this file)
 # backend/app/core/settings.py -> backend/.env
 _ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+_PRODUCTION_ENVIRONMENTS = {"production", "3dprint"}
 
 
 class Settings(BaseSettings):
@@ -29,7 +30,6 @@ class Settings(BaseSettings):
     Application settings with validation.
 
     Environment variables take precedence over .env file values.
-    Prefix FILAOPS_ can be used for any setting (e.g., FILAOPS_DEBUG=true).
     """
 
     # -------------------------------------------------
@@ -92,27 +92,60 @@ class Settings(BaseSettings):
     )
     AUTH_MODE: str = Field(
         default="cookie",
-        description="Auth token delivery: 'cookie' (httpOnly) or 'header' (bearer in body). Use 'header' to rollback.",
+        description="Auth token delivery mode. Only 'cookie' is supported.",
+    )
+    ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP: bool = Field(
+        default=False,
+        description=(
+            "Dev-only escape hatch. When true outside production, password reset requests "
+            "without SMTP return a direct reset link instead of email delivery."
+        ),
+    )
+    DEMO_ADMIN_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "Demo-only bootstrap. When true and the database has no users, create the first "
+            "admin account automatically from DEMO_ADMIN_* values."
+        ),
+    )
+    DEMO_ADMIN_EMAIL: Optional[EmailStr] = Field(
+        default=None,
+        description="Email address for the demo bootstrap admin account.",
+    )
+    DEMO_ADMIN_PASSWORD: Optional[str] = Field(
+        default=None,
+        description="Plaintext password for the demo bootstrap admin account.",
+    )
+    DEMO_ADMIN_FULL_NAME: str = Field(
+        default="Demo Admin",
+        description="Full name for the demo bootstrap admin account.",
+    )
+    DEMO_ADMIN_COMPANY_NAME: str = Field(
+        default="",
+        description="Optional company name for the demo bootstrap admin account.",
     )
 
     @field_validator("SECRET_KEY")
     @classmethod
     def warn_default_secret(cls, v: str) -> str:
-        """Fail in prod if default secret; warn in dev."""
+        """Warn if the default development secret key is still in use."""
         if "change-this" in v.lower():
             import warnings
-            import os
-
-            if os.getenv("ENVIRONMENT", "development").lower() == "production":
-                raise ValueError(
-                    "Default SECRET_KEY detected in production. Set a secure SECRET_KEY."
-                )
             warnings.warn(
                 "WARNING: Using default SECRET_KEY. Do not use this in production.",
                 UserWarning,
                 stacklevel=2,
             )
         return v
+
+    @field_validator("AUTH_MODE")
+    @classmethod
+    def validate_auth_mode(cls, v: str) -> str:
+        """Legacy bearer-in-body auth mode has been retired."""
+        normalized = v.strip().lower()
+        if normalized != "cookie":
+            raise ValueError("AUTH_MODE=header is no longer supported. Use AUTH_MODE=cookie.")
+        return normalized
 
     # ===================
     # CORS Settings
@@ -162,6 +195,23 @@ class Settings(BaseSettings):
             self.ALLOWED_ORIGINS_STR = f"{self.ALLOWED_ORIGINS_STR},{self.FRONTEND_URL}"
         return self
 
+    @model_validator(mode="after")
+    def validate_security_settings(self):
+        """Enforce production-only security constraints after settings are loaded."""
+        if "change-this" in self.SECRET_KEY.lower() and self.is_production:
+            raise ValueError(
+                "Default SECRET_KEY detected in production. Set a secure SECRET_KEY."
+            )
+        if self.ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP and self.is_production:
+            raise ValueError(
+                "ALLOW_INSECURE_PASSWORD_RESET_WITHOUT_SMTP cannot be enabled in production."
+            )
+        if self.DEMO_ADMIN_ENABLED and (not self.DEMO_ADMIN_EMAIL or not self.DEMO_ADMIN_PASSWORD):
+            raise ValueError(
+                "DEMO_ADMIN_ENABLED requires DEMO_ADMIN_EMAIL and DEMO_ADMIN_PASSWORD."
+            )
+        return self
+
     # ===================
     # Bambu Print Suite
     # ===================
@@ -202,6 +252,42 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = "noreply@example.com"
     SMTP_FROM_NAME: str = "Your Company Name"
     SMTP_TLS: bool = True
+    NOTIFICATION_SERVICE_URL: Optional[str] = Field(
+        default=None,
+        description="Base URL for the notification microservice.",
+    )
+    NOTIFICATION_SERVICE_TOKEN: Optional[str] = Field(
+        default=None,
+        description="Bearer token used to authenticate to the notification microservice.",
+    )
+    NOTIFICATION_SERVICE_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        description="Timeout for calls to the notification microservice.",
+    )
+    ASSET_SERVICE_URL: Optional[str] = Field(
+        default=None,
+        description="Base URL for the asset microservice.",
+    )
+    ASSET_SERVICE_TOKEN: Optional[str] = Field(
+        default=None,
+        description="Bearer token used to authenticate to the asset microservice.",
+    )
+    ASSET_SERVICE_TIMEOUT_SECONDS: float = Field(
+        default=10.0,
+        description="Timeout for calls to the asset microservice.",
+    )
+    ORDER_INGEST_SERVICE_URL: Optional[str] = Field(
+        default=None,
+        description="Base URL for the order ingest microservice.",
+    )
+    ORDER_INGEST_SERVICE_TOKEN: Optional[str] = Field(
+        default=None,
+        description="Bearer token used to authenticate to the order ingest microservice.",
+    )
+    ORDER_INGEST_SERVICE_TIMEOUT_SECONDS: float = Field(
+        default=10.0,
+        description="Timeout for calls to the order ingest microservice.",
+    )
 
     # ===================
     # Admin & Business
@@ -412,7 +498,7 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        return self.ENVIRONMENT.lower() == "production"
+        return self.ENVIRONMENT.lower() in _PRODUCTION_ENVIRONMENTS
 
     @property
     def is_development(self) -> bool:

@@ -2,7 +2,7 @@
 Test data seeding endpoints.
 
 WARNING: These endpoints are for testing only!
-They are disabled in production via ENVIRONMENT check.
+They are disabled in production-like environments via ENVIRONMENT check.
 
 Endpoints:
     GET  /api/v1/test/scenarios  - List available test scenarios
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict, Any, List
 
+from app.core.config import settings
 from app.db.session import get_db
 
 
@@ -23,17 +24,16 @@ router = APIRouter(prefix="/test", tags=["testing"])
 
 
 # =============================================================================
-# GUARD: Only allow in non-production environments
+# GUARD: Only allow in non-production-like environments
 # =============================================================================
 
 def require_test_mode():
     """
-    Dependency that blocks requests in production.
+    Dependency that blocks requests in production-like environments.
 
-    Raises HTTPException 403 if ENVIRONMENT is 'production'.
+    Raises HTTPException 403 if ENVIRONMENT is production-like.
     """
-    env = os.getenv("ENVIRONMENT", "development").lower()
-    if env == "production":
+    if settings.is_production:
         raise HTTPException(
             status_code=403,
             detail="Test endpoints are disabled in production"
@@ -191,6 +191,6 @@ async def test_health():
     env = os.getenv("ENVIRONMENT", "development").lower()
     return HealthResponse(
         status="ok",
-        test_mode=env != "production",
-        environment=env
+        test_mode=not settings.is_production,
+        environment=settings.ENVIRONMENT.lower()
     )

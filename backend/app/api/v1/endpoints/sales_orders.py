@@ -60,6 +60,23 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/sales-orders", tags=["Sales Orders"])
 
 
+def _is_staff_user(current_user: User) -> bool:
+    """Return True when the user is internal staff."""
+    return getattr(current_user, "account_type", None) in ("admin", "operator") or getattr(current_user, "is_admin", False)
+
+
+def _require_order_owner_or_staff(order: SalesOrder, current_user: User, detail: str) -> None:
+    """Allow order owners and internal staff to access mixed customer/staff endpoints."""
+    if order.user_id != current_user.id and not _is_staff_user(current_user):
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def _require_staff_user(current_user: User, detail: str) -> None:
+    """Require an internal staff user for ERP-only order operations."""
+    if not _is_staff_user(current_user):
+        raise HTTPException(status_code=403, detail=detail)
+
+
 # =============================================================================
 # Response Builders
 # =============================================================================
@@ -555,6 +572,13 @@ async def get_blocking_issues(
     db: Session = Depends(get_db),
 ):
     """Get blocking issues analysis for a sales order."""
+    order = sales_order_service.get_sales_order(db, order_id)
+    _require_order_owner_or_staff(
+        order,
+        current_user,
+        "Not authorized to view this order",
+    )
+
     result = get_sales_order_blocking_issues(db, order_id)
     if result is None:
         raise HTTPException(status_code=404, detail=f"Sales order {order_id} not found")
@@ -568,6 +592,13 @@ async def get_order_fulfillment_status(
     db: Session = Depends(get_db),
 ):
     """Get fulfillment status for a sales order."""
+    order = sales_order_service.get_sales_order(db, order_id)
+    _require_order_owner_or_staff(
+        order,
+        current_user,
+        "Not authorized to view this order",
+    )
+
     result = get_fulfillment_status(db, order_id)
     if not result:
         raise HTTPException(status_code=404, detail="Sales order not found")
@@ -629,6 +660,8 @@ async def pre_flight_check(
 
     Quick validation to check if all materials are available.
     """
+    _require_staff_user(current_user, "Staff access required for pre-flight checks")
+
     mat_req_result = sales_order_service.get_material_requirements(db, order_id)
 
     shortages = [
@@ -1153,11 +1186,16 @@ async def list_shipping_events(
     order_id: int,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """List shipping events for a sales order."""
-    # Verify order exists (raises 404 if not found)
-    sales_order_service.get_sales_order(db, order_id)
+    order = sales_order_service.get_sales_order(db, order_id)
+    _require_order_owner_or_staff(
+        order,
+        current_user,
+        "Not authorized to view this order",
+    )
 
     query = db.query(ShippingEvent).filter(
         ShippingEvent.sales_order_id == order_id
@@ -1204,6 +1242,8 @@ async def add_shipping_event(
     db: Session = Depends(get_db),
 ):
     """Add a shipping event to a sales order."""
+    _require_staff_user(current_user, "Staff access required to add shipping events")
+
     order = sales_order_service.get_sales_order(db, order_id)
 
     event = record_shipping_event(

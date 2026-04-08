@@ -544,10 +544,9 @@ From `App.jsx`:
 All API calls use this pattern:
 
 ```javascript
-const token = localStorage.getItem("adminToken");
 const response = await fetch(`${API_URL}/api/v1/endpoint`, {
+  credentials: "include",
   headers: {
-    "Authorization": `Bearer ${token}`,
     "Content-Type": "application/json"
   }
 });
@@ -557,7 +556,7 @@ const response = await fetch(`${API_URL}/api/v1/endpoint`, {
 
 - `useQuery` - React Query for GET requests
 - `useMutation` - React Query for POST/PATCH/DELETE
-- `useActivityTokenRefresh` - Auto-refresh JWT tokens
+- `useActivityTokenRefresh` - Refreshes cookie-backed sessions
 
 ---
 
@@ -567,8 +566,6 @@ const response = await fetch(`${API_URL}/api/v1/endpoint`, {
 
 | Key | Purpose |
 | --- | ------- |
-| `adminToken` | JWT access token |
-| `adminRefreshToken` | JWT refresh token |
 | `adminUser` | User profile JSON |
 | `sidebarOpen` | Sidebar collapse state |
 

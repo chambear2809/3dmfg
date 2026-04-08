@@ -276,7 +276,7 @@ export default function QuoteDetailModal({
             {/* Customer */}
             <div className="bg-gray-800 rounded-lg p-4">
               <h4 className="text-sm font-medium text-gray-300 mb-3">Customer</h4>
-              <div className="text-sm">
+              <div className="text-sm" data-rum-mask="true">
                 <p className="text-white">{q.customer_name || "No name"}</p>
                 <p className="text-gray-400">{q.customer_email || "No email"}</p>
                 {q.customer_id && (
@@ -357,13 +357,13 @@ export default function QuoteDetailModal({
               <div className="bg-gray-800 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-300 mb-2">Notes</h4>
                 {q.customer_notes && (
-                  <p className="text-sm text-white mb-2">
+                  <p className="text-sm text-white mb-2" data-rum-mask="true">
                     <span className="text-gray-400">Customer: </span>
                     {q.customer_notes}
                   </p>
                 )}
                 {q.admin_notes && (
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-white" data-rum-mask="true">
                     <span className="text-gray-400">Internal: </span>
                     {q.admin_notes}
                   </p>

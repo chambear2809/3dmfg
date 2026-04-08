@@ -43,6 +43,47 @@ services:
     networks:
       - filaops-network
 
+  asset-service:
+    build:
+      context: ./asset-service
+      dockerfile: Dockerfile
+    container_name: filaops-asset-service
+    ports:
+      - "8020:8020"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      INTERNAL_API_TOKEN: ${ASSET_SERVICE_TOKEN:-change-me-asset-token}
+      ASSET_STORAGE_DIR: /app/data
+    volumes:
+      - ./uploads/assets:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8020/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - filaops-network
+
+  order-ingest:
+    build:
+      context: ./order-ingest
+      dockerfile: Dockerfile
+    container_name: filaops-order-ingest
+    ports:
+      - "8030:8030"
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      INTERNAL_API_TOKEN: ${ORDER_INGEST_SERVICE_TOKEN:-change-me-order-ingest-token}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8030/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - filaops-network
+
   backend:
     build:
       context: ./backend
@@ -63,10 +104,18 @@ services:
       FILAOPS_VERSION: ${FILAOPS_VERSION:-}
       # PRO — set FILAOPS_LICENSE_KEY in .env to activate PRO features
       FILAOPS_LICENSE_KEY: ${FILAOPS_LICENSE_KEY:-}
+      ASSET_SERVICE_URL: ${ASSET_SERVICE_URL:-http://asset-service:8020}
+      ASSET_SERVICE_TOKEN: ${ASSET_SERVICE_TOKEN:-change-me-asset-token}
+      ORDER_INGEST_SERVICE_URL: ${ORDER_INGEST_SERVICE_URL:-http://order-ingest:8030}
+      ORDER_INGEST_SERVICE_TOKEN: ${ORDER_INGEST_SERVICE_TOKEN:-change-me-order-ingest-token}
     depends_on:
       migrate:
         condition: service_completed_successfully
       db:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+      order-ingest:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5).read()"]
@@ -88,6 +137,8 @@ services:
     container_name: filaops-frontend
     ports:
       - "80:8080"
+    environment:
+      FRONTEND_API_UPSTREAM: ${FRONTEND_API_UPSTREAM:-http://backend:8000}
     depends_on:
       - backend
     networks:

@@ -1,0 +1,43 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: filaops-python
+  namespace: 3dprint
+spec:
+  exporter:
+    endpoint: http://splunk-otel-collector-agent.otel-splunk.svc:4318
+  propagators:
+    - tracecontext
+    - baggage
+  resource:
+    resourceAttributes:
+      deployment.environment.name: 3dprint
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.2"
+  python:
+    image: quay.io/signalfx/splunk-otel-instrumentation-python:v2.7.0
+---
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: filaops-nodejs
+  namespace: 3dprint
+spec:
+  exporter:
+    endpoint: http://splunk-otel-collector-agent.otel-splunk.svc:4317
+  propagators:
+    - tracecontext
+    - baggage
+  resource:
+    resourceAttributes:
+      deployment.environment.name: 3dprint
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.2"
+  nodejs:
+    env:
+      - name: OTEL_LOGS_EXPORTER
+        value: none
+      - name: OTEL_METRICS_EXPORTER
+        value: none

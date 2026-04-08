@@ -135,13 +135,13 @@ class TestMaterialsPublicEndpoints:
         resp = unauthed_client.get(f"{BASE_URL}/types")
         assert resp.status_code == 200
 
-    def test_for_bom_no_auth(self, unauthed_client):
+    def test_for_bom_requires_auth(self, unauthed_client):
         resp = unauthed_client.get(f"{BASE_URL}/for-bom")
-        assert resp.status_code == 200
+        assert resp.status_code == 401
 
-    def test_import_template_no_auth(self, unauthed_client):
+    def test_import_template_requires_auth(self, unauthed_client):
         resp = unauthed_client.get(f"{BASE_URL}/import/template")
-        assert resp.status_code == 200
+        assert resp.status_code == 401
 
 
 # =============================================================================
@@ -250,6 +250,16 @@ class TestMaterialTypes:
         codes = [m["code"] for m in data["materials"]]
         assert "HIDDEN-MT-2" in codes
 
+    def test_hidden_types_require_staff(self, customer_client, make_material_type):
+        make_material_type(
+            code="HIDDEN-MT-3", name="Hidden 3", is_customer_visible=False,
+        )
+        resp = customer_client.get(
+            f"{BASE_URL}/types",
+            params={"customer_visible_only": False},
+        )
+        assert resp.status_code == 403
+
 
 # =============================================================================
 # GET /api/v1/materials/types/{code}/colors -- colors for material type
@@ -302,6 +312,23 @@ class TestColorsForMaterialType:
         color_codes = [c["code"] for c in data["colors"]]
         assert "LINKED-RED" in color_codes
         assert "LINKED-BLUE" in color_codes
+
+    def test_hidden_colors_require_staff(
+        self, customer_client, make_material_type, make_color, make_material_color,
+    ):
+        mt = make_material_type(code="CLR-MT-HIDDEN", is_customer_visible=False)
+        color = make_color(code="HIDDEN-COLOR", name="Hidden Color", is_customer_visible=False)
+        make_material_color(
+            material_type_id=mt.id,
+            color_id=color.id,
+            is_customer_visible=False,
+        )
+
+        resp = customer_client.get(
+            f"{BASE_URL}/types/{mt.code}/colors",
+            params={"customer_visible_only": False},
+        )
+        assert resp.status_code == 403
 
 
 # =============================================================================
@@ -431,6 +458,18 @@ class TestMaterialsForBom:
             }
             assert expected_fields.issubset(item.keys())
 
+    def test_for_bom_requires_staff(self, customer_client):
+        resp = customer_client.get(f"{BASE_URL}/for-bom")
+        assert resp.status_code == 403
+
+
+class TestMaterialsForOrder:
+    """Tests for the sales-order material picker endpoint."""
+
+    def test_for_order_requires_staff(self, customer_client):
+        resp = customer_client.get(f"{BASE_URL}/for-order")
+        assert resp.status_code == 403
+
 
 # =============================================================================
 # GET /api/v1/materials/pricing/{code} -- material pricing
@@ -497,6 +536,15 @@ class TestMaterialPricing:
         assert data["bed_temp_min"] == 55
         assert data["bed_temp_max"] == 65
 
+    def test_hidden_material_pricing_is_not_public(self, unauthed_client, make_material_type):
+        make_material_type(
+            code="PRICE-HIDDEN-MT",
+            name="Hidden Pricing",
+            is_customer_visible=False,
+        )
+        resp = unauthed_client.get(f"{BASE_URL}/pricing/PRICE-HIDDEN-MT")
+        assert resp.status_code == 404
+
 
 # =============================================================================
 # GET /api/v1/materials/import/template -- CSV template download
@@ -535,6 +583,10 @@ class TestImportTemplate:
         lines = content.strip().split("\n")
         # Header row plus at least one sample row
         assert len(lines) >= 2
+
+    def test_template_requires_staff(self, customer_client):
+        resp = customer_client.get(f"{BASE_URL}/import/template")
+        assert resp.status_code == 403
 
 
 # =============================================================================

@@ -81,11 +81,8 @@ test.describe('Sprint 1 - API Error Standardization', () => {
     await page.goto('/admin/products');
     await page.waitForLoadState('networkidle');
 
-    // Request non-existent endpoint
+    // Request non-existent endpoint using the authenticated browser session.
     await page.request.get('http://localhost:8000/api/v1/items/99999999', {
-      headers: {
-        'Authorization': `Bearer ${await page.evaluate(() => localStorage.getItem('adminToken'))}`
-      },
       failOnStatusCode: false
     });
 
@@ -118,12 +115,8 @@ test.describe('Sprint 1 - API Error Standardization', () => {
 
     await page.goto('/admin/products');
 
-    // Try to create item with invalid data via API
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
-
     await page.request.post('http://localhost:8000/api/v1/items', {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       data: {
@@ -203,13 +196,11 @@ test.describe('Sprint 1 - API Pagination Standardization', () => {
   test('pagination parameters are validated', async ({ page }) => {
     await page.goto('/admin/orders');
     await page.waitForLoadState('networkidle');
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
 
     // Try invalid offset (negative)
     const negativeOffsetResponse = await page.request.get(
       'http://localhost:8000/api/v1/sales-orders?offset=-10&limit=10',
       {
-        headers: { 'Authorization': `Bearer ${token}` },
         failOnStatusCode: false
       }
     );
@@ -221,7 +212,6 @@ test.describe('Sprint 1 - API Pagination Standardization', () => {
     const largeLimitResponse = await page.request.get(
       'http://localhost:8000/api/v1/sales-orders?offset=0&limit=10000',
       {
-        headers: { 'Authorization': `Bearer ${token}` },
         failOnStatusCode: false
       }
     );
@@ -242,7 +232,6 @@ test.describe('Sprint 1 - API Pagination Standardization', () => {
   test('all list endpoints use consistent pagination format', async ({ page }) => {
     await page.goto('/admin/orders');
     await page.waitForLoadState('networkidle');
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
 
     const endpoints = [
       '/api/v1/sales-orders?offset=0&limit=10',
@@ -254,7 +243,6 @@ test.describe('Sprint 1 - API Pagination Standardization', () => {
 
     for (const endpoint of endpoints) {
       const response = await page.request.get(`http://localhost:8000${endpoint}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
         failOnStatusCode: false
       });
 
@@ -296,12 +284,9 @@ test.describe('Sprint 1 - API Response Wrappers', () => {
   test('detail endpoints return consistent response format', async ({ page }) => {
     await page.goto('/admin/products');
     await page.waitForLoadState('networkidle');
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
 
     // Get first item from list
-    const listResponse = await page.request.get('http://localhost:8000/api/v1/items?offset=0&limit=1', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    const listResponse = await page.request.get('http://localhost:8000/api/v1/items?offset=0&limit=1');
 
     if (listResponse.ok()) {
       const listData = await listResponse.json();
@@ -310,9 +295,7 @@ test.describe('Sprint 1 - API Response Wrappers', () => {
         const firstItem = listData.items[0];
 
         // Get detail for that item
-        const detailResponse = await page.request.get(`http://localhost:8000/api/v1/items/${firstItem.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const detailResponse = await page.request.get(`http://localhost:8000/api/v1/items/${firstItem.id}`);
 
         if (detailResponse.ok()) {
           const detailData = await detailResponse.json();
@@ -332,12 +315,10 @@ test.describe('Sprint 1 - API Response Wrappers', () => {
   test('create endpoints return created resource', async ({ page }) => {
     await page.goto('/admin/products');
     await page.waitForLoadState('networkidle');
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
 
     // Try to create an item
     const createResponse = await page.request.post('http://localhost:8000/api/v1/items', {
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       data: {
@@ -363,7 +344,6 @@ test.describe('Sprint 1 - API Response Wrappers', () => {
       // Cleanup: delete the test item
       if (createdItem.id) {
         await page.request.delete(`http://localhost:8000/api/v1/items/${createdItem.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
           failOnStatusCode: false
         });
       }
@@ -475,20 +455,15 @@ test.describe('Sprint 1 - API Performance with Pagination', () => {
   test('paginated list loads faster than full list', async ({ page }) => {
     await page.goto('/admin/orders');
     await page.waitForLoadState('networkidle');
-    const token = await page.evaluate(() => localStorage.getItem('adminToken'));
 
     // Time paginated request (limit=10)
     const paginatedStart = Date.now();
-    await page.request.get('http://localhost:8000/api/v1/sales-orders?offset=0&limit=10', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    await page.request.get('http://localhost:8000/api/v1/sales-orders?offset=0&limit=10');
     const paginatedTime = Date.now() - paginatedStart;
 
     // Time larger request (limit=100)
     const largeStart = Date.now();
-    await page.request.get('http://localhost:8000/api/v1/sales-orders?offset=0&limit=100', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    await page.request.get('http://localhost:8000/api/v1/sales-orders?offset=0&limit=100');
     const largeTime = Date.now() - largeStart;
 
     console.log(`Paginated (limit=10): ${paginatedTime}ms`);

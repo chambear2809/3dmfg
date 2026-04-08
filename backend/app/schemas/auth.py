@@ -72,25 +72,6 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class TokenResponse(BaseModel):
-    """Schema for token response (login/register/refresh)"""
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class UserWithTokens(UserResponse):
-    """Schema for user registration response (includes tokens)"""
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
-class RefreshTokenRequest(BaseModel):
-    """Schema for refresh token request"""
-    refresh_token: str
-
-
 class TokenData(BaseModel):
     """Schema for decoded token data"""
     user_id: Optional[int] = None
@@ -147,16 +128,6 @@ class CustomerAccessInfo(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class MultiCustomerLoginResponse(BaseModel):
-    """Login response with all customers the user can access"""
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    user: PortalCustomerResponse
-    customers: list[CustomerAccessInfo]
-    default_customer_id: Optional[int] = None
-
-
 # ============================================================================
 # PASSWORD RESET SCHEMAS
 # ============================================================================
@@ -176,8 +147,8 @@ class PasswordResetRequestResponse(BaseModel):
     """Schema for password reset request response"""
     message: str
     request_id: Optional[int] = None
-    reset_token: Optional[str] = None  # Provided if auto-approved (no email configured)
-    reset_url: Optional[str] = None  # Full reset URL if auto-approved
+    reset_token: Optional[str] = None  # Dev-only direct reset override
+    reset_url: Optional[str] = None  # Full reset URL for the dev-only override
 
 
 class PasswordResetApprovalResponse(BaseModel):

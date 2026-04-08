@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: playwright-load-smoke
+  namespace: 3dprint
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: playwright
+          image: 637423309390.dkr.ecr.us-east-1.amazonaws.com/filaops-playwright:load-smoke-amd64-20260401-d9b6388
+          imagePullPolicy: Always
+          command:
+            - npx
+            - playwright
+            - test
+            - --project=load-smoke
+            - --grep
+            - '@load-smoke'
+          env:
+            - name: CI
+              value: "true"
+            - name: BASE_URL
+              value: http://frontend
+            - name: RUN_ID
+              value: playwright-load-smoke
+            - name: LOADGEN_MANIFEST_PATH
+              value: /config/manifest.json
+            - name: LOADGEN_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: filaops-secrets
+                  key: DEMO_ADMIN_EMAIL
+            - name: LOADGEN_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: filaops-secrets
+                  key: DEMO_ADMIN_PASSWORD
+          volumeMounts:
+            - name: loadgen-manifest
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: loadgen-manifest
+          configMap:
+            name: loadgen-manifest

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+NAMESPACE="${NAMESPACE:-3dprint}"
+DB_NAME="${DB_NAME:-filaops}"
+DB_USER="${DB_USER:-postgres}"
+DB_PASSWORD="${DB_PASSWORD:-C1sco12345}"
+SECRET_KEY="${SECRET_KEY:-$(openssl rand -hex 32)}"
+DEMO_ADMIN_ENABLED="${DEMO_ADMIN_ENABLED:-true}"
+DEMO_ADMIN_EMAIL="${DEMO_ADMIN_EMAIL:-admin@example.com}"
+DEMO_ADMIN_PASSWORD="${DEMO_ADMIN_PASSWORD:-C1sco12345}"
+DEMO_ADMIN_FULL_NAME="${DEMO_ADMIN_FULL_NAME:-Demo Admin}"
+DEMO_ADMIN_COMPANY_NAME="${DEMO_ADMIN_COMPANY_NAME:-Cisco Demo}"
+NOTIFICATION_SERVICE_TOKEN="${NOTIFICATION_SERVICE_TOKEN:-demo-notification-token}"
+ASSET_SERVICE_TOKEN="${ASSET_SERVICE_TOKEN:-$(openssl rand -hex 24)}"
+ORDER_INGEST_SERVICE_TOKEN="${ORDER_INGEST_SERVICE_TOKEN:-$(openssl rand -hex 24)}"
+SPLUNK_RUM_ACCESS_TOKEN="${SPLUNK_RUM_ACCESS_TOKEN:-}"
+
+mask_secret() {
+  local value="${1:-}"
+  if [[ -z "${value}" ]]; then
+    printf '<empty>'
+  else
+    printf '<redacted>'
+  fi
+}
+
+kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl -n "${NAMESPACE}" create secret generic filaops-secrets \
+  --from-literal=DB_NAME="${DB_NAME}" \
+  --from-literal=DB_USER="${DB_USER}" \
+  --from-literal=DB_PASSWORD="${DB_PASSWORD}" \
+  --from-literal=SECRET_KEY="${SECRET_KEY}" \
+  --from-literal=DEMO_ADMIN_ENABLED="${DEMO_ADMIN_ENABLED}" \
+  --from-literal=DEMO_ADMIN_EMAIL="${DEMO_ADMIN_EMAIL}" \
+  --from-literal=DEMO_ADMIN_PASSWORD="${DEMO_ADMIN_PASSWORD}" \
+  --from-literal=DEMO_ADMIN_FULL_NAME="${DEMO_ADMIN_FULL_NAME}" \
+  --from-literal=DEMO_ADMIN_COMPANY_NAME="${DEMO_ADMIN_COMPANY_NAME}" \
+  --from-literal=NOTIFICATION_SERVICE_TOKEN="${NOTIFICATION_SERVICE_TOKEN}" \
+  --from-literal=ASSET_SERVICE_TOKEN="${ASSET_SERVICE_TOKEN}" \
+  --from-literal=ORDER_INGEST_SERVICE_TOKEN="${ORDER_INGEST_SERVICE_TOKEN}" \
+  --from-literal=SPLUNK_RUM_ACCESS_TOKEN="${SPLUNK_RUM_ACCESS_TOKEN}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+cat <<EOF
+Created/updated secret filaops-secrets in namespace ${NAMESPACE}
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+SECRET_KEY=${SECRET_KEY}
+DEMO_ADMIN_ENABLED=${DEMO_ADMIN_ENABLED}
+DEMO_ADMIN_EMAIL=${DEMO_ADMIN_EMAIL}
+DEMO_ADMIN_PASSWORD=${DEMO_ADMIN_PASSWORD}
+DEMO_ADMIN_FULL_NAME=${DEMO_ADMIN_FULL_NAME}
+DEMO_ADMIN_COMPANY_NAME=${DEMO_ADMIN_COMPANY_NAME}
+NOTIFICATION_SERVICE_TOKEN=${NOTIFICATION_SERVICE_TOKEN}
+ASSET_SERVICE_TOKEN=${ASSET_SERVICE_TOKEN}
+ORDER_INGEST_SERVICE_TOKEN=${ORDER_INGEST_SERVICE_TOKEN}
+SPLUNK_RUM_ACCESS_TOKEN=$(mask_secret "${SPLUNK_RUM_ACCESS_TOKEN}")
+EOF

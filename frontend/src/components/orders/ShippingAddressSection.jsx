@@ -186,7 +186,7 @@ export default function ShippingAddressSection({ order, onOrderUpdated }) {
       ) : (
         <div>
           {order.shipping_address_line1 ? (
-            <div className="text-white">
+            <div className="text-white" data-rum-mask="true">
               <div>{order.shipping_address_line1}</div>
               {order.shipping_address_line2 && (
                 <div>{order.shipping_address_line2}</div>

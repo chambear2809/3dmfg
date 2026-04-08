@@ -5,7 +5,7 @@ Business logic lives in ``app.services.order_import_service``.
 """
 import io
 from typing import List
-from fastapi import APIRouter, Depends, File, UploadFile, Query
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -15,6 +15,10 @@ from app.models.user import User
 from app.api.v1.deps import get_current_staff_user
 from app.services import order_import_service as svc
 from app.api.v1.endpoints.admin.data_import import _read_csv_upload
+from app.services.order_ingest_client import (
+    OrderIngestServiceClientError,
+    order_ingest_client,
+)
 
 router = APIRouter(prefix="/orders", tags=["Admin Orders"])
 
@@ -68,11 +72,27 @@ async def import_orders_csv(
     """
     text = await _read_csv_upload(file)
 
-    result = svc.import_orders_from_csv(
-        db,
-        text,
-        create_customers=create_customers,
-        source=source,
-        current_user_id=current_user.id,
-    )
+    try:
+        parsed = order_ingest_client.parse_csv(csv_text=text)
+    except OrderIngestServiceClientError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if parsed is not None:
+        result = svc.import_normalized_orders(
+            db,
+            parsed_orders=parsed["orders"],
+            total_rows=parsed["total_rows"],
+            current_user_id=current_user.id,
+            create_customers=create_customers,
+            source=source,
+            parse_errors=parsed.get("errors"),
+        )
+    else:
+        result = svc.import_orders_from_csv(
+            db,
+            text,
+            create_customers=create_customers,
+            source=source,
+            current_user_id=current_user.id,
+        )
     return OrderCSVImportResult(**result)

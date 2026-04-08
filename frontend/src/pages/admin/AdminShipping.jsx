@@ -675,7 +675,7 @@ export default function AdminShipping() {
                         {order.product_name}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-gray-400" data-rum-mask="true">
                       {hasShippingAddress(order) ? (
                         formatAddressShort(order)
                       ) : (
@@ -701,7 +701,11 @@ export default function AdminShipping() {
                         <span className="text-blue-400 text-xs">Ready to label</span>
                       )}
                       {activeTab === "ready_to_ship" && order.tracking_number && (
-                        <span className="font-mono text-xs text-gray-400" title={order.tracking_number}>
+                        <span
+                          className="font-mono text-xs text-gray-400"
+                          title={order.tracking_number}
+                          data-rum-mask="true"
+                        >
                           {order.carrier}: {order.tracking_number.slice(0, 12)}...
                         </span>
                       )}
