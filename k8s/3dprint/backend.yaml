@@ -77,6 +77,8 @@ spec:
               value: filaops-backend
             - name: SPLUNK_TRACE_RESPONSE_HEADER_ENABLED
               value: "true"
+            - name: OTEL_PYTHON_EXCLUDED_URLS
+              value: health
           readinessProbe:
             httpGet:
               path: /health
@@ -87,7 +89,7 @@ spec:
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: http
             initialDelaySeconds: 90
             periodSeconds: 20
@@ -125,5 +127,5 @@ spec:
     app: backend
   ports:
     - name: http
-      port: 8000
+      port: 80
       targetPort: http

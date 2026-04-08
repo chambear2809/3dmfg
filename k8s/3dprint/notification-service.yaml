@@ -27,8 +27,8 @@ spec:
           args:
             - >
               set -e;
-              python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
-              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --workers 2
+              OTEL_SDK_DISABLED=true python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
+              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --workers 1
           ports:
             - containerPort: 8010
               name: http
@@ -117,5 +117,5 @@ spec:
     app: notification-service
   ports:
     - name: http
-      port: 8010
+      port: 80
       targetPort: http

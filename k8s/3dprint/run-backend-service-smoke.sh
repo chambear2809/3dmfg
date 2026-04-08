@@ -37,12 +37,12 @@ backend_base_url = os.environ.get("SMOKE_BACKEND_BASE_URL", "http://127.0.0.1:80
 asset_service_base_url = (
     os.environ.get("SMOKE_ASSET_SERVICE_BASE_URL")
     or os.environ.get("ASSET_SERVICE_URL")
-    or "http://asset-service:8020"
+    or "http://asset-service"
 ).rstrip("/")
 order_ingest_base_url = (
     os.environ.get("SMOKE_ORDER_INGEST_BASE_URL")
     or os.environ.get("ORDER_INGEST_SERVICE_URL")
-    or "http://order-ingest:8030"
+    or "http://order-ingest"
 ).rstrip("/")
 mode = (os.environ.get("SMOKE_MODE") or "full").strip() or "full"
 run_id = (os.environ.get("SMOKE_RUN_ID") or "").strip() or uuid.uuid4().hex

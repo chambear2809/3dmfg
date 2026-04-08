@@ -26,6 +26,19 @@ class Settings(BaseSettings):
         description="Bearer token required for internal callers.",
     )
 
+    PRICING_SERVICE_URL: str | None = Field(
+        default=None,
+        description="Base URL for the pricing microservice.",
+    )
+    PRICING_SERVICE_TOKEN: str | None = Field(
+        default=None,
+        description="Bearer token used to authenticate to the pricing microservice.",
+    )
+    PRICING_SERVICE_TIMEOUT_SECONDS: float = Field(
+        default=5.0,
+        description="Timeout for calls to the pricing microservice.",
+    )
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() in _PRODUCTION_ENVIRONMENTS

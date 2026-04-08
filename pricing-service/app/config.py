@@ -16,36 +16,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str = "FilaOps Asset Service"
+    PROJECT_NAME: str = "FilaOps Pricing Service"
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
     INTERNAL_API_TOKEN: str = Field(
-        default="change-me-asset-token",
+        default="change-me-pricing-token",
         description="Bearer token required for internal callers.",
     )
-    ASSET_STORAGE_DIR: str = Field(
-        default="./data",
-        description="Directory used to store binary assets and metadata.",
-    )
-
-    NOTIFICATION_SERVICE_URL: str | None = Field(
-        default=None,
-        description="Base URL for the notification microservice.",
-    )
-    NOTIFICATION_SERVICE_TOKEN: str | None = Field(
-        default=None,
-        description="Bearer token used to authenticate to the notification microservice.",
-    )
-    NOTIFICATION_SERVICE_TIMEOUT_SECONDS: float = Field(
-        default=5.0,
-        description="Timeout for calls to the notification microservice.",
-    )
-
-    @property
-    def storage_dir(self) -> Path:
-        return (Path(__file__).resolve().parent.parent / self.ASSET_STORAGE_DIR).resolve()
 
     @property
     def is_production(self) -> bool:
@@ -53,7 +32,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_token(self):
-        if self.is_production and self.INTERNAL_API_TOKEN == "change-me-asset-token":
+        if self.is_production and self.INTERNAL_API_TOKEN == "change-me-pricing-token":
             raise ValueError("Set a real INTERNAL_API_TOKEN before running in production.")
         return self
 

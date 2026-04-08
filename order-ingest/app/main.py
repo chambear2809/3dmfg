@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, FastAPI, Request
 
 from .auth import require_internal_token
+from .client import enrich_with_pricing
 from .config import settings
 from .models import HealthResponse, ParseCsvRequest, ParseCsvResponse, RootResponse
 from .parser import parse_orders_from_csv
@@ -14,6 +15,14 @@ logging.basicConfig(
 )
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
+
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    if not getattr(app, "_is_instrumented_by_opentelemetry", False):
+        FastAPIInstrumentor.instrument_app(app, excluded_urls="health")
+except Exception:
+    pass
+
 router = APIRouter(prefix="/api/v1/order-ingest", tags=["Order Ingest"])
 
 
@@ -46,7 +55,19 @@ async def health():
 
 @router.post("/parse-csv", response_model=ParseCsvResponse, dependencies=[Depends(require_internal_token)])
 async def parse_csv(request: ParseCsvRequest):
-    return parse_orders_from_csv(request.csv_text)
+    result = parse_orders_from_csv(request.csv_text)
+
+    all_skus = list({line.sku for order in result.orders for line in order.lines})
+    if all_skus:
+        pricing = enrich_with_pricing(all_skus)
+        if pricing:
+            for order in result.orders:
+                for line in order.lines:
+                    item = pricing.get(line.sku)
+                    if item and line.unit_price is None:
+                        line.unit_price = item.get("unit_cost")
+
+    return result
 
 
 app.include_router(router)

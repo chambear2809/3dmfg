@@ -13,10 +13,13 @@ spec:
     resourceAttributes:
       deployment.environment.name: 3dprint
   sampler:
-    type: parentbased_traceidratio
-    argument: "0.2"
+    type: parentbased_always_on
+    argument: "1.0"
   python:
     image: quay.io/signalfx/splunk-otel-instrumentation-python:v2.7.0
+    env:
+      - name: OTEL_PYTHON_EXCLUDED_URLS
+        value: health
 ---
 apiVersion: opentelemetry.io/v1alpha1
 kind: Instrumentation
@@ -33,8 +36,8 @@ spec:
     resourceAttributes:
       deployment.environment.name: 3dprint
   sampler:
-    type: parentbased_traceidratio
-    argument: "0.2"
+    type: parentbased_always_on
+    argument: "1.0"
   nodejs:
     env:
       - name: OTEL_LOGS_EXPORTER

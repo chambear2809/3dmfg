@@ -27,8 +27,8 @@ spec:
           args:
             - >
               set -e;
-              python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
-              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8030 --workers 2
+              OTEL_SDK_DISABLED=true python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
+              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8030 --workers 1
           ports:
             - containerPort: 8030
               name: http
@@ -43,6 +43,11 @@ spec:
                 secretKeyRef:
                   name: filaops-secrets
                   key: ORDER_INGEST_SERVICE_TOKEN
+            - name: PRICING_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: filaops-secrets
+                  key: PRICING_SERVICE_TOKEN
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: http/protobuf
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -106,6 +111,8 @@ spec:
                 path: app/models.py
               - key: app_parser_py
                 path: app/parser.py
+              - key: app_client_py
+                path: app/client.py
 ---
 apiVersion: v1
 kind: Service
@@ -117,5 +124,5 @@ spec:
     app: order-ingest
   ports:
     - name: http
-      port: 8030
+      port: 80
       targetPort: http

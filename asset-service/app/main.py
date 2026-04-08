@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 
 from .auth import require_internal_token
+from .client import notify_asset_event
 from .config import settings
 from .models import AssetDeleteResponse, AssetUploadResponse, HealthResponse, RootResponse
 from .storage import asset_storage
@@ -14,6 +15,14 @@ logging.basicConfig(
 )
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
+
+try:
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    if not getattr(app, "_is_instrumented_by_opentelemetry", False):
+        FastAPIInstrumentor.instrument_app(app, excluded_urls="health")
+except Exception:
+    pass
+
 router = APIRouter(prefix="/api/v1/assets", tags=["Assets"])
 
 
@@ -58,6 +67,14 @@ async def upload_asset(
         content_type=file.content_type,
         asset_key=asset_key,
     )
+
+    notify_asset_event(
+        category=result["category"],
+        asset_key=result["asset_key"],
+        filename=result.get("filename", file.filename or "upload.bin"),
+        action="uploaded",
+    )
+
     return AssetUploadResponse(
         **result,
         url_path=f"/api/v1/assets/{result['category']}/{result['asset_key']}",

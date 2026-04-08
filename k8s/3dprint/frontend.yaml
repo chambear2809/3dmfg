@@ -33,6 +33,12 @@ spec:
                   name: filaops-secrets
                   key: SPLUNK_RUM_ACCESS_TOKEN
                   optional: true
+            - name: OTEL_SERVICE_NAME
+              value: filaops-frontend
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.namespace=3dprint,deployment.environment.name=3dprint,service.version=3.6.0
+            - name: OTEL_PROPAGATORS
+              value: tracecontext,baggage
           readinessProbe:
             httpGet:
               path: /health

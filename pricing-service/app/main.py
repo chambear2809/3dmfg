@@ -5,14 +5,8 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 
 from .auth import require_internal_token
 from .config import settings
-from .delivery import delivery_service
-from .models import (
-    DeliveryResponse,
-    EmailNotificationRequest,
-    HealthResponse,
-    RootResponse,
-    WebhookNotificationRequest,
-)
+from .models import HealthResponse, PricingRequest, PricingResponse, RootResponse
+from .pricing import compute_pricing
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -28,7 +22,7 @@ try:
 except Exception:
     pass
 
-router = APIRouter(prefix="/api/v1/notifications", tags=["Notifications"])
+router = APIRouter(prefix="/api/v1/pricing", tags=["Pricing"])
 
 
 @app.middleware("http")
@@ -54,18 +48,14 @@ async def health():
         service=settings.PROJECT_NAME,
         version=settings.VERSION,
         status="ok",
-        smtp_configured=settings.smtp_configured,
+        engine_ready=True,
     )
 
 
-@router.post("/email", response_model=DeliveryResponse, dependencies=[Depends(require_internal_token)])
-async def send_email(payload: EmailNotificationRequest):
-    return delivery_service.send_email(payload)
-
-
-@router.post("/webhook", response_model=DeliveryResponse, dependencies=[Depends(require_internal_token)])
-async def send_webhook(payload: WebhookNotificationRequest):
-    return delivery_service.send_webhook(payload)
+@router.post("/validate", response_model=PricingResponse, dependencies=[Depends(require_internal_token)])
+async def validate_pricing(request: PricingRequest):
+    items = await compute_pricing(request.skus)
+    return PricingResponse(items=items)
 
 
 app.include_router(router)

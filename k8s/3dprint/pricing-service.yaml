@@ -1,38 +1,23 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: asset-service-data
-  namespace: 3dprint
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: gp2
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: asset-service
+  name: pricing-service
   namespace: 3dprint
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
-      app: asset-service
+      app: pricing-service
   template:
     metadata:
       labels:
-        app: asset-service
+        app: pricing-service
       annotations:
-        instrumentation.opentelemetry.io/container-names: asset-service
+        instrumentation.opentelemetry.io/container-names: pricing-service
         instrumentation.opentelemetry.io/inject-python: 3dprint/filaops-python
     spec:
       containers:
-        - name: asset-service
+        - name: pricing-service
           image: python:3.11-slim
           imagePullPolicy: IfNotPresent
           workingDir: /bundle
@@ -43,13 +28,13 @@ spec:
             - >
               set -e;
               OTEL_SDK_DISABLED=true python -m pip install --disable-pip-version-check --no-cache-dir -r /bundle/requirements.txt;
-              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8020 --workers 1
+              exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8040 --workers 1
           ports:
-            - containerPort: 8020
+            - containerPort: 8040
               name: http
           envFrom:
             - configMapRef:
-                name: asset-service-config
+                name: pricing-service-config
             - secretRef:
                 name: filaops-secrets
           env:
@@ -57,12 +42,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: filaops-secrets
-                  key: ASSET_SERVICE_TOKEN
-            - name: NOTIFICATION_SERVICE_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: filaops-secrets
-                  key: NOTIFICATION_SERVICE_TOKEN
+                  key: PRICING_SERVICE_TOKEN
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: http/protobuf
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -70,9 +50,11 @@ spec:
             - name: OTEL_LOGS_EXPORTER
               value: none
             - name: OTEL_SERVICE_NAME
-              value: filaops-asset-service
+              value: filaops-pricing-service
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: service.namespace=3dprint,deployment.environment.name=3dprint,service.version=3.6.0
+            - name: OTEL_PYTHON_EXCLUDED_URLS
+              value: health
           startupProbe:
             httpGet:
               path: /health
@@ -104,15 +86,13 @@ spec:
               cpu: 500m
               memory: 512Mi
           volumeMounts:
-            - name: asset-service-bundle
+            - name: pricing-service-bundle
               mountPath: /bundle
               readOnly: true
-            - name: asset-service-data
-              mountPath: /data
       volumes:
-        - name: asset-service-bundle
+        - name: pricing-service-bundle
           configMap:
-            name: asset-service-bundle
+            name: pricing-service-bundle
             items:
               - key: requirements.txt
                 path: requirements.txt
@@ -126,22 +106,17 @@ spec:
                 path: app/main.py
               - key: app_models_py
                 path: app/models.py
-              - key: app_storage_py
-                path: app/storage.py
-              - key: app_client_py
-                path: app/client.py
-        - name: asset-service-data
-          persistentVolumeClaim:
-            claimName: asset-service-data
+              - key: app_pricing_py
+                path: app/pricing.py
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: asset-service
+  name: pricing-service
   namespace: 3dprint
 spec:
   selector:
-    app: asset-service
+    app: pricing-service
   ports:
     - name: http
       port: 80

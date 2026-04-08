@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-APP_DEPLOYMENTS=(backend frontend order-ingest notification-service asset-service)
+APP_DEPLOYMENTS=(backend frontend order-ingest notification-service asset-service pricing-service)
 APP_STATEFULSETS=(postgres)
 
 app_create_namespace() {
@@ -25,6 +25,7 @@ app_create_configmaps() {
     "${repo_root}/k8s/3dprint/create-notification-service-configmap.sh" \
     "${repo_root}/k8s/3dprint/create-asset-service-configmap.sh" \
     "${repo_root}/k8s/3dprint/create-order-ingest-configmap.sh" \
+    "${repo_root}/k8s/3dprint/create-pricing-service-configmap.sh" \
     "${repo_root}/k8s/3dprint/create-loadgen-manifest-configmap.sh"
   do
     log "Running $(basename "${script}")"

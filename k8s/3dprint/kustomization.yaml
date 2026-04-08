@@ -11,3 +11,4 @@ resources:
   - notification-service.yaml
   - asset-service.yaml
   - order-ingest.yaml
+  - pricing-service.yaml
