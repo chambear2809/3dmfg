@@ -43,8 +43,10 @@ Required env:
 - `LOADGEN_MANIFEST_JSON`: inline manifest JSON for containerized Playwright runs
 - `WORKLOAD`: `service-map`, `read`, `mixed`, `write`, or `all`
 - `RUN_ID`: correlation prefix used in request IDs
-- `SERVICE_MAP_DURATION`: duration for the low-rate service-map scenario, default `4m`
-- `SERVICE_MAP_VUS`: VUs for the service-map scenario, default `1`
+- `SERVICE_MAP_DURATION`: duration for the service-map scenario, default `4m`
+- `SERVICE_MAP_VUS`: VUs for the service-map scenario, default `2`
+- `SERVICE_MAP_SLEEP_MIN_SECONDS` / `SERVICE_MAP_SLEEP_MAX_SECONDS`: pause envelope between service-map iterations, defaults `1` and `2`
+- `ASSET_SERVICE_BASE_URL`, `ORDER_INGEST_BASE_URL`, `PRICING_SERVICE_BASE_URL`, `NOTIFICATION_SERVICE_BASE_URL`: optional direct root probes used to keep downstream services visible in the map
 
 Docker fallback notes:
 
@@ -70,9 +72,10 @@ Kubernetes smoke notes:
 - Run the k6 workload in-cluster:
   `bash k8s/3dprint/run-k6-loadgen.sh`
   The Kubernetes helper now defaults to `WORKLOAD=service-map`, which routes
-  traffic through `http://frontend` and exercises the CSV import path that
-  drives `frontend -> backend -> order-ingest` without hammering the heavier
-  dashboard endpoints. Use `WORKLOAD=all` when you explicitly want the broader
+  traffic through `http://frontend`, exercises the CSV import and asset-upload
+  paths, and also probes the in-cluster service roots so `order-ingest`,
+  `pricing-service`, `asset-service`, and `notification-service` stay visible
+  on the service map. Use `WORKLOAD=all` when you explicitly want the broader
   benchmark profile.
 - Build and push the Playwright runner image from `frontend/Dockerfile.playwright`
 - Publish the benchmark manifest to a ConfigMap with `k8s/3dprint/create-loadgen-manifest-configmap.sh`
@@ -86,7 +89,7 @@ Profiles:
 
 Default workload envelopes:
 
-- `service-map`: low-rate order import loop against `/admin/orders/import` for 4m at 1 VU
+- `service-map`: continuous order-import and asset-cycle loop for 4m at 2 VUs, with optional direct service probes for downstream visibility
 - `read`: 2m ramp, 5m steady, 1m down at 30 VUs
 - `mixed`: 1m ramp, 4m steady, 1m down at 15 VUs
 - `write`: 1m ramp, 3m steady, 1m down at 5 VUs

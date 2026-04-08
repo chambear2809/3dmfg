@@ -16,7 +16,13 @@ WORKLOAD="${WORKLOAD:-service-map}"
 RUN_ID="${RUN_ID:-${JOB_NAME}}"
 COOKIE_POOL_SIZE="${COOKIE_POOL_SIZE:-3}"
 SERVICE_MAP_DURATION="${SERVICE_MAP_DURATION:-4m}"
-SERVICE_MAP_VUS="${SERVICE_MAP_VUS:-1}"
+SERVICE_MAP_VUS="${SERVICE_MAP_VUS:-2}"
+SERVICE_MAP_SLEEP_MIN_SECONDS="${SERVICE_MAP_SLEEP_MIN_SECONDS:-1}"
+SERVICE_MAP_SLEEP_MAX_SECONDS="${SERVICE_MAP_SLEEP_MAX_SECONDS:-2}"
+ASSET_SERVICE_BASE_URL="${ASSET_SERVICE_BASE_URL:-http://asset-service}"
+ORDER_INGEST_BASE_URL="${ORDER_INGEST_BASE_URL:-http://order-ingest}"
+PRICING_SERVICE_BASE_URL="${PRICING_SERVICE_BASE_URL:-http://pricing-service}"
+NOTIFICATION_SERVICE_BASE_URL="${NOTIFICATION_SERVICE_BASE_URL:-http://notification-service}"
 TIMEOUT="${TIMEOUT:-30m}"
 JOB_TTL_SECONDS="${JOB_TTL_SECONDS:-600}"
 
@@ -66,6 +72,18 @@ spec:
               value: "${SERVICE_MAP_DURATION}"
             - name: SERVICE_MAP_VUS
               value: "${SERVICE_MAP_VUS}"
+            - name: SERVICE_MAP_SLEEP_MIN_SECONDS
+              value: "${SERVICE_MAP_SLEEP_MIN_SECONDS}"
+            - name: SERVICE_MAP_SLEEP_MAX_SECONDS
+              value: "${SERVICE_MAP_SLEEP_MAX_SECONDS}"
+            - name: ASSET_SERVICE_BASE_URL
+              value: "${ASSET_SERVICE_BASE_URL}"
+            - name: ORDER_INGEST_BASE_URL
+              value: "${ORDER_INGEST_BASE_URL}"
+            - name: PRICING_SERVICE_BASE_URL
+              value: "${PRICING_SERVICE_BASE_URL}"
+            - name: NOTIFICATION_SERVICE_BASE_URL
+              value: "${NOTIFICATION_SERVICE_BASE_URL}"
             - name: LOADGEN_ADMIN_EMAIL
               valueFrom:
                 secretKeyRef:

@@ -13,7 +13,12 @@ const workloadMode = (__ENV.WORKLOAD || 'all').toLowerCase().replace(/_/g, '-');
 const runId = __ENV.RUN_ID || `lg-${Math.floor(Date.now() / 1000)}`;
 const cookiePoolSize = Number(__ENV.COOKIE_POOL_SIZE || 3);
 const serviceMapDuration = __ENV.SERVICE_MAP_DURATION || '4m';
-const serviceMapVus = Math.max(1, Number(__ENV.SERVICE_MAP_VUS || 1) || 1);
+const serviceMapVus = Math.max(1, Number(__ENV.SERVICE_MAP_VUS || 2) || 2);
+const serviceMapSleepMinSeconds = Math.max(0, Number(__ENV.SERVICE_MAP_SLEEP_MIN_SECONDS || 1) || 0);
+const serviceMapSleepMaxSeconds = Math.max(
+  serviceMapSleepMinSeconds,
+  Number(__ENV.SERVICE_MAP_SLEEP_MAX_SECONDS || 2) || serviceMapSleepMinSeconds,
+);
 
 const ordersCreated = new Counter('loadgen_orders_created');
 const productionOrdersCreated = new Counter('loadgen_production_orders_created');
@@ -116,6 +121,19 @@ function representativeOrders() {
   return Object.values(manifest.orders.representative || {});
 }
 
+function normalizeBaseUrl(value) {
+  return (value || '').replace(/\/$/, '');
+}
+
+function serviceMapProbeTargets() {
+  return [
+    { name: 'asset_service', url: normalizeBaseUrl(__ENV.ASSET_SERVICE_BASE_URL) },
+    { name: 'order_ingest', url: normalizeBaseUrl(__ENV.ORDER_INGEST_BASE_URL) },
+    { name: 'pricing_service', url: normalizeBaseUrl(__ENV.PRICING_SERVICE_BASE_URL) },
+    { name: 'notification_service', url: normalizeBaseUrl(__ENV.NOTIFICATION_SERVICE_BASE_URL) },
+  ].filter((target) => target.url);
+}
+
 function serviceMapProductSku() {
   const groups = [
     manifest.products.make,
@@ -154,6 +172,18 @@ function requestParams(data, workload, suffix, extra = {}) {
   return mergeObjects(extra, {
     headers: mergeObjects(extra.headers, {
       Cookie: cookieHeader(sessionFor(data)),
+      'User-Agent': `filaops-loadgen/${workload}`,
+      'X-Request-ID': makeRequestId(workload, suffix),
+    }),
+    tags: mergeObjects(extra.tags, {
+      workload,
+    }),
+  });
+}
+
+function directRequestParams(workload, suffix, extra = {}) {
+  return mergeObjects(extra, {
+    headers: mergeObjects(extra.headers, {
       'User-Agent': `filaops-loadgen/${workload}`,
       'X-Request-ID': makeRequestId(workload, suffix),
     }),
@@ -440,8 +470,77 @@ export function read_heavy(data) {
   sleep(1 + Math.random() * 2);
 }
 
+function uploadAndDeleteAsset(data, workload) {
+  const assetTag = `${runId}-${__VU}-${__ITER}-${Date.now()}`;
+  const payload = `asset-sm-${assetTag}`;
+  const filename = `sm-${assetTag}.png`;
+
+  const uploadResponse = http.post(
+    `${apiBaseUrl}/admin/uploads/product-image`,
+    {
+      file: http.file(payload, filename, 'image/png'),
+    },
+    requestParams(data, workload, 'asset-upload', {
+      tags: { endpoint: 'admin-uploads-product-image' },
+    }),
+  );
+
+  check(uploadResponse, {
+    [`${workload} asset upload succeeded`]: (res) => res.status === 200,
+  });
+
+  if (uploadResponse.status !== 200) {
+    return;
+  }
+
+  const uploadData = uploadResponse.json();
+  const assetKey = uploadData.filename || '';
+
+  if (assetKey) {
+    const deleteResponse = http.del(
+      `${apiBaseUrl}/admin/uploads/product-image/${assetKey}`,
+      null,
+      requestParams(data, workload, 'asset-delete', {
+        tags: { endpoint: 'admin-uploads-product-image-delete' },
+      }),
+    );
+    check(deleteResponse, {
+      [`${workload} asset delete succeeded`]: (res) => res.status >= 200 && res.status < 300,
+    });
+  }
+}
+
+function probeServiceMapRoots() {
+  const targets = serviceMapProbeTargets();
+  if (targets.length === 0) {
+    return;
+  }
+
+  const responses = http.batch(
+    targets.map((target, index) => ({
+      method: 'GET',
+      url: `${target.url}/`,
+      params: directRequestParams('service_map', `root-probe-${index}`, {
+        tags: {
+          endpoint: `${target.name}-root`,
+          target_service: target.name,
+        },
+      }),
+    })),
+  );
+
+  responses.forEach((response, index) => {
+    const target = targets[index];
+    checkJson(response, `service_map-${target.name}-root`);
+  });
+}
+
 export function service_map_flow(data) {
   const startedAt = Date.now();
+
+  group('service-map direct service probes', () => {
+    probeServiceMapRoots();
+  });
 
   group('service-map order import', () => {
     const probe = http.get(
@@ -457,8 +556,12 @@ export function service_map_flow(data) {
     importOrdersCsv(data, 'service_map', buildServiceMapCsv());
   });
 
+  group('service-map asset cycle', () => {
+    uploadAndDeleteAsset(data, 'service_map');
+  });
+
   businessLatency.add(Date.now() - startedAt, { workload: 'service_map' });
-  sleep(8 + Math.random() * 4);
+  sleep(serviceMapSleepMinSeconds + Math.random() * (serviceMapSleepMaxSeconds - serviceMapSleepMinSeconds));
 }
 
 export function mixed_crud(data) {

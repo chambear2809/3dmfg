@@ -162,13 +162,16 @@ The k6 job:
 - publishes `scripts/loadgen/main.js` into a temporary ConfigMap automatically
 - mounts `loadgen-manifest/manifest.json` at `/config/manifest.json`
 - defaults to `BASE_URL=http://frontend` and `API_BASE_URL=http://frontend/api/v1`
-- defaults to `WORKLOAD=service-map` so the demo path is `frontend -> backend -> order-ingest`
+- defaults to `WORKLOAD=service-map` so the demo path keeps
+  `frontend`, `backend`, `order-ingest`, `pricing-service`, `asset-service`,
+  and `notification-service` active on the map
 - prunes older finished `k6-loadgen-*` jobs before creating a new one
 - leaves completed jobs behind for 10 minutes by default via `JOB_TTL_SECONDS=600`
 
 Use `WORKLOAD=all bash k8s/3dprint/run-k6-loadgen.sh` only when you explicitly
 want the heavier benchmark profile. The default `service-map` path is meant to
-shape the APM map without saturating the single backend pod.
+shape the APM map without saturating the single backend pod, and now uses a
+short 1-2 second pause plus direct root probes to keep all demo services warm.
 
 2. Launch the smoke job:
 
