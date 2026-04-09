@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filaops-config
+  namespace: 3dprint
+data:
+  ENVIRONMENT: microk8s
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_POOL_SIZE: "10"
+  DB_MAX_OVERFLOW: "10"
+  NOTIFICATION_SERVICE_URL: http://notification-service
+  NOTIFICATION_SERVICE_TIMEOUT_SECONDS: "5"
+  ASSET_SERVICE_URL: http://asset-service
+  ASSET_SERVICE_TIMEOUT_SECONDS: "10"
+  ORDER_INGEST_SERVICE_URL: http://order-ingest
+  ORDER_INGEST_SERVICE_TIMEOUT_SECONDS: "10"
+  ALLOWED_ORIGINS: http://localhost:30080,http://localhost,http://127.0.0.1:30080
+  FRONTEND_URL: http://localhost:30080
+  FILAOPS_VERSION: "3.6.0"
+  LOG_FORMAT: json
+  LOG_LEVEL: INFO
+  LOG_FILE: ""
+  AUDIT_LOG_FILE: ""
+  COOKIE_SECURE: "false"
+  AUTH_MODE: cookie
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filaops-frontend-config
+  namespace: 3dprint
+data:
+  FRONTEND_PORT: "8080"
+  VITE_API_URL: ""
+  FRONTEND_API_UPSTREAM: http://backend
+  FRONTEND_STATIC_UPSTREAM: http://backend
+  FRONTEND_PORTAL_UPSTREAM: http://backend
+  FRONTEND_OTLP_TRACES_UPSTREAM: ""
+  SPLUNK_RUM_ENABLED: "false"
+  SPLUNK_RUM_REALM: ""
+  SPLUNK_RUM_APP_NAME: filaops-frontend
+  SPLUNK_RUM_DEBUG: "false"
+  SPLUNK_RUM_EXPORTER: ""
+  SPLUNK_RUM_BEACON_ENDPOINT: ""
+  SPLUNK_RUM_SESSION_SAMPLE_RATIO: "1"
+  SPLUNK_RUM_USER_TRACKING_MODE: noTracking
+  SPLUNK_RUM_SESSION_REPLAY_ENABLED: "false"
+  SPLUNK_RUM_MASK_ALL_TEXT: "false"
+  SPLUNK_RUM_MASK_ALL_INPUTS: "true"
+  OTEL_SERVICE_NAME: ""
+  OTEL_RESOURCE_ATTRIBUTES: ""
+  OTEL_LOGS_EXPORTER: none
+  OTEL_METRICS_EXPORTER: none
+  APP_ENV: microk8s
+  APP_VERSION: "3.6.0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-service-config
+  namespace: 3dprint
+data:
+  ENVIRONMENT: microk8s
+  LOG_LEVEL: INFO
+  SMTP_FROM_EMAIL: noreply@example.com
+  SMTP_FROM_NAME: FilaOps Notifications
+  DEFAULT_WEBHOOK_TIMEOUT_SECONDS: "10"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asset-service-config
+  namespace: 3dprint
+data:
+  ENVIRONMENT: microk8s
+  LOG_LEVEL: INFO
+  ASSET_STORAGE_DIR: /data
+  NOTIFICATION_SERVICE_URL: http://notification-service
+  NOTIFICATION_SERVICE_TIMEOUT_SECONDS: "5"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-ingest-config
+  namespace: 3dprint
+data:
+  ENVIRONMENT: microk8s
+  LOG_LEVEL: INFO
+  PRICING_SERVICE_URL: http://pricing-service
+  PRICING_SERVICE_TIMEOUT_SECONDS: "5"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pricing-service-config
+  namespace: 3dprint
+data:
+  ENVIRONMENT: microk8s
+  LOG_LEVEL: INFO
