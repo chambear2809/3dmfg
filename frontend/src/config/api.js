@@ -1,35 +1,50 @@
 /**
  * API Configuration
  *
- * Centralized API URL configuration.
- *
- * When accessed via HTTPS reverse proxy (like Caddy), use relative URLs
- * so requests go through the proxy. Otherwise use localhost for dev.
+ * Prefer same-origin API requests unless an explicit API URL is configured.
+ * This keeps auth cookies first-party and avoids login loops when the frontend
+ * is opened via localhost aliases such as 127.0.0.1.
  */
-const getApiUrl = () => {
-  // Runtime config injected by docker-entrypoint.sh at container startup
-  const runtimeUrl = window.__FILAOPS_CONFIG__?.API_URL;
-  if (runtimeUrl) {
-    return runtimeUrl;
+function normalizeExplicitUrl(value) {
+  if (typeof value !== "string") return "";
+
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "undefined" || trimmed === "null") {
+    return "";
   }
 
-  // Build-time Vite env var
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  return trimmed.replace(/\/+$/, "");
+}
+
+export function resolveApiUrl({
+  runtimeUrl,
+  viteUrl,
+  isDev = false,
+} = {}) {
+  const explicitRuntimeUrl = normalizeExplicitUrl(runtimeUrl);
+  if (explicitRuntimeUrl) {
+    return explicitRuntimeUrl;
   }
 
-  // If accessed via HTTPS or non-localhost domain, use relative URLs
-  // (requests will go through the reverse proxy)
-  if (
-    window.location.protocol === "https:" ||
-    (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1")
-  ) {
-    return "";  // Relative URLs: /api/v1/... goes through Caddy
+  const explicitViteUrl = normalizeExplicitUrl(viteUrl);
+  if (explicitViteUrl) {
+    return explicitViteUrl;
   }
 
-  // Local development - direct to backend
-  return "http://localhost:8000";
-};
+  // Default to same-origin so cookies stay first-party. Local Vite dev uses
+  // a proxy in vite.config.js, so it can use relative URLs as well.
+  if (isDev) {
+    return "";
+  }
 
-export const API_URL = getApiUrl();
+  return "";
+}
 
+export const API_URL = resolveApiUrl({
+  runtimeUrl: window.__FILAOPS_CONFIG__?.API_URL,
+  viteUrl: import.meta.env.VITE_API_URL,
+  isDev: import.meta.env.DEV,
+});
+
+export const API_TARGET_LABEL =
+  API_URL || `${window.location.origin.replace(/\/+$/, "")}/api`;

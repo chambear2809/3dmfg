@@ -56,7 +56,7 @@ export default function AdminDashboard() {
       const [summaryResult, ordersResult, posResult, invoiceSummaryResult] = await Promise.allSettled([
         api.get("/api/v1/admin/dashboard/summary"),
         api.get("/api/v1/admin/dashboard/recent-orders?limit=5"),
-        api.get("/api/v1/purchase-orders?status=draft,ordered&limit=5"),
+        api.get("/api/v1/purchase-orders/?status=draft,ordered&limit=5"),
         api.get("/api/v1/invoices/summary"),
       ]);
 

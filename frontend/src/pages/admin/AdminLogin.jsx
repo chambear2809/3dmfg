@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { API_URL } from "../../config/api";
+import { API_TARGET_LABEL, API_URL } from "../../config/api";
 import { recordWorkflowEvent } from "../../telemetry/browserTracing";
 import logoFull from "../../assets/logo_full.png";
 import logoBLB3D from "../../assets/logo_blb3d.svg";
@@ -33,7 +33,7 @@ export default function AdminLogin() {
       } catch {
         // Show connection error - this helps users diagnose VITE_API_URL issues
         setApiError(
-          `Cannot connect to API at ${API_URL}. ` +
+          `Cannot connect to API at ${API_TARGET_LABEL}. ` +
             (window.location.hostname !== "localhost" &&
             window.location.hostname !== "127.0.0.1"
               ? `If accessing remotely, ensure VITE_API_URL is set to the server's address (e.g., http://${window.location.hostname}:8000) and rebuild the frontend.`

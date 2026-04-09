@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: 637423309390.dkr.ecr.us-east-1.amazonaws.com/filaops-frontend:demo-20260407-frontend-service-node-portfix-6e83328
+          image: 637423309390.dkr.ecr.us-east-1.amazonaws.com/filaops-frontend:demo-20260408-login-proxy-host-fix-b41670a
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

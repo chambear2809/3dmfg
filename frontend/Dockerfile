@@ -18,6 +18,7 @@ WORKDIR /app
 
 COPY --chown=node:node --from=builder /app/dist /app/dist
 COPY --chown=node:node server.mjs /app/server.mjs
+COPY --chown=node:node server-proxy.mjs /app/server-proxy.mjs
 COPY --chown=node:node docker-entrypoint.sh /app/docker-entrypoint.sh
 
 # sed strips Windows CRLF line endings that break the shebang on Linux

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_URL } from "../config/api";
+import { API_TARGET_LABEL, API_URL } from "../config/api";
 import { useToast } from "./Toast";
 import Modal from "./Modal";
 
@@ -40,13 +40,13 @@ export default function ScrapOrderModal({ productionOrder, onClose, onScrap }) {
         }
       } catch (err) {
         console.error("Error fetching scrap reasons:", err);
-        toast.error(`Network error: ${err.message}. Is the backend running on ${API_URL}?`);
+        toast.error(`Network error: ${err.message}. Is the backend running on ${API_TARGET_LABEL}?`);
       } finally {
         setLoading(false);
       }
     };
     fetchReasons();
-  }, []);
+  }, [toast]);
 
   const handleSubmit = async () => {
     if (!scrapReason) {

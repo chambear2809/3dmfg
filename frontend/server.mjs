@@ -3,6 +3,7 @@ import https from "node:https";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildProxyHeaders } from "./server-proxy.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(__dirname, "dist");
@@ -84,27 +85,6 @@ function getContentType(filePath) {
     mimeTypes.get(path.extname(filePath).toLowerCase()) ||
     "application/octet-stream"
   );
-}
-
-function normalizeForwardedFor(request) {
-  const remoteAddress =
-    request.socket.remoteAddress?.replace(/^::ffff:/u, "") || "unknown";
-  const existing = request.headers["x-forwarded-for"];
-  return existing ? `${existing}, ${remoteAddress}` : remoteAddress;
-}
-
-function buildProxyHeaders(request, target) {
-  const forwardedHeaders = { ...request.headers };
-  delete forwardedHeaders.connection;
-  delete forwardedHeaders["proxy-connection"];
-
-  forwardedHeaders.host = target.host;
-  forwardedHeaders["x-forwarded-for"] = normalizeForwardedFor(request);
-  forwardedHeaders["x-forwarded-host"] = request.headers.host || "";
-  forwardedHeaders["x-forwarded-proto"] =
-    request.headers["x-forwarded-proto"] || "http";
-
-  return forwardedHeaders;
 }
 
 function filterResponseHeaders(headers) {
@@ -223,7 +203,9 @@ function proxyRequest(request, response, upstreamBase, options = {}) {
     targetUrl,
     {
       method: request.method,
-      headers: buildProxyHeaders(request, targetUrl),
+      headers: buildProxyHeaders(request, targetUrl, {
+        upstreamHostHeader: options.upstreamHostHeader === true,
+      }),
     },
     (upstreamResponse) => {
       const headers = applySecurityHeaders(
@@ -285,6 +267,7 @@ const server = http.createServer((request, response) => {
 
     proxyRequest(request, response, otlpTracesUpstream, {
       absoluteTarget: true,
+      upstreamHostHeader: true,
     });
     return;
   }

@@ -258,7 +258,7 @@ export default function AdminPurchasing() {
       if (filters.status !== "all") params.set("status", filters.status);
       params.set("limit", "100");
 
-      const data = await api.get(`/api/v1/purchase-orders?${params}`);
+      const data = await api.get(`/api/v1/purchase-orders/?${params}`);
       // Handle both array and {items: [...]} responses, and error objects
       setOrders(Array.isArray(data) ? data : (data.items || []));
     } catch (err) {
@@ -368,7 +368,7 @@ export default function AdminPurchasing() {
       if (selectedPO) {
         await api.put(`/api/v1/purchase-orders/${selectedPO.id}`, poData);
       } else {
-        await api.post(`/api/v1/purchase-orders`, poData);
+        await api.post(`/api/v1/purchase-orders/`, poData);
       }
 
       toast.success(selectedPO ? "Purchase order updated" : "Purchase order created");
