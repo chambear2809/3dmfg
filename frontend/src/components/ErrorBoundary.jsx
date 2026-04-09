@@ -10,7 +10,6 @@ export default class ErrorBoundary extends React.Component {
   }
   componentDidCatch(error, info) {
     this.setState({ info });
-    // why: place to send to Sentry/etc
     if (this.props.onError) this.props.onError(error, info);
      
     console.error("ErrorBoundary", error, info);
@@ -21,16 +20,17 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-950">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-lg w-full">
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div className="border rounded-xl p-6 max-w-lg w-full" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-subtle)' }}>
             <div className="text-red-300 font-semibold mb-2">Something broke</div>
-            <div className="text-gray-300 text-sm mb-4">
+            <div className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
               The UI hit an unexpected error. You can try again.
             </div>
             <div className="flex gap-2">
               <button
                 onClick={this.handleRetry}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm"
+                className="px-3 py-2 text-white rounded-lg text-sm transition-all hover:shadow-glow"
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 Retry
               </button>
@@ -41,12 +41,13 @@ export default class ErrorBoundary extends React.Component {
                   }`;
                   navigator.clipboard?.writeText(msg).catch(() => {});
                 }}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm border border-gray-700"
+                className="px-3 py-2 text-white rounded-lg text-sm transition-colors"
+                style={{ backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}
               >
                 Copy details
               </button>
             </div>
-            <pre className="text-xs text-gray-500 mt-4 max-h-48 overflow-auto whitespace-pre-wrap">
+            <pre className="text-xs mt-4 max-h-48 overflow-auto whitespace-pre-wrap" style={{ color: 'var(--text-muted)' }}>
               {this.state.error?.message}
             </pre>
           </div>
@@ -58,4 +59,3 @@ export default class ErrorBoundary extends React.Component {
     );
   }
 }
-

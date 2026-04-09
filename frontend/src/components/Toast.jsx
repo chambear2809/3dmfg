@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react";
+import { Check, X, AlertTriangle, Info } from "lucide-react";
 
 const ToastContext = createContext(null);
 
@@ -58,47 +59,35 @@ function ToastContainer({ toasts, removeToast }) {
   );
 }
 
-function ToastItem({ toast, onClose }) {
-  const styles = {
-    success: {
-      bg: "bg-green-500/10 border-green-500/30",
-      text: "text-green-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ),
-    },
-    error: {
-      bg: "bg-red-500/10 border-red-500/30",
-      text: "text-red-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      ),
-    },
-    warning: {
-      bg: "bg-yellow-500/10 border-yellow-500/30",
-      text: "text-yellow-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      ),
-    },
-    info: {
-      bg: "bg-blue-500/10 border-blue-500/30",
-      text: "text-blue-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-  };
+const toastStyles = {
+  success: {
+    bg: "border-[var(--success)]/30",
+    text: "text-[var(--success)]",
+    bgColor: "rgba(0, 200, 83, 0.1)",
+    icon: <Check size={20} />,
+  },
+  error: {
+    bg: "border-[var(--error)]/30",
+    text: "text-[var(--error)]",
+    bgColor: "rgba(239, 68, 68, 0.1)",
+    icon: <X size={20} />,
+  },
+  warning: {
+    bg: "border-[var(--warning)]/30",
+    text: "text-[var(--warning)]",
+    bgColor: "rgba(238, 122, 8, 0.1)",
+    icon: <AlertTriangle size={20} />,
+  },
+  info: {
+    bg: "border-[var(--info)]/30",
+    text: "text-[var(--info)]",
+    bgColor: "rgba(2, 109, 248, 0.1)",
+    icon: <Info size={20} />,
+  },
+};
 
-  const style = styles[toast.type] || styles.info;
+function ToastItem({ toast, onClose }) {
+  const style = toastStyles[toast.type] || toastStyles.info;
 
   return (
     <div
@@ -106,17 +95,16 @@ function ToastItem({ toast, onClose }) {
       role="status"
       aria-live="polite"
       className={`${style.bg} border rounded-lg p-4 shadow-lg backdrop-blur-sm animate-slide-in flex items-start gap-3`}
+      style={{ backgroundColor: style.bgColor }}
     >
       <span className={style.text}>{style.icon}</span>
       <p className={`${style.text} text-sm flex-1`}>{toast.message}</p>
       <button
         onClick={onClose}
-        className="text-gray-400 hover:text-white transition-colors"
+        className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
         aria-label="Close"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <X size={16} />
       </button>
     </div>
   );

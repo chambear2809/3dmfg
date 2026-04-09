@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ChevronDown } from "lucide-react";
 
 export default function SearchableSelect({
   options,
@@ -15,7 +16,6 @@ export default function SearchableSelect({
   const containerRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -26,12 +26,10 @@ export default function SearchableSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sort options alphabetically by display key
   const sortedOptions = [...options].sort((a, b) =>
     (a[displayKey] || "").localeCompare(b[displayKey] || "")
   );
 
-  // Filter options based on search
   const filteredOptions = sortedOptions.filter((opt) => {
     const searchLower = search.toLowerCase();
     const name = (opt[displayKey] || "").toLowerCase();
@@ -39,7 +37,6 @@ export default function SearchableSelect({
     return name.includes(searchLower) || sku.includes(searchLower);
   });
 
-  // Get selected option display text
   const selectedOption = options.find(
     (opt) => String(opt[valueKey]) === String(value)
   );
@@ -56,42 +53,30 @@ export default function SearchableSelect({
           setIsOpen(true);
           setTimeout(() => inputRef.current?.focus(), 0);
         }}
-        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white cursor-pointer flex items-center justify-between"
+        className="w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-primary)] cursor-pointer flex items-center justify-between"
       >
-        <span className={selectedOption ? "text-white" : "text-gray-500"}>
+        <span className={selectedOption ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}>
           {displayText || placeholder}
         </span>
-        <svg
-          className="w-4 h-4 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <ChevronDown size={16} className="text-[var(--text-secondary)]" />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl max-h-64 overflow-hidden">
-          <div className="p-2 border-b border-gray-700">
+        <div className="absolute z-50 w-full mt-1 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg shadow-xl max-h-64 overflow-hidden">
+          <div className="p-2 border-b border-[var(--border-subtle)]">
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Type to search..."
-              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded px-3 py-2 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--primary)] transition-colors"
               autoFocus
             />
           </div>
           <div className="max-h-48 overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-gray-500 text-sm">
+              <div className="px-3 py-2 text-[var(--text-muted)] text-sm">
                 No results found
               </div>
             ) : (
@@ -103,10 +88,10 @@ export default function SearchableSelect({
                     setIsOpen(false);
                     setSearch("");
                   }}
-                  className={`px-3 py-2 cursor-pointer hover:bg-gray-700 text-sm ${
+                  className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
                     String(opt[valueKey]) === String(value)
-                      ? "bg-blue-600/30 text-blue-300"
-                      : "text-white"
+                      ? "bg-[var(--primary)]/20 text-[var(--primary-light)]"
+                      : "text-[var(--text-primary)] hover:bg-[var(--bg-card)]"
                   }`}
                 >
                   {formatOption

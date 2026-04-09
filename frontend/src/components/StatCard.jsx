@@ -1,23 +1,21 @@
 import { Link } from "react-router-dom";
 
-// Shared chevron icon for clickable cards
 const ChevronIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
   </svg>
 );
 
-// Skeleton pulse component for loading state
 const SkeletonPulse = ({ className = "" }) => (
-  <div className={`animate-pulse bg-gray-700/50 rounded ${className}`} />
+  <div className={`animate-pulse bg-[var(--border-subtle)] rounded ${className}`} />
 );
 
 /**
  * Reusable StatCard component for displaying metrics across admin pages.
  *
- * Brand-aligned color scheme:
- * - primary: Emerald/cyan (brand colors)
- * - secondary: Cyan variant
+ * Brand-aligned color scheme (BLB3D blue #026DF8 / orange #EE7A08):
+ * - primary: Brand blue gradient
+ * - secondary: Brand orange/accent gradient
  * - success: Green (positive metrics)
  * - warning: Amber/yellow (caution)
  * - danger: Red (needs attention)
@@ -31,47 +29,39 @@ const SkeletonPulse = ({ className = "" }) => (
  */
 
 const colorClasses = {
-  // Gradient variant colors (background gradients)
   gradient: {
-    // Brand colors
-    primary: "from-emerald-600/20 to-cyan-600/10 border-emerald-500/30",
-    secondary: "from-cyan-600/20 to-blue-600/10 border-cyan-500/30",
-    // Semantic colors
+    primary: "from-blue-600/20 to-blue-400/5 border-blue-500/30",
+    secondary: "from-amber-600/20 to-orange-500/5 border-amber-500/30",
     success: "from-green-600/20 to-green-600/5 border-green-500/30",
     warning: "from-amber-600/20 to-amber-600/5 border-amber-500/30",
     danger: "from-red-600/20 to-red-600/5 border-red-500/30",
     neutral: "from-gray-600/20 to-gray-600/5 border-gray-500/30",
-    // Legacy support (map to new names)
-    emerald: "from-emerald-600/20 to-cyan-600/10 border-emerald-500/30",
-    cyan: "from-cyan-600/20 to-blue-600/10 border-cyan-500/30",
+    emerald: "from-green-600/20 to-green-600/5 border-green-500/30",
+    cyan: "from-blue-600/20 to-blue-400/5 border-blue-500/30",
     green: "from-green-600/20 to-green-600/5 border-green-500/30",
-    orange: "from-amber-600/20 to-amber-600/5 border-amber-500/30",
+    orange: "from-amber-600/20 to-orange-500/5 border-amber-500/30",
     red: "from-red-600/20 to-red-600/5 border-red-500/30",
-    blue: "from-cyan-600/20 to-blue-600/10 border-cyan-500/30",
-    purple: "from-emerald-600/20 to-cyan-600/10 border-emerald-500/30",
+    blue: "from-blue-600/20 to-blue-400/5 border-blue-500/30",
+    purple: "from-purple-600/20 to-purple-600/5 border-purple-500/30",
     yellow: "from-amber-600/20 to-amber-600/5 border-amber-500/30",
     white: "from-gray-600/20 to-gray-600/5 border-gray-500/30",
   },
-  // Simple variant colors (text colors for value)
   simple: {
-    // Brand colors
-    primary: "text-emerald-400",
-    secondary: "text-cyan-400",
-    // Semantic colors
+    primary: "text-[var(--primary-light)]",
+    secondary: "text-[var(--accent)]",
     success: "text-green-400",
     warning: "text-amber-400",
     danger: "text-red-400",
-    neutral: "text-white",
-    // Legacy support
-    emerald: "text-emerald-400",
-    cyan: "text-cyan-400",
+    neutral: "text-[var(--text-primary)]",
+    emerald: "text-green-400",
+    cyan: "text-[var(--primary-light)]",
     green: "text-green-400",
-    orange: "text-amber-400",
+    orange: "text-[var(--accent)]",
     red: "text-red-400",
-    blue: "text-cyan-400",
-    purple: "text-emerald-400",
+    blue: "text-[var(--primary-light)]",
+    purple: "text-purple-400",
     yellow: "text-amber-400",
-    white: "text-white",
+    white: "text-[var(--text-primary)]",
   },
 };
 
@@ -87,7 +77,6 @@ export default function StatCard({
   active = false,
   loading = false,
 }) {
-  // Wrapper component - Link if `to` prop provided, div otherwise
   const Wrapper = to ? Link : "div";
   const wrapperProps = to
     ? { to, className: "block" }
@@ -95,9 +84,9 @@ export default function StatCard({
   const isClickable = to || onClick;
 
   if (variant === "simple") {
-    const baseClasses = "bg-gray-900 border rounded-xl p-4";
-    const borderClasses = active ? "border-blue-500/50 bg-blue-500/10" : "border-gray-800";
-    const hoverClasses = isClickable && !loading ? "hover:border-gray-700 hover:bg-gray-800/50 transition-all cursor-pointer" : "";
+    const baseClasses = "bg-[var(--bg-card)] border rounded-xl p-4";
+    const borderClasses = active ? "border-[var(--primary)]/50 bg-[var(--primary)]/10" : "border-[var(--border-subtle)]";
+    const hoverClasses = isClickable && !loading ? "hover:border-[var(--border-active)] hover:bg-[var(--bg-elevated)]/50 transition-all cursor-pointer" : "";
 
     return (
       <Wrapper {...wrapperProps}>
@@ -118,16 +107,16 @@ export default function StatCard({
                 </>
               ) : (
                 <>
-                  <p className="text-gray-400 text-sm">{title}</p>
+                  <p className="text-[var(--text-secondary)] text-sm">{title}</p>
                   <p className={`text-2xl font-bold ${colorClasses.simple[color] || colorClasses.simple.white}`}>
                     {value}
                   </p>
-                  {subtitle && <p className="text-gray-500 text-xs mt-1">{subtitle}</p>}
+                  {subtitle && <p className="text-[var(--text-muted)] text-xs mt-1">{subtitle}</p>}
                 </>
               )}
             </div>
             {isClickable && !loading && (
-              <div className="text-gray-600">
+              <div className="text-[var(--text-muted)]">
                 <ChevronIcon />
               </div>
             )}
@@ -137,9 +126,8 @@ export default function StatCard({
     );
   }
 
-  // Gradient variant (default)
   const baseClasses = `bg-gradient-to-br ${colorClasses.gradient[color] || colorClasses.gradient.white} border rounded-xl p-6`;
-  const hoverClasses = to && !loading ? "hover:scale-[1.02] hover:shadow-lg transition-all cursor-pointer" : "";
+  const hoverClasses = to && !loading ? "hover:scale-[1.02] hover:shadow-glow transition-all cursor-pointer" : "";
 
   return (
     <Wrapper {...wrapperProps}>
@@ -154,16 +142,16 @@ export default function StatCard({
               </>
             ) : (
               <>
-                <p className="text-gray-400 text-sm font-medium">{title}</p>
-                <p className="text-3xl font-bold text-white mt-1">{value}</p>
-                {subtitle && <p className="text-gray-500 text-xs mt-1">{subtitle}</p>}
+                <p className="text-[var(--text-secondary)] text-sm font-medium">{title}</p>
+                <p className="text-3xl font-bold text-[var(--text-primary)] mt-1">{value}</p>
+                {subtitle && <p className="text-[var(--text-muted)] text-xs mt-1">{subtitle}</p>}
               </>
             )}
           </div>
           <div className="flex items-center gap-2">
-            {icon && !loading && <div className="text-gray-500">{icon}</div>}
+            {icon && !loading && <div className="text-[var(--text-muted)]">{icon}</div>}
             {to && !loading && (
-              <div className="text-gray-600">
+              <div className="text-[var(--text-muted)]">
                 <ChevronIcon />
               </div>
             )}

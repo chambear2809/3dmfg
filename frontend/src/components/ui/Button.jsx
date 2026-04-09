@@ -2,13 +2,13 @@ import { forwardRef } from "react";
 
 const VARIANT_CLASSES = {
   primary:
-    "bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-600/50",
+    "bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white hover:shadow-glow disabled:opacity-50",
   secondary:
-    "bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-700/50",
+    "bg-[var(--bg-elevated)] hover:bg-[var(--border-active)] text-white border border-[var(--border-subtle)] disabled:opacity-50",
   danger:
-    "bg-red-600 hover:bg-red-700 text-white disabled:bg-red-600/50",
+    "bg-red-600 hover:bg-red-700 text-white disabled:opacity-50",
   ghost:
-    "bg-transparent hover:bg-gray-800 text-gray-300 hover:text-white disabled:text-gray-600",
+    "bg-transparent hover:bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50",
 };
 
 const SIZE_CLASSES = {
@@ -64,7 +64,7 @@ const Button = forwardRef(function Button(
       ref={ref}
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:cursor-not-allowed ${variantClasses} ${sizeClasses} ${className}`}
+      className={`inline-flex items-center justify-center font-medium rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-[color:var(--primary)]/50 disabled:cursor-not-allowed ${variantClasses} ${sizeClasses} ${className}`}
       {...rest}
     >
       {loading ? <Spinner /> : icon}

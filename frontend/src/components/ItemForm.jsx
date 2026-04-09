@@ -15,6 +15,9 @@ import {
 } from "../utils/validation";
 import { FormErrorSummary, RequiredIndicator } from "./ErrorMessage";
 import Modal from "./Modal";
+import Input from "./ui/Input";
+import Select from "./ui/Select";
+import Button from "./ui/Button";
 
 const ITEM_TYPES = [
   { value: "finished_good", label: "Finished Good" },
@@ -125,7 +128,6 @@ export default function ItemForm({
           image_url: editingItem.image_url || "",
         });
       } else {
-        // Reset form for new item
         setFormData({
           sku: "",
           name: "",
@@ -146,7 +148,6 @@ export default function ItemForm({
     }
   }, [isOpen, editingItem, fetchCategories, fetchUomClasses]);
 
-  // Auto-configure material type settings
   useEffect(() => {
     if (formData.item_type === 'material' && !editingItem) {
       setFormData(prev => ({
@@ -165,12 +166,10 @@ export default function ItemForm({
       procurement_type: [(v) => validateRequired(v, "Procurement type")],
     };
 
-    // Only validate SKU if it's provided (it's optional - can be auto-generated)
     if (formData.sku && formData.sku.trim()) {
       validationRules.sku = [(v) => validateSKU(v)];
     }
 
-    // Validate numeric fields if they have values
     if (formData.standard_cost !== "" && formData.standard_cost !== null) {
       validationRules.standard_cost = [
         (v) => validatePrice(v, "Standard cost"),
@@ -191,7 +190,6 @@ export default function ItemForm({
     setError(null);
     setErrors({});
 
-    // Validate form
     const validationErrors = validateFormData();
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -262,19 +260,19 @@ export default function ItemForm({
     >
       <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-[var(--text-primary)]">
               {editingItem ? "Edit Item" : "Create New Item"}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white"
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               ✕
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-[var(--error)] rounded-xl">
               {error}
             </div>
           )}
@@ -282,41 +280,23 @@ export default function ItemForm({
           <FormErrorSummary errors={errors} className="mb-4" />
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Basic Info */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="item-sku" className="block text-sm font-medium text-gray-300 mb-1">
-                  SKU{" "}
-                  <span className="text-gray-500 text-xs">
-                    (auto-generated if empty)
-                  </span>
-                </label>
-                <input
-                  id="item-sku"
-                  type="text"
-                  value={formData.sku}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      sku: e.target.value.toUpperCase(),
-                    })
-                  }
-                  aria-invalid={!!errors.sku}
-                  aria-describedby={errors.sku ? "item-sku-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none ${
-                    errors.sku
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
-                  }`}
-                  placeholder="Leave empty for auto-generation"
-                />
-                {errors.sku && (
-                  <p id="item-sku-error" role="alert" className="text-red-400 text-sm mt-1">{errors.sku}</p>
-                )}
-              </div>
+              <Input
+                id="item-sku"
+                label={<>SKU <span className="text-[var(--text-muted)] text-xs">(auto-generated if empty)</span></>}
+                value={formData.sku}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sku: e.target.value.toUpperCase(),
+                  })
+                }
+                error={errors.sku}
+                placeholder="Leave empty for auto-generation"
+              />
 
               <div>
-                <label htmlFor="item-unit" className="block text-sm font-medium text-gray-300 mb-1">
+                <label htmlFor="item-unit" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                   Unit <RequiredIndicator />
                 </label>
                 <select
@@ -327,10 +307,10 @@ export default function ItemForm({
                   }
                   aria-invalid={!!errors.unit}
                   aria-describedby={errors.unit ? "item-unit-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white focus:outline-none ${
+                  className={`w-full px-3 py-2 bg-[var(--bg-elevated)] border rounded-lg text-[var(--text-primary)] focus:outline-none transition-colors ${
                     errors.unit
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
+                      ? "border-[var(--error)] focus:border-[var(--error)]"
+                      : "border-[var(--border-subtle)] focus:border-[var(--primary)]"
                   }`}
                 >
                   {uomClasses.length > 0 ? (
@@ -350,7 +330,6 @@ export default function ItemForm({
                       </optgroup>
                     ))
                   ) : (
-                    // Fallback if UOM API not available
                     <>
                       <option value="EA">EA - Each</option>
                       <option value="KG">KG - Kilogram</option>
@@ -363,38 +342,24 @@ export default function ItemForm({
                   )}
                 </select>
                 {errors.unit && (
-                  <p id="item-unit-error" role="alert" className="text-red-400 text-sm mt-1">{errors.unit}</p>
+                  <p id="item-unit-error" role="alert" className="text-[var(--error)] text-sm mt-1">{errors.unit}</p>
                 )}
               </div>
             </div>
 
-            <div>
-              <label htmlFor="item-name" className="block text-sm font-medium text-gray-300 mb-1">
-                Name <RequiredIndicator />
-              </label>
-              <input
-                id="item-name"
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                aria-invalid={!!errors.name}
-                aria-describedby={errors.name ? "item-name-error" : undefined}
-                className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none ${
-                  errors.name
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-gray-700 focus:border-blue-500"
-                }`}
-                placeholder="Item name"
-              />
-              {errors.name && (
-                <p id="item-name-error" role="alert" className="text-red-400 text-sm mt-1">{errors.name}</p>
-              )}
-            </div>
+            <Input
+              id="item-name"
+              label={<>Name <RequiredIndicator /></>}
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              error={errors.name}
+              placeholder="Item name"
+            />
 
             <div>
-              <label htmlFor="item-description" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="item-description" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Description
               </label>
               <textarea
@@ -403,15 +368,14 @@ export default function ItemForm({
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none transition-colors"
                 rows="3"
                 placeholder="Item description"
               />
             </div>
 
-            {/* Image URL / Upload */}
             <div>
-              <label htmlFor="item-image-url" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="item-image-url" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
                 Product Image
               </label>
               <div className="flex gap-3 items-start">
@@ -424,7 +388,7 @@ export default function ItemForm({
                       onChange={(e) =>
                         setFormData({ ...formData, image_url: e.target.value })
                       }
-                      className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                      className="flex-1 px-3 py-2 bg-[var(--bg-elevated)] border border-[var(--border-subtle)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--primary)] focus:outline-none transition-colors"
                       placeholder="https://example.com/image.jpg"
                     />
                     <input
@@ -436,7 +400,6 @@ export default function ItemForm({
                         const file = e.target.files?.[0];
                         if (!file) return;
 
-                        // Validate file size (5MB max)
                         if (file.size > 5 * 1024 * 1024) {
                           setError("Image must be less than 5MB");
                           return;
@@ -464,29 +427,27 @@ export default function ItemForm({
                           }
 
                           const data = await res.json();
-                          // Always store the relative path — nginx/proxy handles routing
                           setFormData((prev) => ({ ...prev, image_url: data.url }));
                         } catch (err) {
                           setError("Image upload failed. Please try again or paste a URL instead.");
                         } finally {
                           setUploading(false);
-                          // Reset file input
                           if (fileInputRef.current) {
                             fileInputRef.current.value = "";
                           }
                         }
                       }}
                     />
-                    <button
+                    <Button
+                      variant="secondary"
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-600 disabled:opacity-50 whitespace-nowrap"
                     >
                       {uploading ? "Uploading..." : "Upload"}
-                    </button>
+                    </Button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1">
                     Paste a URL or upload an image (JPG, PNG, WebP, GIF - max 5MB)
                   </p>
                 </div>
@@ -495,7 +456,7 @@ export default function ItemForm({
                     <img
                       src={formData.image_url}
                       alt="Product preview"
-                      className="h-16 w-16 object-cover rounded border border-gray-600"
+                      className="h-16 w-16 object-cover rounded border border-[var(--border-subtle)]"
                       onError={(e) => {
                         e.target.style.display = "none";
                       }}
@@ -505,87 +466,45 @@ export default function ItemForm({
               </div>
             </div>
 
-            {/* Classification */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="item-type" className="block text-sm font-medium text-gray-300 mb-1">
-                  Item Type <RequiredIndicator />
-                </label>
-                <select
+                <Select
                   id="item-type"
+                  label={<>Item Type <RequiredIndicator /></>}
                   value={formData.item_type}
                   onChange={(e) =>
                     setFormData({ ...formData, item_type: e.target.value })
                   }
-                  aria-invalid={!!errors.item_type}
-                  aria-describedby={errors.item_type ? "item-type-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white focus:outline-none ${
-                    errors.item_type
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
-                  }`}
-                >
-                  {ITEM_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
+                  options={ITEM_TYPES}
+                  error={errors.item_type}
+                />
                 {formData.item_type === 'material' && (
-                  <p className="text-xs text-blue-400 mt-1">
+                  <p className="text-xs text-[var(--primary-light)] mt-1">
                     Materials use: Unit=G (grams), Purchase=KG (kilograms)
                   </p>
                 )}
-                {errors.item_type && (
-                  <p id="item-type-error" role="alert" className="text-red-400 text-sm mt-1">
-                    {errors.item_type}
-                  </p>
-                )}
               </div>
 
-              <div>
-                <label htmlFor="item-procurement-type" className="block text-sm font-medium text-gray-300 mb-1">
-                  Procurement Type <RequiredIndicator />
-                </label>
-                <select
-                  id="item-procurement-type"
-                  value={formData.procurement_type}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      procurement_type: e.target.value,
-                    })
-                  }
-                  aria-invalid={!!errors.procurement_type}
-                  aria-describedby={errors.procurement_type ? "item-procurement-type-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white focus:outline-none ${
-                    errors.procurement_type
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
-                  }`}
-                >
-                  {PROCUREMENT_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.procurement_type && (
-                  <p id="item-procurement-type-error" role="alert" className="text-red-400 text-sm mt-1">
-                    {errors.procurement_type}
-                  </p>
-                )}
-              </div>
+              <Select
+                id="item-procurement-type"
+                label={<>Procurement Type <RequiredIndicator /></>}
+                value={formData.procurement_type}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    procurement_type: e.target.value,
+                  })
+                }
+                options={PROCUREMENT_TYPES}
+                error={errors.procurement_type}
+              />
             </div>
 
-            {/* Stocking Policy */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="item-stocking-policy" className="block text-sm font-medium text-gray-300 mb-1">
-                  Stocking Policy
-                </label>
-                <select
+                <Select
                   id="item-stocking-policy"
+                  label="Stocking Policy"
                   value={formData.stocking_policy}
                   onChange={(e) =>
                     setFormData({
@@ -593,153 +512,96 @@ export default function ItemForm({
                       stocking_policy: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-                >
-                  {STOCKING_POLICIES.map((policy) => (
-                    <option key={policy.value} value={policy.value}>
-                      {policy.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.stocking_policy === "stocked"
-                    ? "Item will show as low stock when below reorder point"
-                    : "Item is only ordered when MRP shows demand"}
-                </p>
+                  options={STOCKING_POLICIES}
+                  helpText={
+                    formData.stocking_policy === "stocked"
+                      ? "Item will show as low stock when below reorder point"
+                      : "Item is only ordered when MRP shows demand"
+                  }
+                />
               </div>
 
               {formData.stocking_policy === "stocked" && (
-                <div>
-                  <label htmlFor="item-reorder-point" className="block text-sm font-medium text-gray-300 mb-1">
-                    Reorder Point
-                  </label>
-                  <input
-                    id="item-reorder-point"
-                    type="number"
-                    step="1"
-                    min="0"
-                    value={formData.reorder_point}
-                    onChange={(e) =>
-                      setFormData({ ...formData, reorder_point: e.target.value })
-                    }
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-                    placeholder="Min quantity to keep on hand"
-                  />
-                </div>
+                <Input
+                  id="item-reorder-point"
+                  label="Reorder Point"
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={formData.reorder_point}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reorder_point: e.target.value })
+                  }
+                  placeholder="Min quantity to keep on hand"
+                />
               )}
             </div>
 
-            <div>
-              <label htmlFor="item-category" className="block text-sm font-medium text-gray-300 mb-1">
-                Category
-              </label>
-              <select
-                id="item-category"
-                value={formData.category_id || ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    category_id: e.target.value
-                      ? parseInt(e.target.value)
-                      : null,
-                  })
-                }
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="">No category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              id="item-category"
+              label="Category"
+              value={formData.category_id || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  category_id: e.target.value
+                    ? parseInt(e.target.value)
+                    : null,
+                })
+              }
+              options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+              placeholder="No category"
+            />
 
-            {/* Pricing */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="item-standard-cost" className="block text-sm font-medium text-gray-300 mb-1">
-                  Standard Cost
-                </label>
-                <input
-                  id="item-standard-cost"
-                  type="number"
-                  step="0.01"
-                  value={formData.standard_cost}
-                  onChange={(e) =>
-                    setFormData({ ...formData, standard_cost: e.target.value })
-                  }
-                  aria-invalid={!!errors.standard_cost}
-                  aria-describedby={errors.standard_cost ? "item-standard-cost-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none ${
-                    errors.standard_cost
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
-                  }`}
-                  placeholder="0.00"
-                />
-                {errors.standard_cost && (
-                  <p id="item-standard-cost-error" role="alert" className="text-red-400 text-sm mt-1">
-                    {errors.standard_cost}
-                  </p>
-                )}
-              </div>
+              <Input
+                id="item-standard-cost"
+                label="Standard Cost"
+                type="number"
+                step="0.01"
+                value={formData.standard_cost}
+                onChange={(e) =>
+                  setFormData({ ...formData, standard_cost: e.target.value })
+                }
+                error={errors.standard_cost}
+                placeholder="0.00"
+              />
 
-              <div>
-                <label htmlFor="item-selling-price" className="block text-sm font-medium text-gray-300 mb-1">
-                  Selling Price
-                </label>
-                <input
-                  id="item-selling-price"
-                  type="number"
-                  step="0.01"
-                  value={formData.selling_price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, selling_price: e.target.value })
-                  }
-                  aria-invalid={!!errors.selling_price}
-                  aria-describedby={errors.selling_price ? "item-selling-price-error" : undefined}
-                  className={`w-full px-4 py-2 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none ${
-                    errors.selling_price
-                      ? "border-red-500 focus:border-red-500"
-                      : "border-gray-700 focus:border-blue-500"
-                  }`}
-                  placeholder="0.00"
-                />
-                {errors.selling_price && (
-                  <p id="item-selling-price-error" role="alert" className="text-red-400 text-sm mt-1">
-                    {errors.selling_price}
-                  </p>
-                )}
-              </div>
+              <Input
+                id="item-selling-price"
+                label="Selling Price"
+                type="number"
+                step="0.01"
+                value={formData.selling_price}
+                onChange={(e) =>
+                  setFormData({ ...formData, selling_price: e.target.value })
+                }
+                error={errors.selling_price}
+                placeholder="0.00"
+              />
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
-              <button
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-700"
                 disabled={loading}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-                disabled={loading}
+                loading={loading}
               >
-                {loading
-                  ? "Saving..."
-                  : editingItem
-                  ? "Update Item"
-                  : "Create Item"}
-              </button>
+                {editingItem ? "Update Item" : "Create Item"}
+              </Button>
             </div>
           </form>
 
           {formData.procurement_type === "make" && (
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-sm text-blue-300">
+            <div className="mt-4 p-3 rounded-xl text-sm" style={{ backgroundColor: 'rgba(2, 109, 248, 0.1)', border: '1px solid rgba(2, 109, 248, 0.3)', color: 'var(--primary-light)' }}>
               <strong>Note:</strong> This item requires a BOM and Routing.
               Create the item first, then add BOM and Routing from the item
               detail page.

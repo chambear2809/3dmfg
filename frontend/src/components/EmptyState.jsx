@@ -7,7 +7,6 @@
 
 import { Link } from "react-router-dom";
 
-// Pre-defined icons for common empty states
 const icons = {
   orders: (
     <svg
@@ -154,14 +153,12 @@ export default function EmptyState({
   actionTo,
   onAction,
   customIcon,
-  variant = "default", // default, compact, inline
+  variant = "default",
 }) {
-  // Use custom icon if provided, otherwise use predefined
   const iconElement = customIcon || icons[icon] || icons.default;
 
-  // Render action button inline (not as component to avoid React fast refresh issues)
   const buttonClasses =
-    "inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors text-sm font-medium";
+    "inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] hover:bg-[var(--primary-light)] hover:shadow-glow text-white rounded-lg transition-all text-sm font-medium";
 
   const renderActionButton = () => {
     if (!actionLabel) return null;
@@ -203,31 +200,29 @@ export default function EmptyState({
     return null;
   };
 
-  // Compact variant for smaller spaces
   if (variant === "compact") {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center bg-gray-900">
-        <div className="text-white mb-3">{iconElement}</div>
-        <h3 className="text-white font-medium">{title}</h3>
+      <div className="flex flex-col items-center justify-center py-8 text-center bg-[var(--bg-card)] rounded-lg">
+        <div className="text-[var(--text-muted)] mb-3">{iconElement}</div>
+        <h3 className="text-[var(--text-primary)] font-medium">{title}</h3>
         {description && (
-          <p className="text-white text-sm mt-1 max-w-xs">{description}</p>
+          <p className="text-[var(--text-secondary)] text-sm mt-1 max-w-xs">{description}</p>
         )}
         {actionLabel && <div className="mt-4">{renderActionButton()}</div>}
       </div>
     );
   }
 
-  // Inline variant for table rows or narrow spaces
   if (variant === "inline") {
     return (
-      <div className="flex items-center justify-center gap-4 py-6 bg-gray-900 border border-gray-700">
-        <div className="text-white w-8 h-8 [&>svg]:w-8 [&>svg]:h-8">
+      <div className="flex items-center justify-center gap-4 py-6 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-lg">
+        <div className="text-[var(--text-muted)] w-8 h-8 [&>svg]:w-8 [&>svg]:h-8">
           {iconElement}
         </div>
         <div>
-          <span className="text-white">{title}</span>
+          <span className="text-[var(--text-primary)]">{title}</span>
           {description && (
-            <span className="text-white ml-2">{description}</span>
+            <span className="text-[var(--text-secondary)] ml-2">{description}</span>
           )}
         </div>
         {actionLabel && renderActionButton()}
@@ -235,13 +230,12 @@ export default function EmptyState({
     );
   }
 
-  // Default variant - full empty state
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center bg-gray-900 border border-gray-700">
-      <div className="text-white mb-4">{iconElement}</div>
-      <h3 className="text-lg font-medium text-white mb-2">{title}</h3>
+    <div className="flex flex-col items-center justify-center py-16 text-center bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl">
+      <div className="text-[var(--text-muted)] mb-4">{iconElement}</div>
+      <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">{title}</h3>
       {description && (
-        <p className="text-white text-sm max-w-md mb-6">{description}</p>
+        <p className="text-[var(--text-secondary)] text-sm max-w-md mb-6">{description}</p>
       )}
       {renderActionButton()}
     </div>

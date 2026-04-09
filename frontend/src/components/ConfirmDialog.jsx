@@ -16,31 +16,20 @@
  * />
  */
 import { useEffect, useRef } from 'react';
+import { AlertTriangle, AlertCircle, Info, Loader2 } from 'lucide-react';
 
 const VARIANTS = {
   danger: {
     button: 'bg-red-600 hover:bg-red-500 text-white',
-    icon: (
-      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-    ),
+    icon: <AlertTriangle size={24} className="text-red-400" />,
   },
   warning: {
     button: 'bg-yellow-600 hover:bg-yellow-500 text-white',
-    icon: (
-      <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    icon: <AlertCircle size={24} className="text-yellow-400" />,
   },
   info: {
-    button: 'bg-blue-600 hover:bg-blue-500 text-white',
-    icon: (
-      <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    button: 'bg-[var(--primary)] hover:bg-[var(--primary-light)] text-white hover:shadow-glow',
+    icon: <Info size={24} className="text-[var(--primary-light)]" />,
   },
 };
 
@@ -58,14 +47,12 @@ export default function ConfirmDialog({
   const cancelButtonRef = useRef(null);
   const dialogRef = useRef(null);
 
-  // Focus the cancel button when dialog opens (safer default for destructive actions)
   useEffect(() => {
     if (isOpen && cancelButtonRef.current) {
       cancelButtonRef.current.focus();
     }
   }, [isOpen]);
 
-  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen && !isLoading) {
@@ -76,7 +63,6 @@ export default function ConfirmDialog({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isLoading, onCancel]);
 
-  // Trap focus within dialog
   useEffect(() => {
     if (!isOpen) return;
 
@@ -115,7 +101,7 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) {
           onCancel();
@@ -124,26 +110,26 @@ export default function ConfirmDialog({
     >
       <div
         ref={dialogRef}
-        className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md p-6 shadow-xl"
+        className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl w-full max-w-md p-6 shadow-xl animate-slide-up"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-message"
       >
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 p-2 bg-gray-800 rounded-full">
+          <div className="flex-shrink-0 p-2 bg-[var(--bg-elevated)] rounded-full">
             {variant.icon}
           </div>
           <div className="flex-1">
             <h2
               id="confirm-dialog-title"
-              className="text-lg font-semibold text-white"
+              className="text-lg font-semibold text-[var(--text-primary)]"
             >
               {title}
             </h2>
             <p
               id="confirm-dialog-message"
-              className="mt-2 text-gray-400"
+              className="mt-2 text-[var(--text-secondary)]"
             >
               {message}
             </p>
@@ -156,7 +142,7 @@ export default function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-lg transition-colors disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -164,14 +150,11 @@ export default function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${variant.button}`}
+            className={`px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 ${variant.button}`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+                <Loader2 size={16} className="animate-spin" />
                 Processing...
               </span>
             ) : (

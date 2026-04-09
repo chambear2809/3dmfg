@@ -23,11 +23,9 @@ export default function Modal({
   const previousFocusRef = useRef(null);
   const titleId = useId();
 
-  // Save and restore focus when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement;
-      // Focus the dialog container so screen readers announce it
       requestAnimationFrame(() => {
         if (dialogRef.current) {
           const firstFocusable = dialogRef.current.querySelector(
@@ -46,7 +44,6 @@ export default function Modal({
     }
   }, [isOpen]);
 
-  // Handle Escape key
   useEffect(() => {
     if (!isOpen || disableClose) return;
 
@@ -59,7 +56,6 @@ export default function Modal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, disableClose, onClose]);
 
-  // Focus trap
   useEffect(() => {
     if (!isOpen) return;
 
@@ -98,7 +94,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget && !disableClose) {
           onClose();
@@ -107,7 +103,7 @@ export default function Modal({
     >
       <div
         ref={dialogRef}
-        className={`bg-gray-900 border border-gray-700 rounded-xl shadow-xl ${className}`}
+        className={`bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl animate-slide-up ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

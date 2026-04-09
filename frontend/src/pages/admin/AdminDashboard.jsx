@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApi } from "../../hooks/useApi";
 import { useFormatCurrency } from "../../hooks/useFormatCurrency";
+import { ClipboardCheck, ChevronRight } from "lucide-react";
 import StatCard from "../../components/StatCard";
 import RecentOrderRow from "../../components/dashboard/RecentOrderRow";
 import SalesChart from "../../components/dashboard/SalesChart";
@@ -24,7 +25,6 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, []);
 
-  // Fetch sales trend data when period changes
   useEffect(() => {
     fetchSalesData(salesPeriod);
   }, [salesPeriod]);
@@ -41,7 +41,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Format revenue with smart display (show actual $ under 1k, otherwise Xk)
   const formatRevenue = (amount) => {
     if (amount < 1000) {
       return `$${amount.toFixed(0)}`;
@@ -88,63 +87,58 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="space-y-8 animate-pulse">
-        {/* Header skeleton */}
         <div>
-          <div className="h-7 w-40 bg-gray-800 rounded" />
-          <div className="h-4 w-64 bg-gray-800 rounded mt-2" />
+          <div className="h-7 w-40 bg-[var(--border-subtle)] rounded" />
+          <div className="h-4 w-64 bg-[var(--border-subtle)] rounded mt-2" />
         </div>
 
-        {/* Sales chart skeleton */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4">
           <div className="flex justify-between mb-4">
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-6 w-14 bg-gray-800 rounded-md" />
+                <div key={i} className="h-6 w-14 bg-[var(--border-subtle)] rounded-md" />
               ))}
             </div>
             <div className="flex gap-4">
-              <div className="h-8 w-16 bg-gray-800 rounded" />
-              <div className="h-8 w-16 bg-gray-800 rounded" />
+              <div className="h-8 w-16 bg-[var(--border-subtle)] rounded" />
+              <div className="h-8 w-16 bg-[var(--border-subtle)] rounded" />
             </div>
           </div>
-          <div className="h-32 bg-gray-800/50 rounded" />
+          <div className="h-32 bg-[var(--bg-elevated)]/50 rounded" />
         </div>
 
-        {/* Stat cards skeleton (Sales section) */}
         <div>
-          <div className="h-3 w-12 bg-gray-800 rounded mb-4" />
+          <div className="h-3 w-12 bg-[var(--border-subtle)] rounded mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div className="h-3 w-24 bg-gray-800 rounded mb-3" />
-                <div className="h-8 w-12 bg-gray-800 rounded mb-2" />
-                <div className="h-3 w-20 bg-gray-800 rounded" />
+              <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4">
+                <div className="h-3 w-24 bg-[var(--border-subtle)] rounded mb-3" />
+                <div className="h-8 w-12 bg-[var(--border-subtle)] rounded mb-2" />
+                <div className="h-3 w-20 bg-[var(--border-subtle)] rounded" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Stat cards skeleton (Inventory section) */}
         <div>
-          <div className="h-3 w-16 bg-gray-800 rounded mb-4" />
+          <div className="h-3 w-16 bg-[var(--border-subtle)] rounded mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
-                <div className="h-3 w-24 bg-gray-800 rounded mb-3" />
-                <div className="h-8 w-12 bg-gray-800 rounded mb-2" />
-                <div className="h-3 w-20 bg-gray-800 rounded" />
+              <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4">
+                <div className="h-3 w-24 bg-[var(--border-subtle)] rounded mb-3" />
+                <div className="h-8 w-12 bg-[var(--border-subtle)] rounded mb-2" />
+                <div className="h-3 w-20 bg-[var(--border-subtle)] rounded" />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent activity skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
-            <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <div className="h-5 w-32 bg-gray-800 rounded mb-4" />
+            <div key={i} className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-6">
+              <div className="h-5 w-32 bg-[var(--border-subtle)] rounded mb-4" />
               {[1, 2, 3].map((j) => (
-                <div key={j} className="h-10 bg-gray-800/50 rounded mb-2" />
+                <div key={j} className="h-10 bg-[var(--bg-elevated)]/50 rounded mb-2" />
               ))}
             </div>
           ))}
@@ -155,12 +149,12 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-red-400 flex flex-col">
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-[var(--error)] flex flex-col">
         <h3 className="font-semibold mb-2">Error loading dashboard</h3>
         <p className="text-sm">{error}</p>
         <button
           onClick={fetchDashboardData}
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors self-start"
         >
           Retry
         </button>
@@ -170,14 +164,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1">Welcome to the FilaOps Admin Panel</p>
+        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
+        <p className="text-[var(--text-secondary)] mt-1">Welcome to the FilaOps Admin Panel</p>
       </div>
 
-      {/* Sales Trend Chart - Primary KPI */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4">
         <SalesChart
           data={salesData}
           period={salesPeriod}
@@ -186,7 +178,6 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Action Items Section */}
       {(stats?.orders?.overdue > 0 ||
         stats?.orders?.pending_confirmation > 0 ||
         stats?.notifications?.unread > 0 ||
@@ -195,138 +186,118 @@ export default function AdminDashboard() {
         stats?.orders?.ready_to_ship > 0 ||
         stats?.quotes?.pending > 0 ||
         invoiceSummary?.overdue_count > 0) && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800 flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-blue-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg>
-            <h3 className="font-semibold text-white">Action Items</h3>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2">
+            <ClipboardCheck size={20} className="text-[var(--primary-light)]" />
+            <h3 className="font-semibold text-[var(--text-primary)]">Action Items</h3>
           </div>
-          <div className="divide-y divide-gray-800">
-            {/* Critical - Overdue */}
+          <div className="divide-y divide-[var(--border-subtle)]">
             {stats?.orders?.overdue > 0 && (
               <Link
                 to="/admin/orders?status=overdue"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  <span className="text-white">
+                  <span className="text-[var(--text-primary)]">
                     {stats.orders.overdue} Overdue Order{stats.orders.overdue !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <span className="text-xs text-red-400 font-medium">URGENT</span>
               </Link>
             )}
-            {/* Critical - Overdue Invoices */}
             {invoiceSummary?.overdue_count > 0 && (
               <Link
                 to="/admin/invoices?status=overdue"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  <span className="text-white">
+                  <span className="text-[var(--text-primary)]">
                     {invoiceSummary.overdue_count} Overdue Invoice{invoiceSummary.overdue_count !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <span className="text-xs text-red-400 font-medium">URGENT</span>
               </Link>
             )}
-            {/* Pending Confirmation Orders */}
             {stats?.orders?.pending_confirmation > 0 && (
               <Link
                 to="/admin/orders?filter=pending_review"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                  <span className="text-white">
+                  <span className="text-[var(--text-primary)]">
                     {stats.orders.pending_confirmation} Order{stats.orders.pending_confirmation !== 1 ? "s" : ""} Pending Review
                   </span>
                 </div>
                 <span className="text-xs text-purple-400 font-medium">REVIEW</span>
               </Link>
             )}
-            {/* Unread Messages */}
             {stats?.notifications?.unread > 0 && (
               <Link
                 to="/admin/messages"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <span className="text-white">
+                  <span className="w-2 h-2 rounded-full bg-[var(--primary)]"></span>
+                  <span className="text-[var(--text-primary)]">
                     {stats.notifications.unread} Unread Message{stats.notifications.unread !== 1 ? "s" : ""}
                   </span>
                 </div>
-                <span className="text-xs text-blue-400">Read</span>
+                <span className="text-xs text-[var(--primary-light)]">Read</span>
               </Link>
             )}
-            {/* Warning - Low Stock */}
             {stats?.inventory?.low_stock_count > 0 && (
               <Link
                 to="/admin/purchasing?tab=low-stock"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
-                  <span className="text-white">
+                  <span className="text-[var(--text-primary)]">
                     {stats.inventory.low_stock_count} Low Stock Item{stats.inventory.low_stock_count !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <span className="text-xs text-yellow-400">Reorder needed</span>
               </Link>
             )}
-            {/* Action - Quotes */}
             {stats?.quotes?.pending > 0 && (
               <Link
                 to="/admin/quotes"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <span className="text-white">
+                  <span className="w-2 h-2 rounded-full bg-[var(--primary)]"></span>
+                  <span className="text-[var(--text-primary)]">
                     {stats.quotes.pending} Pending Quote{stats.quotes.pending !== 1 ? "s" : ""}
                   </span>
                 </div>
-                <span className="text-xs text-blue-400">Respond</span>
+                <span className="text-xs text-[var(--primary-light)]">Respond</span>
               </Link>
             )}
-            {/* Ready - Production */}
             {stats?.production?.ready_to_start > 0 && (
               <Link
                 to="/admin/production?status=released"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                  <span className="text-white">
+                  <span className="w-2 h-2 rounded-full bg-[var(--success)]"></span>
+                  <span className="text-[var(--text-primary)]">
                     {stats.production.ready_to_start} Order{stats.production.ready_to_start !== 1 ? "s" : ""} Ready to Start
                   </span>
                 </div>
-                <span className="text-xs text-green-400">Start production</span>
+                <span className="text-xs text-[var(--success)]">Start production</span>
               </Link>
             )}
-            {/* Ready - Shipping */}
             {stats?.orders?.ready_to_ship > 0 && (
               <Link
                 to="/admin/shipping"
-                className="flex items-center justify-between px-4 py-3 hover:bg-gray-800/50 transition-colors"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-elevated)]/30 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
-                  <span className="text-white">
+                  <span className="text-[var(--text-primary)]">
                     {stats.orders.ready_to_ship} Order{stats.orders.ready_to_ship !== 1 ? "s" : ""} Ready to Ship
                   </span>
                 </div>
@@ -337,16 +308,15 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* SALES Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Sales
           </h2>
-          <div className="flex-1 h-px bg-gray-800"></div>
+          <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
           <Link
             to="/admin/orders"
-            className="text-xs text-blue-400 hover:text-blue-300"
+            className="text-xs text-[var(--primary-light)] hover:text-[var(--primary)]"
             aria-label="View all Sales"
           >
             View all →
@@ -400,16 +370,15 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* INVENTORY Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Inventory
           </h2>
-          <div className="flex-1 h-px bg-gray-800"></div>
+          <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
           <Link
             to="/admin/items"
-            className="text-xs text-blue-400 hover:text-blue-300"
+            className="text-xs text-[var(--primary-light)] hover:text-[var(--primary)]"
             aria-label="View all Inventory"
           >
             View all →
@@ -440,28 +409,26 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* PRODUCTION Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
             Production
           </h2>
-          <div className="flex-1 h-px bg-gray-800"></div>
+          <div className="flex-1 h-px bg-[var(--border-subtle)]"></div>
           <Link
             to="/admin/production"
-            className="text-xs text-blue-400 hover:text-blue-300"
+            className="text-xs text-[var(--primary-light)] hover:text-[var(--primary)]"
             aria-label="View all Production"
           >
             View all →
           </Link>
         </div>
 
-        {/* Production Pipeline Chart */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-medium text-gray-400 mb-3">Production Pipeline</h3>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl p-4 mb-4">
+          <h3 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Production Pipeline</h3>
           <ProductionPipeline stats={stats} />
           {!stats?.production?.in_progress && !stats?.production?.scheduled && !stats?.production?.draft && !stats?.production?.released && (
-            <p className="text-gray-500 text-sm text-center py-4">No active production orders</p>
+            <p className="text-[var(--text-muted)] text-sm text-center py-4">No active production orders</p>
           )}
         </div>
 
@@ -483,15 +450,13 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 className="font-semibold text-white">Recent Orders</h3>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
+            <h3 className="font-semibold text-[var(--text-primary)]">Recent Orders</h3>
             <Link
               to="/admin/orders"
-              className="text-sm text-blue-400 hover:text-blue-300"
+              className="text-sm text-[var(--primary-light)] hover:text-[var(--primary)]"
               aria-label="View all Orders"
             >
               View all →
@@ -499,18 +464,18 @@ export default function AdminDashboard() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-800/50">
+              <thead className="bg-[var(--bg-elevated)]/50">
                 <tr>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-[var(--text-secondary)] uppercase">
                     Order
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-[var(--text-secondary)] uppercase">
                     Product
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-[var(--text-secondary)] uppercase">
                     Status
                   </th>
-                  <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-[var(--text-secondary)] uppercase">
                     Total
                   </th>
                   <th className="w-8"></th>
@@ -523,7 +488,7 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-500">
+                    <td colSpan={5} className="py-8 text-center text-[var(--text-muted)]">
                       No recent orders
                     </td>
                   </tr>
@@ -533,47 +498,44 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Pending Purchase Orders */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
-            <h3 className="font-semibold text-white">Pending Purchases</h3>
+        <div className="bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex justify-between items-center">
+            <h3 className="font-semibold text-[var(--text-primary)]">Pending Purchases</h3>
             <Link
               to="/admin/purchasing"
               aria-label="View all Purchases"
-              className="text-sm text-blue-400 hover:text-blue-300"
+              className="text-sm text-[var(--primary-light)] hover:text-[var(--primary)]"
             >
               View all →
             </Link>
           </div>
-          <div className="divide-y divide-gray-800">
+          <div className="divide-y divide-[var(--border-subtle)]">
             {pendingPOs.length > 0 ? (
               pendingPOs.map((po) => (
                 <Link
                   key={po.id}
                   to={`/admin/purchasing?po=${po.id}`}
-                  className="block px-6 py-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
+                  className="block px-6 py-4 hover:bg-[var(--bg-elevated)]/30 transition-colors cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-white font-medium">{po.po_number || `PO-${po.id}`}</p>
-                      <p className="text-sm text-gray-400">{po.vendor_name || "No vendor"}</p>
+                      <p className="text-[var(--text-primary)] font-medium">{po.po_number || `PO-${po.id}`}</p>
+                      <p className="text-sm text-[var(--text-secondary)]">{po.vendor_name || "No vendor"}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         po.status === "draft"
-                          ? "bg-gray-500/20 text-gray-400"
+                          ? "bg-gray-500/20 text-[var(--text-secondary)]"
                           : po.status === "ordered"
-                          ? "bg-blue-500/20 text-blue-400"
+                          ? "bg-[var(--primary)]/20 text-[var(--primary-light)]"
                           : "bg-purple-500/20 text-purple-400"
                       }`}>
                         {po.status?.charAt(0).toUpperCase() + po.status?.slice(1)}
                       </span>
-                      <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <ChevronRight size={16} className="text-[var(--text-muted)]" />
                     </div>
                   </div>
-                  <div className="mt-2 flex gap-4 text-xs text-gray-500">
+                  <div className="mt-2 flex gap-4 text-xs text-[var(--text-muted)]">
                     <span>{po.line_count || po.lines?.length || 0} items</span>
                     <span>
                       ${parseFloat(po.total_amount || po.total || 0).toFixed(2)}
@@ -585,7 +547,7 @@ export default function AdminDashboard() {
                 </Link>
               ))
             ) : (
-              <div className="px-6 py-8 text-center text-gray-500">
+              <div className="px-6 py-8 text-center text-[var(--text-muted)]">
                 No pending purchase orders
               </div>
             )}

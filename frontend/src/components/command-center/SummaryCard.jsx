@@ -5,34 +5,35 @@
  */
 import { Link } from 'react-router-dom';
 
-/**
- * Color variants for different stat types
- */
 const variants = {
   default: {
-    bg: 'bg-gray-800',
-    text: 'text-gray-400',
-    value: 'text-white'
+    bg: 'bg-[var(--bg-elevated)]',
+    text: 'text-[var(--text-secondary)]',
+    value: 'text-[var(--text-primary)]'
   },
   success: {
-    bg: 'bg-emerald-900/30',
-    text: 'text-emerald-400',
-    value: 'text-emerald-300'
+    bg: '',
+    bgColor: 'rgba(0, 200, 83, 0.12)',
+    text: 'text-[var(--success)]',
+    value: 'text-[var(--success)]'
   },
   warning: {
-    bg: 'bg-amber-900/30',
-    text: 'text-amber-400',
+    bg: '',
+    bgColor: 'rgba(238, 122, 8, 0.12)',
+    text: 'text-[var(--warning)]',
     value: 'text-amber-300'
   },
   danger: {
-    bg: 'bg-red-900/30',
-    text: 'text-red-400',
+    bg: '',
+    bgColor: 'rgba(239, 68, 68, 0.12)',
+    text: 'text-[var(--error)]',
     value: 'text-red-300'
   },
   info: {
-    bg: 'bg-blue-900/30',
-    text: 'text-blue-400',
-    value: 'text-blue-300'
+    bg: '',
+    bgColor: 'rgba(2, 109, 248, 0.12)',
+    text: 'text-[var(--info)]',
+    value: 'text-[var(--primary-light)]'
   }
 };
 
@@ -49,9 +50,10 @@ export default function SummaryCard({
   const content = (
     <div
       className={`
-        ${colors.bg} rounded-xl p-4 border border-gray-700
-        ${(href || onClick) ? 'hover:border-gray-500 cursor-pointer transition-colors' : ''}
+        ${colors.bg} rounded-xl p-4 border border-[var(--border-subtle)]
+        ${(href || onClick) ? 'hover:border-[var(--border-active)] cursor-pointer transition-colors' : ''}
       `}
+      style={colors.bgColor ? { backgroundColor: colors.bgColor } : undefined}
       onClick={onClick}
     >
       <div className={`text-sm font-medium ${colors.text}`}>
@@ -61,7 +63,7 @@ export default function SummaryCard({
         {value}
       </div>
       {subtitle && (
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-[var(--text-muted)] mt-1">
           {subtitle}
         </div>
       )}
