@@ -430,7 +430,7 @@ Use these phrases if the room starts to drift into jargon:
 
 - The live failure used in this demo is `backend -> order-ingest` on `8030/TCP`.
 - If the cluster exposes `ciliumnetworkpolicies.cilium.io`, the wrapper uses `k8s/3dprint/policies/order-ingest-deny.cnp.yaml`.
-- If the Cilium CRD is absent, the wrapper falls back to `k8s/3dprint/policies/order-ingest-deny.netpol.yaml`, which is broader.
+- If the Cilium CRD is absent, the wrapper falls back to `k8s/3dprint/policies/order-ingest-deny.netpol.yaml`, which is broader: it blocks **all** ingress to `order-ingest`, not just traffic from the backend. Direct health probes to `order-ingest` will also fail while the policy is applied on non-Cilium clusters. The demo break/restore sequence remains correct because the smoke test routes through the backend, but avoid running `baseline` (which health-checks `order-ingest` directly) while the policy is active on a non-Cilium cluster.
 - The browser transaction proves login and navigation to the order-import page.
 - The focused order-import failure is asserted by the in-cluster backend smoke flow during the break.
 - The `deploy` command auto-detects Cilium and configures the Splunk OTel Collector to scrape Hubble metrics (`cilium_drop_count_total`, `hubble_flows_processed_total`). The Policy Impact dashboard uses these metrics directly.

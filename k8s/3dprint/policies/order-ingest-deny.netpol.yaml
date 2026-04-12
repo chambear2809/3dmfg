@@ -2,6 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: demo-order-ingest-deny
+  # NOTE: Standard NetworkPolicy cannot express an egress deny scoped to one
+  # source pod (that requires Cilium CRDs). This fallback blocks ALL ingress to
+  # order-ingest, which is broader than the Cilium policy (which only denies
+  # backend -> order-ingest egress). On non-Cilium clusters this means direct
+  # health probes to order-ingest will also fail while the policy is applied.
+  # The demo break/restore flow remains correct because the smoke test goes
+  # through the backend, but be aware of the wider blast radius.
 spec:
   podSelector:
     matchLabels:

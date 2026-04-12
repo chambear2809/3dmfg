@@ -31,6 +31,15 @@ const staticUpstream =
   apiUpstream;
 const otlpTracesUpstream = process.env.FRONTEND_OTLP_TRACES_UPSTREAM || "";
 
+// Build the rum-ingest CSP directive from the configured realm so that Splunk
+// RUM in direct exporter mode is allowed to reach the correct ingest endpoint.
+// Falls back to a wildcard subdomain pattern so deployments that don't set the
+// variable still work, albeit with a slightly broader allowance.
+const splunkRumRealm = process.env.SPLUNK_RUM_REALM || "";
+const rumIngestCspSource = splunkRumRealm
+  ? `https://rum-ingest.${splunkRumRealm}.signalfx.com`
+  : "https://*.signalfx.com";
+
 const longCacheExtensions = /\.(?:css|gif|ico|jpe?g|js|mjs|png|svg|woff2?)$/iu;
 const hopByHopHeaders = new Set([
   "connection",
@@ -67,7 +76,7 @@ const securityHeaders = {
   "X-XSS-Protection": "1; mode=block",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://rum-ingest.us1.signalfx.com; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'",
+    `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' ${rumIngestCspSource}; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'`,
 };
 
 function applySecurityHeaders(headers) {
