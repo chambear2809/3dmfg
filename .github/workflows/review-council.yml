@@ -86,7 +86,7 @@ jobs:
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
+        if: always() && env.ANTHROPIC_API_KEY != ''
         with:
           files: .code-conclave/reviews/conclave-results.xml
           check_name: 'Review Council'
